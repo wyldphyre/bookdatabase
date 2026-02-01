@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if book else 'Add' }} Book - Book Database{% endblock %}
+
+{% block content %}
+<h1>{{ 'Edit' if book else 'Add New' }} Book</h1>
+
+<form method="post" enctype="multipart/form-data">
+    <label>
+        Title *
+        <input type="text" name="title" value="{{ book.title if book else '' }}" required>
+    </label>
+
+    <label>
+        Subtitle
+        <input type="text" name="subtitle" value="{{ book.subtitle or '' if book else '' }}">
+    </label>
+
+    <fieldset>
+        <legend>Authors</legend>
+        <div id="author-select-container">
+            <select name="authors" id="author-select" multiple>
+                {% for author in authors %}
+                <option value="{{ author.id }}"
+                        {% if book and author in book.authors %}selected{% endif %}>
+                    {{ author.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <small>Hold Ctrl/Cmd to select multiple</small>
+
+        <details id="quick-add-author">
+            <summary role="button" class="outline secondary">+ Add New Author</summary>
+            <div style="margin-top: 1rem; padding: 1rem; background: var(--pico-card-background-color); border-radius: var(--pico-border-radius);">
+                <label>
+                    Author Name
+                    <input type="text" name="name" id="new-author-name" placeholder="Enter author name...">
+                </label>
+                <button type="button" class="secondary"
+                        hx-post="{{ url_for('author_quick_add') }}"
+                        hx-include="#new-author-name"
+                        hx-target="#author-select-container"
+                        hx-swap="innerHTML"
+                        hx-on::after-request="document.getElementById('quick-add-author').removeAttribute('open'); document.getElementById('new-author-name').value = '';">
+                    Add Author
+                </button>
+                <div id="quick-add-error"></div>
+            </div>
+        </details>
+    </fieldset>
+
+    <div class="form-grid">
+        <label>
+            Format *
+            <select name="format_id" required>
+                <option value="">Select format...</option>
+                {% for format in formats %}
+                <option value="{{ format.id }}"
+                        {% if book and book.format_id == format.id %}selected{% endif %}>
+                    {{ format.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>
+            Page Count
+            <input type="number" name="page_count" value="{{ book.page_count or '' if book else '' }}" min="0">
+        </label>
+
+        <label>
+            Rating (0-5)
+            <input type="number" name="rating" value="{{ book.rating or '' if book else '' }}" min="0" max="5" step="0.25">
+        </label>
+    </div>
+
+    <div class="form-grid">
+        <label>
+            Series
+            <select name="series_id">
+                <option value="">No series</option>
+                {% for series in series_list %}
+                <option value="{{ series.id }}"
+                        {% if book and book.series_id == series.id %}selected{% endif %}>
+                    {{ series.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>
+            Series Number
+            <input type="number" name="series_number" value="{{ book.series_number or '' if book else '' }}" step="0.1" min="0">
+        </label>
+    </div>
+
+    <label>
+        Description
+        <textarea name="description" rows="4">{{ book.description or '' if book else '' }}</textarea>
+    </label>
+
+    <label>
+        Cover Image
+        <input type="file" name="cover_image" accept="image/*">
+        {% if book and book.cover_image %}
+        <small>Current: {{ book.cover_image }}</small>
+        {% endif %}
+    </label>
+
+    <div class="form-grid">
+        <label>
+            Date Purchased
+            <input type="date" name="date_purchased" value="{{ book.date_purchased.strftime('%Y-%m-%d') if book and book.date_purchased else '' }}">
+        </label>
+
+        <label>
+            Cost
+            <input type="number" name="cost" value="{{ book.cost or '' if book else '' }}" step="0.01" min="0">
+        </label>
+
+        <label>
+            Discounts
+            <input type="number" name="discounts" value="{{ book.discounts or '' if book else '' }}" step="0.01" min="0">
+        </label>
+
+        <label>
+            Paid
+            <input type="number" name="paid" value="{{ book.paid or '' if book else '' }}" step="0.01" min="0">
+        </label>
+    </div>
+
+    <fieldset>
+        <label>
+            <input type="checkbox" name="is_book_bundle" {% if book and book.is_book_bundle %}checked{% endif %}>
+            This is a book bundle
+        </label>
+    </fieldset>
+
+    <label>
+        Bundled Books (e.g., "1-3, 1-10")
+        <input type="text" name="bundled_books" value="{{ book.bundled_books or '' if book else '' }}">
+    </label>
+
+    <label>
+        Notes/Comments
+        <textarea name="comment" rows="3">{{ book.comment or '' if book else '' }}</textarea>
+    </label>
+
+    <div class="button-group">
+        <button type="submit">{{ 'Update' if book else 'Add' }} Book</button>
+        <a href="{{ url_for('book_detail', id=book.id) if book else url_for('book_list') }}" role="button" class="secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

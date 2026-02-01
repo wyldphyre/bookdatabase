@@ -1,0 +1,65 @@
+{% if query %}
+    {% if books %}
+    <section class="search-section">
+        <h2>Books ({{ books|length }})</h2>
+        <div class="book-grid">
+            {% for book in books %}
+            <a href="{{ url_for('book_detail', id=book.id) }}" class="book-card" style="text-decoration: none; color: inherit;">
+                {% if book.cover_image %}
+                <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}">
+                {% else %}
+                <div class="placeholder-cover">📚</div>
+                {% endif %}
+                <div class="book-card-content">
+                    <div class="book-card-title">{{ book.title }}</div>
+                    <div class="book-card-author">{{ book.author_names or 'Unknown Author' }}</div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if authors %}
+    <section class="search-section">
+        <h2>Authors ({{ authors|length }})</h2>
+        {% for author in authors %}
+        <div class="list-item">
+            <div>
+                <a href="{{ url_for('author_detail', id=author.id) }}"><strong>{{ author.name }}</strong></a>
+                {% if author.alias_of %}
+                <small>(alias of {{ author.alias_of.name }})</small>
+                {% endif %}
+                <br>
+                <small>{{ author.books|length }} book{{ 's' if author.books|length != 1 else '' }}</small>
+            </div>
+        </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if series_results %}
+    <section class="search-section">
+        <h2>Series ({{ series_results|length }})</h2>
+        {% for series in series_results %}
+        <div class="list-item">
+            <div>
+                <a href="{{ url_for('series_detail', id=series.id) }}"><strong>{{ series.name }}</strong></a>
+                <br>
+                <small>{{ series.books|length }} book{{ 's' if series.books|length != 1 else '' }} in library</small>
+            </div>
+        </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if not books and not authors and not series_results %}
+    <article>
+        <p>No results found for "{{ query }}".</p>
+    </article>
+    {% endif %}
+{% else %}
+    <article>
+        <p>Enter a search term to find books, authors, or series.</p>
+    </article>
+{% endif %}

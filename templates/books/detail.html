@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}{{ book.title }} - Book Database{% endblock %}
+
+{% block content %}
+<div class="book-detail">
+    <div>
+        {% if book.cover_image %}
+        <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" class="book-cover">
+        {% else %}
+        <div class="book-cover-placeholder">📚</div>
+        {% endif %}
+    </div>
+
+    <div>
+        <hgroup>
+            <h1>{{ book.title }}</h1>
+            {% if book.subtitle %}
+            <p>{{ book.subtitle }}</p>
+            {% endif %}
+        </hgroup>
+
+        {% if book.authors %}
+        <p>
+            <strong>By:</strong>
+            {% for author in book.authors %}
+            <a href="{{ url_for('author_detail', id=author.id) }}">{{ author.name }}</a>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        </p>
+        {% endif %}
+
+        {% if book.series %}
+        <p>
+            <strong>Series:</strong>
+            <a href="{{ url_for('series_detail', id=book.series.id) }}">{{ book.series.name }}</a>
+            {% if book.series_number %}(#{{ book.series_number }}){% endif %}
+        </p>
+        {% endif %}
+
+        {% if book.rating %}
+        <p class="rating">
+            {% for i in range(5) %}
+                {% if book.rating >= i + 1 %}★{% elif book.rating >= i + 0.5 %}★{% else %}☆{% endif %}
+            {% endfor %}
+            ({{ book.rating }}/5)
+        </p>
+        {% endif %}
+
+        <div class="meta-info">
+            {% if book.format %}
+            <div class="meta-item">
+                <div class="meta-label">Format</div>
+                <div class="meta-value">{{ book.format.name }}</div>
+            </div>
+            {% endif %}
+            {% if book.page_count %}
+            <div class="meta-item">
+                <div class="meta-label">Pages</div>
+                <div class="meta-value">{{ book.page_count }}</div>
+            </div>
+            {% endif %}
+            {% if book.date_purchased %}
+            <div class="meta-item">
+                <div class="meta-label">Purchased</div>
+                <div class="meta-value">{{ book.date_purchased.strftime('%Y-%m-%d') }}</div>
+            </div>
+            {% endif %}
+            <div class="meta-item">
+                <div class="meta-label">Added</div>
+                <div class="meta-value">{{ book.date_added.strftime('%Y-%m-%d') }}</div>
+            </div>
+        </div>
+
+        {% if book.cost or book.paid or book.discounts %}
+        <div class="meta-info">
+            {% if book.cost %}
+            <div class="meta-item">
+                <div class="meta-label">Cost</div>
+                <div class="meta-value">${{ "%.2f"|format(book.cost) }}</div>
+            </div>
+            {% endif %}
+            {% if book.discounts %}
+            <div class="meta-item">
+                <div class="meta-label">Discounts</div>
+                <div class="meta-value">${{ "%.2f"|format(book.discounts) }}</div>
+            </div>
+            {% endif %}
+            {% if book.paid %}
+            <div class="meta-item">
+                <div class="meta-label">Paid</div>
+                <div class="meta-value">${{ "%.2f"|format(book.paid) }}</div>
+            </div>
+            {% endif %}
+            {% if book.saved %}
+            <div class="meta-item">
+                <div class="meta-label">Saved</div>
+                <div class="meta-value">${{ "%.2f"|format(book.saved) }}</div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if book.is_book_bundle %}
+        <p><mark>Book Bundle</mark> {% if book.bundled_books %}({{ book.bundled_books }}){% endif %}</p>
+        {% endif %}
+
+        {% if book.description %}
+        <article>
+            <h3>Description</h3>
+            <p>{{ book.description }}</p>
+        </article>
+        {% endif %}
+
+        {% if book.comment %}
+        <article>
+            <h3>Notes</h3>
+            <p>{{ book.comment }}</p>
+        </article>
+        {% endif %}
+
+        <div class="button-group">
+            <a href="{{ url_for('book_edit', id=book.id) }}" role="button">Edit Book</a>
+            <button class="secondary"
+                    hx-delete="{{ url_for('book_delete', id=book.id) }}"
+                    hx-confirm="Are you sure you want to delete this book?"
+                    hx-target="body">
+                Delete Book
+            </button>
+        </div>
+    </div>
+</div>
+
+<hr>
+
+<section>
+    <h2>Reading History</h2>
+
+    {% if book.reads %}
+        {% for read in book.reads %}
+        <div class="read-entry">
+            <div>
+                <span class="read-status status-{{ read.status.lower() }}">{{ read.status }}</span>
+                {% if read.start_date %}Started: {{ read.start_date.strftime('%Y-%m-%d') }}{% endif %}
+                {% if read.finish_date %} | Finished: {{ read.finish_date.strftime('%Y-%m-%d') }}{% endif %}
+            </div>
+            <div class="button-group">
+                <details>
+                    <summary role="button" class="outline secondary">Edit</summary>
+                    <form method="post" action="{{ url_for('read_update', id=read.id) }}">
+                        <label>
+                            Status
+                            <select name="status" required>
+                                <option value="Reading" {% if read.status == 'Reading' %}selected{% endif %}>Reading</option>
+                                <option value="Completed" {% if read.status == 'Completed' %}selected{% endif %}>Completed</option>
+                                <option value="Abandoned" {% if read.status == 'Abandoned' %}selected{% endif %}>Abandoned</option>
+                            </select>
+                        </label>
+                        <label>
+                            Start Date
+                            <input type="date" name="start_date" value="{{ read.start_date.strftime('%Y-%m-%d') if read.start_date else '' }}">
+                        </label>
+                        <label>
+                            Finish Date
+                            <input type="date" name="finish_date" value="{{ read.finish_date.strftime('%Y-%m-%d') if read.finish_date else '' }}">
+                        </label>
+                        <button type="submit">Update Read</button>
+                    </form>
+                </details>
+                <button class="outline secondary"
+                        hx-delete="{{ url_for('read_delete', id=read.id) }}"
+                        hx-confirm="Delete this read entry?">
+                    Delete
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>No reading history for this book.</p>
+    {% endif %}
+
+    <details>
+        <summary role="button" class="outline">Add New Read</summary>
+        <form method="post" action="{{ url_for('read_add', book_id=book.id) }}">
+            <div class="form-grid">
+                <label>
+                    Status
+                    <select name="status" required>
+                        <option value="Reading">Reading</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Abandoned">Abandoned</option>
+                    </select>
+                </label>
+                <label>
+                    Start Date
+                    <input type="date" name="start_date">
+                </label>
+                <label>
+                    Finish Date
+                    <input type="date" name="finish_date">
+                </label>
+            </div>
+            <button type="submit">Add Read</button>
+        </form>
+    </details>
+</section>
+{% endblock %}

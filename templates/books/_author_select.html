@@ -1,0 +1,9 @@
+<select name="authors" id="author-select" multiple>
+    {% for author in authors %}
+    <option value="{{ author.id }}"
+            {% if selected_id and author.id == selected_id %}selected{% endif %}
+            {% if selected_ids and author.id in selected_ids %}selected{% endif %}>
+        {{ author.name }}
+    </option>
+    {% endfor %}
+</select>

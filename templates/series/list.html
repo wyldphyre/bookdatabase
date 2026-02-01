@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Series - Book Database{% endblock %}
+
+{% block content %}
+<header>
+    <hgroup>
+        <h1>Series</h1>
+        <p>Browse and manage book series</p>
+    </hgroup>
+    <a href="{{ url_for('series_new') }}" role="button">Add New Series</a>
+</header>
+
+{% if series_list %}
+    {% for series in series_list %}
+    <div class="list-item">
+        <div>
+            <a href="{{ url_for('series_detail', id=series.id) }}"><strong>{{ series.name }}</strong></a>
+            {% if series.number_in_series %}
+            <small>({{ series.number_in_series }} books in series)</small>
+            {% endif %}
+            <br>
+            <small>{{ series.books|length }} book{{ 's' if series.books|length != 1 else '' }} in library</small>
+        </div>
+        <div class="button-group">
+            <a href="{{ url_for('series_edit', id=series.id) }}" role="button" class="outline secondary">Edit</a>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <article>
+        <p>No series yet.</p>
+        <a href="{{ url_for('series_new') }}" role="button">Add Your First Series</a>
+    </article>
+{% endif %}
+{% endblock %}

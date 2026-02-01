@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}{{ series.name }} - Book Database{% endblock %}
+
+{% block content %}
+<hgroup>
+    <h1>{{ series.name }}</h1>
+    {% if series.number_in_series %}
+    <p>{{ series.number_in_series }} books in series</p>
+    {% endif %}
+</hgroup>
+
+{% if series.goodreads_url or series.amazon_url or series.storygraph_url %}
+<div class="external-links">
+    {% if series.goodreads_url %}
+    <a href="{{ series.goodreads_url }}" target="_blank" rel="noopener">Goodreads</a>
+    {% endif %}
+    {% if series.amazon_url %}
+    <a href="{{ series.amazon_url }}" target="_blank" rel="noopener">Amazon</a>
+    {% endif %}
+    {% if series.storygraph_url %}
+    <a href="{{ series.storygraph_url }}" target="_blank" rel="noopener">StoryGraph</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="button-group" style="margin-top: 1rem;">
+    <a href="{{ url_for('series_edit', id=series.id) }}" role="button">Edit Series</a>
+    <button class="secondary"
+            hx-delete="{{ url_for('series_delete', id=series.id) }}"
+            hx-confirm="Are you sure you want to delete this series?"
+            hx-target="body">
+        Delete Series
+    </button>
+</div>
+
+<hr>
+
+<section>
+    <h2>Books in Series</h2>
+    {% if series.books %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Cover</th>
+                <th>Title</th>
+                <th>Author(s)</th>
+                <th>Rating</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for book in series.books %}
+            <tr>
+                <td>{{ book.series_number or '-' }}</td>
+                <td>
+                    {% if book.cover_image %}
+                    <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" style="width: 50px; height: 75px; object-fit: cover;">
+                    {% else %}
+                    <div style="width: 50px; height: 75px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white;">📚</div>
+                    {% endif %}
+                </td>
+                <td><a href="{{ url_for('book_detail', id=book.id) }}">{{ book.title }}</a></td>
+                <td>{{ book.author_names or 'Unknown' }}</td>
+                <td>
+                    {% if book.rating %}
+                    <span class="rating">{{ book.rating }}/5</span>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No books from this series in your library.</p>
+    {% endif %}
+</section>
+{% endblock %}

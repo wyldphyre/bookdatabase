@@ -1,0 +1,24 @@
+# Virtual environment
+venv/
+
+# SQLite database
+instance/
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Uploads (user content)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

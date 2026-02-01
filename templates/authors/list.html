@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Authors - Book Database{% endblock %}
+
+{% block content %}
+<header>
+    <hgroup>
+        <h1>Authors</h1>
+        <p>Browse and manage authors</p>
+    </hgroup>
+    <a href="{{ url_for('author_new') }}" role="button">Add New Author</a>
+</header>
+
+<form action="{{ url_for('author_list') }}" method="get">
+    <input type="search" name="search" placeholder="Search authors..." value="{{ search }}"
+           hx-get="{{ url_for('author_list') }}"
+           hx-trigger="keyup changed delay:300ms"
+           hx-target="main"
+           hx-select="main"
+           hx-push-url="true">
+</form>
+
+{% if authors %}
+    {% for author in authors %}
+    <div class="list-item">
+        <div>
+            <a href="{{ url_for('author_detail', id=author.id) }}"><strong>{{ author.name }}</strong></a>
+            {% if author.pronouns %}<small>({{ author.pronouns }})</small>{% endif %}
+            {% if author.gender %}<small class="secondary">{{ author.gender.name }}</small>{% endif %}
+            <br>
+            <small>{{ author.books|length }} book{{ 's' if author.books|length != 1 else '' }}</small>
+        </div>
+        <div class="button-group">
+            <a href="{{ url_for('author_edit', id=author.id) }}" role="button" class="outline secondary">Edit</a>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <article>
+        <p>{% if search %}No authors found matching "{{ search }}".{% else %}No authors yet.{% endif %}</p>
+        <a href="{{ url_for('author_new') }}" role="button">Add Your First Author</a>
+    </article>
+{% endif %}
+{% endblock %}

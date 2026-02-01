@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if series else 'Add' }} Series - Book Database{% endblock %}
+
+{% block content %}
+<h1>{{ 'Edit' if series else 'Add New' }} Series</h1>
+
+<form method="post">
+    <label>
+        Name *
+        <input type="text" name="name" value="{{ series.name if series else '' }}" required>
+    </label>
+
+    <label>
+        Number of Books in Series
+        <input type="number" name="number_in_series" value="{{ series.number_in_series or '' if series else '' }}" min="0">
+        <small>Optional: Total number of books in the complete series</small>
+    </label>
+
+    <h3>External Links</h3>
+
+    <label>
+        Goodreads URL
+        <input type="url" name="goodreads_url" value="{{ series.goodreads_url or '' if series else '' }}" placeholder="https://goodreads.com/series/...">
+    </label>
+
+    <label>
+        Amazon URL
+        <input type="url" name="amazon_url" value="{{ series.amazon_url or '' if series else '' }}" placeholder="https://amazon.com/...">
+    </label>
+
+    <label>
+        StoryGraph URL
+        <input type="url" name="storygraph_url" value="{{ series.storygraph_url or '' if series else '' }}" placeholder="https://app.thestorygraph.com/...">
+    </label>
+
+    <div class="button-group">
+        <button type="submit">{{ 'Update' if series else 'Add' }} Series</button>
+        <a href="{{ url_for('series_detail', id=series.id) if series else url_for('series_list') }}" role="button" class="secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

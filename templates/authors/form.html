@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if author else 'Add' }} Author - Book Database{% endblock %}
+
+{% block content %}
+<h1>{{ 'Edit' if author else 'Add New' }} Author</h1>
+
+<form method="post">
+    <label>
+        Name *
+        <input type="text" name="name" value="{{ author.name if author else '' }}" required>
+    </label>
+
+    <div class="form-grid">
+        <label>
+            Pronouns
+            <input type="text" name="pronouns" value="{{ author.pronouns or '' if author else '' }}" placeholder="e.g., she/her, he/him, they/them">
+        </label>
+
+        <label>
+            Gender
+            <select name="gender_id">
+                <option value="">Unknown</option>
+                {% for gender in genders %}
+                <option value="{{ gender.id }}"
+                        {% if author and author.gender_id == gender.id %}selected{% endif %}>
+                    {{ gender.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+
+    <label>
+        Alias Of
+        <select name="alias_of_id">
+            <option value="">Not an alias</option>
+            {% for other_author in authors %}
+            <option value="{{ other_author.id }}"
+                    {% if author and author.alias_of_id == other_author.id %}selected{% endif %}>
+                {{ other_author.name }}
+            </option>
+            {% endfor %}
+        </select>
+        <small>If this is a pen name or alternate name for another author</small>
+    </label>
+
+    <h3>External Links</h3>
+
+    <label>
+        Goodreads URL
+        <input type="url" name="goodreads_url" value="{{ author.goodreads_url or '' if author else '' }}" placeholder="https://goodreads.com/author/...">
+    </label>
+
+    <label>
+        Amazon URL
+        <input type="url" name="amazon_url" value="{{ author.amazon_url or '' if author else '' }}" placeholder="https://amazon.com/...">
+    </label>
+
+    <label>
+        StoryGraph URL
+        <input type="url" name="storygraph_url" value="{{ author.storygraph_url or '' if author else '' }}" placeholder="https://app.thestorygraph.com/authors/...">
+    </label>
+
+    <label>
+        Website
+        <input type="url" name="website" value="{{ author.website or '' if author else '' }}" placeholder="https://...">
+    </label>
+
+    <div class="button-group">
+        <button type="submit">{{ 'Update' if author else 'Add' }} Author</button>
+        <a href="{{ url_for('author_detail', id=author.id) if author else url_for('author_list') }}" role="button" class="secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

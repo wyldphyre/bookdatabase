@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}{{ author.name }} - Book Database{% endblock %}
+
+{% block content %}
+<hgroup>
+    <h1>{{ author.name }}</h1>
+    {% if author.pronouns %}
+    <p>{{ author.pronouns }}</p>
+    {% endif %}
+</hgroup>
+
+{% if author.alias_of %}
+<p><mark>Alias of <a href="{{ url_for('author_detail', id=author.alias_of.id) }}">{{ author.alias_of.name }}</a></mark></p>
+{% endif %}
+
+<div class="meta-info">
+    {% if author.gender %}
+    <div class="meta-item">
+        <div class="meta-label">Gender</div>
+        <div class="meta-value">{{ author.gender.name }}</div>
+    </div>
+    {% endif %}
+    <div class="meta-item">
+        <div class="meta-label">Books</div>
+        <div class="meta-value">{{ author.books|length }}</div>
+    </div>
+</div>
+
+{% if author.goodreads_url or author.amazon_url or author.storygraph_url or author.website %}
+<div class="external-links">
+    {% if author.goodreads_url %}
+    <a href="{{ author.goodreads_url }}" target="_blank" rel="noopener">Goodreads</a>
+    {% endif %}
+    {% if author.amazon_url %}
+    <a href="{{ author.amazon_url }}" target="_blank" rel="noopener">Amazon</a>
+    {% endif %}
+    {% if author.storygraph_url %}
+    <a href="{{ author.storygraph_url }}" target="_blank" rel="noopener">StoryGraph</a>
+    {% endif %}
+    {% if author.website %}
+    <a href="{{ author.website }}" target="_blank" rel="noopener">Website</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="button-group" style="margin-top: 1rem;">
+    <a href="{{ url_for('author_edit', id=author.id) }}" role="button">Edit Author</a>
+    <button class="secondary"
+            hx-delete="{{ url_for('author_delete', id=author.id) }}"
+            hx-confirm="Are you sure you want to delete this author?"
+            hx-target="body">
+        Delete Author
+    </button>
+</div>
+
+<hr>
+
+{% if author.aliases %}
+<section>
+    <h2>Aliases</h2>
+    <ul>
+        {% for alias in author.aliases %}
+        <li><a href="{{ url_for('author_detail', id=alias.id) }}">{{ alias.name }}</a></li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+<section>
+    <h2>Books by {{ author.name }}</h2>
+    {% if author.books %}
+    <div class="book-grid">
+        {% for book in author.books %}
+        <a href="{{ url_for('book_detail', id=book.id) }}" class="book-card" style="text-decoration: none; color: inherit;">
+            {% if book.cover_image %}
+            <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}">
+            {% else %}
+            <div class="placeholder-cover">📚</div>
+            {% endif %}
+            <div class="book-card-content">
+                <div class="book-card-title">{{ book.title }}</div>
+                {% if book.series %}
+                <div class="book-card-author">{{ book.series.name }} {% if book.series_number %}#{{ book.series_number }}{% endif %}</div>
+                {% endif %}
+                {% if book.rating %}
+                <div class="rating">
+                    {% for i in range(5) %}
+                        {% if book.rating >= i + 1 %}★{% elif book.rating >= i + 0.5 %}★{% else %}☆{% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>No books by this author in your library.</p>
+    {% endif %}
+</section>
+{% endblock %}
