@@ -57,7 +57,7 @@ def validate_rating(rating):
 # Dashboard
 @app.route('/')
 def dashboard():
-    active_reads = Read.query.filter_by(status='Reading').all()
+    active_reads = Read.query.filter_by(status='Reading').order_by(Read.start_date.desc()).all()
     total_books = Book.query.count()
     total_reads = Read.query.filter_by(status='Completed').count()
     return render_template('dashboard.html',
@@ -70,7 +70,7 @@ def dashboard():
 @app.route('/books')
 def book_list():
     page = request.args.get('page', 1, type=int)
-    per_page = 12
+    per_page = 25
     books = Book.query.order_by(Book.date_added.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
