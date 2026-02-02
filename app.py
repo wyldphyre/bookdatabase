@@ -310,9 +310,34 @@ def author_quick_add():
     db.session.add(author)
     db.session.commit()
 
-    # Return updated author select options with new author selected
-    authors = Author.query.filter_by(alias_of_id=None).order_by(Author.name).all()
-    return render_template('books/_author_select.html', authors=authors, selected_id=author.id)
+    # Return the new author as a selected chip
+    return render_template('books/_author_chip.html', author=author)
+
+
+@app.route('/authors/search')
+def author_search():
+    """Search authors for the author picker."""
+    query = request.args.get('q', '').strip()
+    exclude_str = request.args.get('exclude', '')
+
+    # Parse comma-separated exclude IDs
+    exclude_ids = []
+    if exclude_str:
+        exclude_ids = [int(x) for x in exclude_str.split(',') if x.strip().isdigit()]
+
+    if len(query) < 1:
+        return ''
+
+    authors = Author.query.filter(
+        Author.alias_of_id.is_(None),
+        Author.name.ilike(f'%{query}%')
+    )
+
+    if exclude_ids:
+        authors = authors.filter(~Author.id.in_(exclude_ids))
+
+    authors = authors.order_by(Author.name).limit(10).all()
+    return render_template('books/_author_search_results.html', authors=authors, query=query)
 
 
 @app.route('/authors/<int:id>/delete', methods=['DELETE', 'POST'])

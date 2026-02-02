@@ -1,0 +1,5 @@
+<span class="author-chip" data-author-id="{{ author.id }}">
+    {{ author.name }}
+    <input type="hidden" name="authors" value="{{ author.id }}">
+    <button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>
+</span>

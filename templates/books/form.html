@@ -18,17 +18,31 @@
 
     <fieldset>
         <legend>Authors</legend>
-        <div id="author-select-container">
-            <select name="authors" id="author-select" multiple>
-                {% for author in authors %}
-                <option value="{{ author.id }}"
-                        {% if book and author in book.authors %}selected{% endif %}>
-                    {{ author.name }}
-                </option>
-                {% endfor %}
-            </select>
+
+        <div id="selected-authors" class="selected-authors">
+            {% if book %}
+            {% for author in book.authors %}
+            <span class="author-chip" data-author-id="{{ author.id }}">
+                {{ author.name }}
+                <input type="hidden" name="authors" value="{{ author.id }}">
+                <button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>
+            </span>
+            {% endfor %}
+            {% endif %}
         </div>
-        <small>Hold Ctrl/Cmd to select multiple</small>
+
+        <div class="author-picker">
+            <input type="text"
+                   id="author-search"
+                   placeholder="Search for authors..."
+                   autocomplete="off"
+                   hx-get="{{ url_for('author_search') }}"
+                   hx-trigger="input changed delay:200ms, focus"
+                   hx-target="#author-search-results"
+                   hx-vals='js:{exclude: Array.from(document.querySelectorAll("#selected-authors input[name=authors]")).map(i => i.value).join(",")}'
+                   name="q">
+            <div id="author-search-results"></div>
+        </div>
 
         <details id="quick-add-author">
             <summary role="button" class="outline secondary">+ Add New Author</summary>
@@ -40,8 +54,8 @@
                 <button type="button" class="secondary"
                         hx-post="{{ url_for('author_quick_add') }}"
                         hx-include="#new-author-name"
-                        hx-target="#author-select-container"
-                        hx-swap="innerHTML"
+                        hx-target="#selected-authors"
+                        hx-swap="beforeend"
                         hx-on::after-request="document.getElementById('quick-add-author').removeAttribute('open'); document.getElementById('new-author-name').value = '';">
                     Add Author
                 </button>
@@ -49,6 +63,35 @@
             </div>
         </details>
     </fieldset>
+
+    <script>
+    function addAuthor(id, name) {
+        // Check if author already selected
+        if (document.querySelector(`#selected-authors [data-author-id="${id}"]`)) {
+            return;
+        }
+
+        const chip = document.createElement('span');
+        chip.className = 'author-chip';
+        chip.dataset.authorId = id;
+        chip.innerHTML = `
+            ${name}
+            <input type="hidden" name="authors" value="${id}">
+            <button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>
+        `;
+
+        document.getElementById('selected-authors').appendChild(chip);
+        document.getElementById('author-search').value = '';
+        document.getElementById('author-search-results').innerHTML = '';
+    }
+
+    // Close search results when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.author-picker')) {
+            document.getElementById('author-search-results').innerHTML = '';
+        }
+    });
+    </script>
 
     <div class="form-grid">
         <label>

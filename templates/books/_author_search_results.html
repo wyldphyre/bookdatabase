@@ -1,0 +1,14 @@
+{% if authors %}
+<ul class="author-search-results">
+    {% for author in authors %}
+    <li class="author-search-item"
+        onclick="addAuthor({{ author.id }}, '{{ author.name|e }}')"
+        tabindex="0"
+        onkeydown="if(event.key==='Enter') addAuthor({{ author.id }}, '{{ author.name|e }}')">
+        {{ author.name }}
+    </li>
+    {% endfor %}
+</ul>
+{% elif query %}
+<p class="author-search-empty">No authors found matching "{{ query }}"</p>
+{% endif %}
