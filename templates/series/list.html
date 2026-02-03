@@ -11,6 +11,17 @@
     <a href="{{ url_for('series_new') }}" role="button">Add New Series</a>
 </header>
 
+<form action="{{ url_for('series_list') }}" method="get">
+    <input type="search" name="search" id="series-list-search" placeholder="Search series..." value="{{ search }}"
+           hx-get="{{ url_for('series_list') }}"
+           hx-trigger="keyup changed delay:300ms"
+           hx-target="#series-results"
+           hx-select="#series-results"
+           hx-push-url="true">
+</form>
+
+<div id="series-results">
+
 {% if series_list %}
     {% for series in series_list %}
     <div class="series-list-item">
@@ -42,8 +53,9 @@
     {% endfor %}
 {% else %}
     <article>
-        <p>No series yet.</p>
+        <p>{% if search %}No series found matching "{{ search }}".{% else %}No series yet.{% endif %}</p>
         <a href="{{ url_for('series_new') }}" role="button">Add Your First Series</a>
     </article>
 {% endif %}
+</div>
 {% endblock %}

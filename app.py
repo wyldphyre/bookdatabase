@@ -375,8 +375,12 @@ def author_delete(id):
 # Series routes
 @app.route('/series')
 def series_list():
-    all_series = Series.query.order_by(Series.name).all()
-    return render_template('series/list.html', series_list=all_series)
+    search = request.args.get('search', '').strip()
+    query = Series.query
+    if search:
+        query = query.filter(Series.name.ilike(f'%{search}%'))
+    all_series = query.order_by(Series.name).all()
+    return render_template('series/list.html', series_list=all_series, search=search)
 
 
 @app.route('/series/<int:id>')
