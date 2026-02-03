@@ -12,33 +12,39 @@
 </header>
 
 <form action="{{ url_for('author_list') }}" method="get">
-    <input type="search" name="search" placeholder="Search authors..." value="{{ search }}"
+    <input type="search" name="search" id="author-list-search" placeholder="Search authors..." value="{{ search }}"
            hx-get="{{ url_for('author_list') }}"
            hx-trigger="keyup changed delay:300ms"
-           hx-target="main"
-           hx-select="main"
+           hx-target="#author-results"
+           hx-select="#author-results"
            hx-push-url="true">
 </form>
 
+<div id="author-results">
+
 {% if authors %}
-    {% for author in authors %}
-    <div class="list-item">
-        <div>
-            <a href="{{ url_for('author_detail', id=author.id) }}"><strong>{{ author.name }}</strong></a>
-            {% if author.pronouns %}<small>({{ author.pronouns }})</small>{% endif %}
-            {% if author.gender %}<small class="secondary">{{ author.gender.name }}</small>{% endif %}
-            <br>
-            <small>{{ author.books|length }} book{{ 's' if author.books|length != 1 else '' }}</small>
+    <div class="author-grid">
+        {% for author in authors %}
+        <div class="author-card">
+            <div>
+                <a href="{{ url_for('author_detail', id=author.id) }}"><strong>{{ author.name }}</strong></a>
+                {% if author.pronouns %}<small>({{ author.pronouns }})</small>{% endif %}
+                {% if author.gender %}<br><small class="secondary">{{ author.gender.name }}</small>{% endif %}
+            </div>
+            {% set book_count = author.books|length %}
+            {% set series_count = author.books|unique_series_count %}
+            <small>{{ book_count }} book{{ 's' if book_count != 1 else '' }}{% if series_count %}, {{ series_count }} series{% endif %}</small>
+            <div class="button-group">
+                <a href="{{ url_for('author_edit', id=author.id) }}" role="button" class="outline secondary small">Edit</a>
+            </div>
         </div>
-        <div class="button-group">
-            <a href="{{ url_for('author_edit', id=author.id) }}" role="button" class="outline secondary">Edit</a>
-        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
 {% else %}
     <article>
         <p>{% if search %}No authors found matching "{{ search }}".{% else %}No authors yet.{% endif %}</p>
         <a href="{{ url_for('author_new') }}" role="button">Add Your First Author</a>
     </article>
 {% endif %}
+</div>
 {% endblock %}

@@ -16,6 +16,22 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 db.init_app(app)
 
+
+# Custom Jinja filter for sorting with None values
+@app.template_filter('sort_by')
+def sort_by_filter(items, attribute, default=float('inf')):
+    """Sort items by attribute, treating None as the default value."""
+    return sorted(items, key=lambda x: getattr(x, attribute) if getattr(x, attribute) is not None else default)
+
+
+# Custom Jinja filter to count unique series from books
+@app.template_filter('unique_series_count')
+def unique_series_count_filter(books):
+    """Count unique series from a list of books."""
+    series_ids = {book.series_id for book in books if book.series_id is not None}
+    return len(series_ids)
+
+
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
