@@ -8,8 +8,71 @@
         <h1>Books</h1>
         <p>{{ books.total }} book{{ 's' if books.total != 1 else '' }} in your library</p>
     </hgroup>
-    <a href="{{ url_for('book_new') }}" role="button">Add New Book</a>
+    <div class="dropdown-button">
+        <a href="{{ url_for('book_new') }}" role="button" class="dropdown-main">Add New Book</a>
+        <button type="button" class="dropdown-toggle" onclick="toggleDropdown(this)" aria-label="More options">▾</button>
+        <ul class="dropdown-menu">
+            <li><a href="#" onclick="promptImportUrl('amazon')">from Amazon URL</a></li>
+            <li><a href="#" onclick="promptImportUrl('goodreads')">from GoodReads</a></li>
+        </ul>
+    </div>
 </header>
+
+<!-- Import URL Modal -->
+<dialog id="import-modal">
+    <article>
+        <header>
+            <button aria-label="Close" rel="prev" onclick="document.getElementById('import-modal').close()"></button>
+            <h3 id="import-modal-title">Import Book</h3>
+        </header>
+        <form id="import-form" method="get">
+            <label>
+                Book URL
+                <input type="url" name="url" id="import-url" placeholder="Paste the URL here..." required>
+            </label>
+        </form>
+        <footer>
+            <button class="secondary" onclick="document.getElementById('import-modal').close()">Cancel</button>
+            <button onclick="submitImport()">Import</button>
+        </footer>
+    </article>
+</dialog>
+
+<script>
+let currentSource = '';
+
+function toggleDropdown(btn) {
+    const menu = btn.nextElementSibling;
+    menu.classList.toggle('show');
+}
+
+function promptImportUrl(source) {
+    currentSource = source;
+    const titles = {
+        'amazon': 'Import from Amazon',
+        'goodreads': 'Import from GoodReads'
+    };
+    document.getElementById('import-modal-title').textContent = titles[source];
+    document.getElementById('import-url').value = '';
+    document.getElementById('import-modal').showModal();
+    // Close dropdown
+    document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+}
+
+function submitImport() {
+    const url = document.getElementById('import-url').value;
+    if (url) {
+        window.location.href = '{{ url_for("book_import") }}?source=' + currentSource + '&url=' + encodeURIComponent(url);
+    }
+}
+
+// Close dropdown when clicking elsewhere
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.dropdown-button')) {
+        document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+    }
+});
+</script>
 
 {% if books.items %}
 <div class="book-grid">

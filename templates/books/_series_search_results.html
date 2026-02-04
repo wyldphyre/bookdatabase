@@ -1,0 +1,14 @@
+{% if series_list %}
+<ul class="series-search-results">
+    {% for series in series_list %}
+    <li class="series-search-item"
+        onclick="selectSeries({{ series.id }}, '{{ series.name|e }}')"
+        tabindex="0"
+        onkeydown="if(event.key==='Enter') selectSeries({{ series.id }}, '{{ series.name|e }}')">
+        {{ series.name }}
+    </li>
+    {% endfor %}
+</ul>
+{% elif query %}
+<p class="series-search-empty">No series found matching "{{ query }}"</p>
+{% endif %}

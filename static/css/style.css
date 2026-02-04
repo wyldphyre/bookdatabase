@@ -383,6 +383,94 @@ ul.author-search-results {
     margin: 0;
 }
 
+/* Series picker */
+.series-picker {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.selected-series {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    min-height: 1rem;
+}
+
+.series-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background: var(--pico-primary-background);
+    color: var(--pico-primary-inverse);
+    border-radius: var(--pico-border-radius);
+    font-size: 0.875rem;
+}
+
+.series-chip .chip-remove {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    font-size: 1.25rem;
+    line-height: 1;
+    opacity: 0.7;
+}
+
+.series-chip .chip-remove:hover {
+    opacity: 1;
+}
+
+#series-search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--pico-card-background-color);
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: var(--pico-border-radius);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#series-search-results:empty {
+    display: none;
+}
+
+ul.series-search-results {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.series-search-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.series-search-item:last-child {
+    border-bottom: none;
+}
+
+.series-search-item:hover,
+.series-search-item:focus {
+    background: var(--pico-primary-focus);
+    outline: none;
+}
+
+.series-search-empty {
+    padding: 0.75rem 1rem;
+    color: var(--pico-muted-color);
+    font-style: italic;
+    margin: 0;
+}
+
 /* Series list with covers */
 .series-list-item {
     display: flex;
@@ -483,4 +571,89 @@ ul.author-search-results {
     .author-grid {
         grid-template-columns: repeat(4, 1fr);
     }
+}
+
+/* Dropdown button */
+.dropdown-button {
+    display: inline-flex;
+    position: relative;
+    align-items: stretch;
+    margin-bottom: 1.5rem;
+}
+
+.dropdown-button .dropdown-main {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    margin: 0;
+}
+
+.dropdown-button .dropdown-toggle {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    margin: 0;
+    padding: 0.75rem 0.75rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    min-width: auto;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 100;
+    min-width: 180px;
+    margin: 0.25rem 0 0 0;
+    padding: 0.5rem 0;
+    padding-left: 0;
+    list-style: none;
+    list-style-type: none;
+    background: var(--pico-card-background-color);
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: var(--pico-border-radius);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-menu li {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    list-style-type: none;
+}
+
+.dropdown-menu a {
+    display: block;
+    padding: 0.5rem 1rem;
+    color: var(--pico-color);
+    text-decoration: none;
+}
+
+.dropdown-menu a:hover {
+    background: var(--pico-primary-background);
+    color: var(--pico-primary-inverse);
+}
+
+/* Prefill notices for imported books */
+.prefill-notice {
+    padding: 1rem;
+    margin: 0.5rem 0;
+    background: var(--pico-primary-background);
+    color: var(--pico-primary-inverse);
+    border-radius: var(--pico-border-radius);
+}
+
+.prefill-notice small {
+    opacity: 0.8;
+}
+
+.author-suggestion {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    margin: 0.25rem;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: var(--pico-border-radius);
 }

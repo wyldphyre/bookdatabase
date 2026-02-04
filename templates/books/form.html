@@ -8,13 +8,23 @@
 <form method="post" enctype="multipart/form-data">
     <label>
         Title *
-        <input type="text" name="title" value="{{ book.title if book else '' }}" required>
+        <input type="text" name="title" value="{{ prefill.title if prefill else (book.title if book else '') }}" required>
     </label>
 
     <label>
         Subtitle
         <input type="text" name="subtitle" value="{{ book.subtitle or '' if book else '' }}">
     </label>
+
+    {% if prefill and prefill.authors %}
+    <article class="prefill-notice">
+        <strong>Suggested authors from import:</strong>
+        {% for author_name in prefill.authors %}
+        <span class="author-suggestion">{{ author_name }}</span>
+        {% endfor %}
+        <br><small>Search for these authors below or add them as new authors.</small>
+    </article>
+    {% endif %}
 
     <fieldset>
         <legend>Authors</legend>
@@ -85,10 +95,30 @@
         document.getElementById('author-search-results').innerHTML = '';
     }
 
+    function selectSeries(id, name) {
+        const container = document.getElementById('selected-series');
+        container.innerHTML = `
+            <span class="series-chip" data-series-id="${id}">
+                ${name}
+                <input type="hidden" name="series_id" value="${id}">
+                <button type="button" class="chip-remove" onclick="clearSeries()" aria-label="Remove">&times;</button>
+            </span>
+        `;
+        document.getElementById('series-search').value = '';
+        document.getElementById('series-search-results').innerHTML = '';
+    }
+
+    function clearSeries() {
+        document.getElementById('selected-series').innerHTML = '';
+    }
+
     // Close search results when clicking outside
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.author-picker')) {
             document.getElementById('author-search-results').innerHTML = '';
+        }
+        if (!e.target.closest('.series-picker')) {
+            document.getElementById('series-search-results').innerHTML = '';
         }
     });
     </script>
@@ -109,7 +139,7 @@
 
         <label>
             Page Count
-            <input type="number" name="page_count" value="{{ book.page_count or '' if book else '' }}" min="0">
+            <input type="number" name="page_count" value="{{ prefill.page_count if prefill and prefill.page_count else (book.page_count or '' if book else '') }}" min="0">
         </label>
 
         <label>
@@ -118,38 +148,82 @@
         </label>
     </div>
 
-    <div class="form-grid">
-        <label>
-            Series
-            <select name="series_id">
-                <option value="">No series</option>
-                {% for series in series_list %}
-                <option value="{{ series.id }}"
-                        {% if book and book.series_id == series.id %}selected{% endif %}>
-                    {{ series.name }}
-                </option>
-                {% endfor %}
-            </select>
-        </label>
+    <fieldset>
+        <legend>Series</legend>
+
+        {% if prefill and prefill.series_name %}
+        <article class="prefill-notice">
+            <strong>Suggested series from import:</strong> {{ prefill.series_name }}
+            <br><small>Search for this series below or create it.</small>
+        </article>
+        {% endif %}
+
+        <div id="selected-series" class="selected-series">
+            {% if book and book.series %}
+            <span class="series-chip" data-series-id="{{ book.series.id }}">
+                {{ book.series.name }}
+                <input type="hidden" name="series_id" value="{{ book.series.id }}">
+                <button type="button" class="chip-remove" onclick="clearSeries()" aria-label="Remove">&times;</button>
+            </span>
+            {% endif %}
+        </div>
+
+        <div class="series-picker">
+            <input type="text"
+                   id="series-search"
+                   placeholder="Search for series..."
+                   autocomplete="off"
+                   hx-get="{{ url_for('series_search') }}"
+                   hx-trigger="input changed delay:200ms, focus"
+                   hx-target="#series-search-results"
+                   hx-vals='js:{current: (document.querySelector("#selected-series input[name=series_id]") || {}).value || ""}'
+                   name="q">
+            <div id="series-search-results"></div>
+        </div>
+
+        <details id="quick-add-series">
+            <summary role="button" class="outline secondary">+ Add New Series</summary>
+            <div style="margin-top: 1rem; padding: 1rem; background: var(--pico-card-background-color); border-radius: var(--pico-border-radius);">
+                <label>
+                    Series Name
+                    <input type="text" name="series_name" id="new-series-name" placeholder="Enter series name...">
+                </label>
+                <button type="button" class="secondary"
+                        hx-post="{{ url_for('series_quick_add') }}"
+                        hx-include="#new-series-name"
+                        hx-target="#selected-series"
+                        hx-swap="innerHTML"
+                        hx-on::after-request="document.getElementById('quick-add-series').removeAttribute('open'); document.getElementById('new-series-name').value = '';">
+                    Add Series
+                </button>
+            </div>
+        </details>
 
         <label>
             Series Number
-            <input type="number" name="series_number" value="{{ book.series_number or '' if book else '' }}" step="0.1" min="0">
+            <input type="number" name="series_number" value="{{ prefill.series_number if prefill and prefill.series_number else (book.series_number or '' if book else '') }}" step="0.1" min="0">
         </label>
-    </div>
+    </fieldset>
 
     <label>
         Description
-        <textarea name="description" rows="4">{{ book.description or '' if book else '' }}</textarea>
+        <textarea name="description" rows="4">{{ prefill.description if prefill and prefill.description else (book.description or '' if book else '') }}</textarea>
     </label>
 
-    <label>
-        Cover Image
-        <input type="file" name="cover_image" accept="image/*">
+    <fieldset>
+        <legend>Cover Image</legend>
         {% if book and book.cover_image %}
-        <small>Current: {{ book.cover_image }}</small>
+        <p><small>Current: {{ book.cover_image }}</small></p>
         {% endif %}
-    </label>
+        <label>
+            Upload file
+            <input type="file" name="cover_image" accept="image/*">
+        </label>
+        <label>
+            Or provide URL
+            <input type="url" name="cover_image_url" placeholder="https://example.com/cover.jpg" value="{{ prefill.cover_url if prefill and prefill.cover_url else '' }}">
+        </label>
+    </fieldset>
 
     <div class="form-grid">
         <label>

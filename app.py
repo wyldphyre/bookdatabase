@@ -1,7 +1,11 @@
 import os
+import re
+import requests as http_requests
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, flash
+from urllib.parse import urlparse
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.utils import secure_filename
+from bs4 import BeautifulSoup
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender
 from database import init_db
 
@@ -107,11 +111,171 @@ def book_new():
     formats = BookFormat.query.all()
     authors = Author.query.filter_by(alias_of_id=None).order_by(Author.name).all()
     series_list = Series.query.order_by(Series.name).all()
+
+    # Check for pre-filled data from import
+    prefill = session.pop('book_prefill', None)
+
     return render_template('books/form.html',
                          book=None,
                          formats=formats,
                          authors=authors,
-                         series_list=series_list)
+                         series_list=series_list,
+                         prefill=prefill)
+
+
+@app.route('/books/import')
+def book_import():
+    """Import book data from external URLs."""
+    source = request.args.get('source', '')
+    url = request.args.get('url', '')
+
+    if not source or not url:
+        flash('Missing source or URL', 'error')
+        return redirect(url_for('book_list'))
+
+    scrapers = {
+        'amazon': scrape_amazon,
+        'goodreads': scrape_goodreads,
+    }
+
+    scraper = scrapers.get(source)
+    if not scraper:
+        flash('Unknown import source', 'error')
+        return redirect(url_for('book_list'))
+
+    try:
+        book_data = scraper(url)
+        if book_data:
+            session['book_prefill'] = book_data
+            flash('Book data imported. Please review and save.', 'success')
+        else:
+            flash('Could not extract book data from URL', 'warning')
+    except Exception as e:
+        flash(f'Error importing book: {str(e)}', 'error')
+
+    return redirect(url_for('book_new'))
+
+
+def fetch_page(url):
+    """Fetch a page with appropriate headers."""
+    # Parse the URL to get the host for Referer header
+    parsed = urlparse(url)
+    base_url = f"{parsed.scheme}://{parsed.netloc}"
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Cache-Control': 'max-age=0',
+        'Referer': base_url,
+    }
+    response = http_requests.get(url, headers=headers, timeout=15, allow_redirects=True)
+    response.raise_for_status()
+    return BeautifulSoup(response.text, 'html.parser')
+
+
+def scrape_amazon(url):
+    """Scrape book data from Amazon."""
+    soup = fetch_page(url)
+
+    data = {}
+
+    # Title
+    title_el = soup.select_one('#productTitle, #ebooksProductTitle')
+    if title_el:
+        data['title'] = title_el.get_text(strip=True)
+
+    # Author
+    author_el = soup.select_one('.author a, .contributorNameID, #bylineInfo .author a')
+    if author_el:
+        data['authors'] = [author_el.get_text(strip=True)]
+
+    # Description
+    desc_el = soup.select_one('#bookDescription_feature_div .a-expander-content, #productDescription')
+    if desc_el:
+        data['description'] = desc_el.get_text(strip=True)
+
+    # Cover image
+    img_el = soup.select_one('#imgBlkFront, #ebooksImgBlkFront, #landingImage')
+    if img_el:
+        data['cover_url'] = img_el.get('src') or img_el.get('data-a-dynamic-image', '').split('"')[1] if '"' in img_el.get('data-a-dynamic-image', '') else None
+
+    # Page count
+    details = soup.select('#detailBullets_feature_div li, #productDetailsTable .content li')
+    for detail in details:
+        text = detail.get_text()
+        if 'pages' in text.lower():
+            match = re.search(r'(\d+)\s*pages', text, re.IGNORECASE)
+            if match:
+                data['page_count'] = int(match.group(1))
+                break
+
+    # Series info from title or breadcrumb
+    series_el = soup.select_one('#seriesBulletWidget_feature_div a')
+    if series_el:
+        series_text = series_el.get_text(strip=True)
+        data['series_name'] = series_text
+
+    return data if data.get('title') else None
+
+
+def scrape_goodreads(url):
+    """Scrape book data from Goodreads."""
+    soup = fetch_page(url)
+
+    data = {}
+
+    # Title
+    title_el = soup.select_one('h1[data-testid="bookTitle"], h1.Text__title1')
+    if title_el:
+        data['title'] = title_el.get_text(strip=True)
+
+    # Author
+    author_el = soup.select_one('span[data-testid="name"], a.ContributorLink')
+    if author_el:
+        data['authors'] = [author_el.get_text(strip=True)]
+
+    # Description
+    desc_el = soup.select_one('div[data-testid="description"] .Formatted, span.Formatted')
+    if desc_el:
+        data['description'] = desc_el.get_text(strip=True)
+
+    # Cover image
+    img_el = soup.select_one('img.ResponsiveImage, div.BookCover img')
+    if img_el:
+        data['cover_url'] = img_el.get('src')
+
+    # Page count
+    pages_el = soup.select_one('p[data-testid="pagesFormat"]')
+    if pages_el:
+        text = pages_el.get_text()
+        match = re.search(r'(\d+)\s*pages', text, re.IGNORECASE)
+        if match:
+            data['page_count'] = int(match.group(1))
+
+    # Series
+    series_el = soup.select_one('h3.Text__italic a, div[data-testid="bookSeries"] a')
+    if series_el:
+        series_text = series_el.get_text(strip=True)
+        # Parse "Series Name #1" format
+        match = re.match(r'(.+?)\s*#(\d+(?:\.\d+)?)', series_text)
+        if match:
+            data['series_name'] = match.group(1).strip()
+            data['series_number'] = float(match.group(2))
+        else:
+            data['series_name'] = series_text
+
+    # Goodreads URL for author
+    data['goodreads_url'] = url
+
+    return data if data.get('title') else None
 
 
 @app.route('/books/<int:id>/edit', methods=['GET', 'POST'])
@@ -160,7 +324,7 @@ def save_book(book):
     author_ids = request.form.getlist('authors')
     book.authors = Author.query.filter(Author.id.in_(author_ids)).all() if author_ids else []
 
-    # Handle cover image upload
+    # Handle cover image upload (file takes priority over URL)
     if 'cover_image' in request.files:
         file = request.files['cover_image']
         if file and file.filename and allowed_file(file.filename):
@@ -170,6 +334,42 @@ def save_book(book):
             filename = f"{base}_{int(datetime.now().timestamp())}{ext}"
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             book.cover_image = filename
+
+    # Handle cover image URL (only if no file uploaded)
+    cover_url = request.form.get('cover_image_url', '').strip()
+    if cover_url and not (request.files.get('cover_image') and request.files['cover_image'].filename):
+        try:
+            response = http_requests.get(cover_url, timeout=10)
+            response.raise_for_status()
+
+            # Determine file extension from URL or content type
+            parsed_url = urlparse(cover_url)
+            url_path = parsed_url.path.lower()
+
+            content_type = response.headers.get('content-type', '')
+            ext = None
+            if 'jpeg' in content_type or 'jpg' in content_type or url_path.endswith('.jpg') or url_path.endswith('.jpeg'):
+                ext = '.jpg'
+            elif 'png' in content_type or url_path.endswith('.png'):
+                ext = '.png'
+            elif 'gif' in content_type or url_path.endswith('.gif'):
+                ext = '.gif'
+            elif 'webp' in content_type or url_path.endswith('.webp'):
+                ext = '.webp'
+            else:
+                ext = '.jpg'  # Default to jpg
+
+            # Generate filename from book title
+            safe_title = secure_filename(book.title[:50])
+            filename = f"{safe_title}_{int(datetime.now().timestamp())}{ext}"
+
+            # Save the image
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            with open(filepath, 'wb') as f:
+                f.write(response.content)
+            book.cover_image = filename
+        except Exception as e:
+            flash(f'Could not download cover image: {str(e)}', 'warning')
 
     if is_new:
         db.session.add(book)
@@ -181,6 +381,13 @@ def save_book(book):
 @app.route('/books/<int:id>/delete', methods=['DELETE', 'POST'])
 def book_delete(id):
     book = Book.query.get_or_404(id)
+
+    # Delete cover image file if it exists
+    if book.cover_image:
+        cover_path = os.path.join(app.config['UPLOAD_FOLDER'], book.cover_image)
+        if os.path.exists(cover_path):
+            os.remove(cover_path)
+
     # Delete associated reads
     Read.query.filter_by(book_id=id).delete()
     db.session.delete(book)
@@ -354,6 +561,40 @@ def author_search():
 
     authors = authors.order_by(Author.name).limit(10).all()
     return render_template('books/_author_search_results.html', authors=authors, query=query)
+
+
+@app.route('/series/search')
+def series_search():
+    """Search series for the series picker."""
+    query = request.args.get('q', '').strip()
+    current_id = request.args.get('current', '')
+
+    if len(query) < 1:
+        return ''
+
+    series_query = Series.query.filter(Series.name.ilike(f'%{query}%'))
+
+    # Exclude current selection if provided
+    if current_id and current_id.isdigit():
+        series_query = series_query.filter(Series.id != int(current_id))
+
+    series_list = series_query.order_by(Series.name).limit(10).all()
+    return render_template('books/_series_search_results.html', series_list=series_list, query=query)
+
+
+@app.route('/series/quick-add', methods=['POST'])
+def series_quick_add():
+    """Quick add a series via htmx from the book form."""
+    name = request.form.get('series_name', '').strip()
+    if not name:
+        return '<p class="error">Name is required</p>', 400
+
+    series = Series(name=name)
+    db.session.add(series)
+    db.session.commit()
+
+    # Return the new series as a selected chip
+    return render_template('books/_series_chip.html', series=series)
 
 
 @app.route('/authors/<int:id>/delete', methods=['DELETE', 'POST'])
