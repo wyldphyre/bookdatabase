@@ -36,6 +36,31 @@ def unique_series_count_filter(books):
     return len(series_ids)
 
 
+# Custom Jinja filter to calculate days between dates
+@app.template_filter('days_since')
+def days_since_filter(date):
+    """Calculate days since a given date."""
+    if not date:
+        return None
+    from datetime import date as date_type
+    today = date_type.today()
+    if hasattr(date, 'date'):
+        date = date.date()
+    return (today - date).days
+
+
+@app.template_filter('days_between')
+def days_between_filter(start_date, end_date):
+    """Calculate days between two dates."""
+    if not start_date or not end_date:
+        return None
+    if hasattr(start_date, 'date'):
+        start_date = start_date.date()
+    if hasattr(end_date, 'date'):
+        end_date = end_date.date()
+    return (end_date - start_date).days
+
+
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 

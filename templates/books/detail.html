@@ -142,6 +142,11 @@
                 <span class="read-status status-{{ read.status.lower() }}">{{ read.status }}</span>
                 {% if read.start_date %}Started: {{ read.start_date.strftime('%Y-%m-%d') }}{% endif %}
                 {% if read.finish_date %} | Finished: {{ read.finish_date.strftime('%Y-%m-%d') }}{% endif %}
+                {% if read.status == 'Completed' and read.start_date and read.finish_date %}
+                <small class="secondary"> ({{ read.start_date|days_between(read.finish_date) }} days)</small>
+                {% elif read.status == 'Reading' and read.start_date %}
+                <small class="secondary"> ({{ read.start_date|days_since }} days)</small>
+                {% endif %}
             </div>
             <div class="button-group">
                 <details>

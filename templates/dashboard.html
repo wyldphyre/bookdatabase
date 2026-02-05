@@ -49,7 +49,7 @@
             {% endif %}
             <div style="margin-top: 0.5rem;">
                 {% if read.start_date %}
-                <small>Started: {{ read.start_date.strftime('%B %d, %Y') }}</small>
+                <small>Started: {{ read.start_date.strftime('%B %d, %Y') }} ({{ read.start_date|days_since }} days ago)</small>
                 {% endif %}
                 {% if read.book.page_count %}
                 <small> | {{ read.book.page_count }} pages</small>
