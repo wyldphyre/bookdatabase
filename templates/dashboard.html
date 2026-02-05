@@ -47,13 +47,18 @@
                 {% if read.book.series_number %}#{{ read.book.series_number }}{% endif %}
             </p>
             {% endif %}
-            <div style="margin-top: 0.5rem;">
-                {% if read.start_date %}
-                <small>Started: {{ read.start_date.strftime('%B %d, %Y') }} ({{ read.start_date|days_since }} days ago)</small>
-                {% endif %}
-                {% if read.book.page_count %}
-                <small> | {{ read.book.page_count }} pages</small>
-                {% endif %}
+            <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                <div>
+                    {% if read.start_date %}
+                    <small>Started: {{ read.start_date.strftime('%B %d, %Y') }} ({{ read.start_date|days_since }} days ago)</small>
+                    {% endif %}
+                    {% if read.book.page_count %}
+                    <small> | {{ read.book.page_count }} pages</small>
+                    {% endif %}
+                </div>
+                <form method="post" action="{{ url_for('read_complete', id=read.id) }}" style="margin: 0;">
+                    <button type="submit" class="outline small" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0;">Mark Complete</button>
+                </form>
             </div>
         </div>
     </div>

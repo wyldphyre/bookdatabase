@@ -498,6 +498,16 @@ def read_delete(id):
     return redirect(url_for('book_detail', id=book_id))
 
 
+@app.route('/reads/<int:id>/complete', methods=['POST'])
+def read_complete(id):
+    read = Read.query.get_or_404(id)
+    read.status = 'Completed'
+    read.finish_date = datetime.now()
+    db.session.commit()
+    flash('Read marked as completed!', 'success')
+    return redirect(url_for('book_detail', id=read.book_id))
+
+
 # Author routes
 @app.route('/authors')
 def author_list():

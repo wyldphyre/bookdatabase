@@ -228,6 +228,15 @@
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
+    align-items: center;
+}
+
+.button-group details {
+    margin: 0;
+}
+
+.button-group details summary {
+    margin: 0;
 }
 
 /* Links list */
