@@ -695,3 +695,50 @@ ul.series-search-results {
     background: rgba(255, 255, 255, 0.2);
     border-radius: var(--pico-border-radius);
 }
+
+/* Statistics page */
+.stats-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stats-summary .stat {
+    flex: 1;
+    min-width: 120px;
+    background: var(--pico-card-background-color);
+    padding: 1rem;
+    border-radius: var(--pico-border-radius);
+    text-align: center;
+}
+
+.charts-grid {
+    display: grid;
+    gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .charts-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1200px) {
+    .charts-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.chart-container {
+    padding: 1rem;
+}
+
+.chart-container h3 {
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.chart-container canvas {
+    max-height: 300px;
+}

@@ -859,6 +859,121 @@ def search():
                          series_results=series_results)
 
 
+@app.route('/statistics')
+def statistics():
+    from sqlalchemy import func
+    from collections import defaultdict
+
+    # Author gender breakdown
+    gender_stats = db.session.query(
+        AuthorGender.name,
+        func.count(Author.id)
+    ).outerjoin(Author, Author.gender_id == AuthorGender.id)\
+     .group_by(AuthorGender.id, AuthorGender.name).all()
+
+    # Count authors with no gender set
+    no_gender_count = Author.query.filter_by(gender_id=None).count()
+    gender_data = {name: count for name, count in gender_stats if count > 0}
+    if no_gender_count > 0:
+        gender_data['Not Set'] = no_gender_count
+
+    # Book format breakdown
+    format_stats = db.session.query(
+        BookFormat.name,
+        func.count(Book.id)
+    ).outerjoin(Book, Book.format_id == BookFormat.id)\
+     .group_by(BookFormat.id, BookFormat.name).all()
+    format_data = {name: count for name, count in format_stats if count > 0}
+
+    # Rating distribution
+    rating_stats = db.session.query(
+        Book.rating,
+        func.count(Book.id)
+    ).filter(Book.rating.isnot(None))\
+     .group_by(Book.rating)\
+     .order_by(Book.rating).all()
+    rating_data = {str(rating): count for rating, count in rating_stats}
+
+    # Books read per month (last 12 months)
+    from datetime import datetime, timedelta
+    twelve_months_ago = datetime.now() - timedelta(days=365)
+    monthly_reads = db.session.query(
+        func.strftime('%Y-%m', Read.finish_date),
+        func.count(Read.id)
+    ).filter(
+        Read.status == 'Completed',
+        Read.finish_date >= twelve_months_ago
+    ).group_by(func.strftime('%Y-%m', Read.finish_date))\
+     .order_by(func.strftime('%Y-%m', Read.finish_date)).all()
+
+    # Fill in missing months
+    monthly_data = {}
+    current = twelve_months_ago.replace(day=1)
+    while current <= datetime.now():
+        key = current.strftime('%Y-%m')
+        monthly_data[key] = 0
+        if current.month == 12:
+            current = current.replace(year=current.year + 1, month=1)
+        else:
+            current = current.replace(month=current.month + 1)
+    for month, count in monthly_reads:
+        if month in monthly_data:
+            monthly_data[month] = count
+
+    # Reading completion rate
+    completion_stats = db.session.query(
+        Read.status,
+        func.count(Read.id)
+    ).group_by(Read.status).all()
+    completion_data = {status: count for status, count in completion_stats}
+
+    # Summary statistics
+    total_books = Book.query.count()
+    total_authors = Author.query.filter_by(alias_of_id=None).count()
+    total_series = Series.query.count()
+    total_reads = Read.query.filter_by(status='Completed').count()
+    books_with_rating = Book.query.filter(Book.rating.isnot(None)).count()
+    avg_rating = db.session.query(func.avg(Book.rating)).filter(Book.rating.isnot(None)).scalar() or 0
+
+    # Pages read
+    pages_read = db.session.query(func.sum(Book.page_count)).join(Read).filter(
+        Read.status == 'Completed'
+    ).scalar() or 0
+
+    # Average days to finish
+    completed_with_dates = Read.query.filter(
+        Read.status == 'Completed',
+        Read.start_date.isnot(None),
+        Read.finish_date.isnot(None)
+    ).all()
+    if completed_with_dates:
+        total_days = sum((r.finish_date - r.start_date).days for r in completed_with_dates)
+        avg_days = total_days / len(completed_with_dates)
+    else:
+        avg_days = 0
+
+    # Financial stats
+    total_spent = db.session.query(func.sum(Book.paid)).scalar() or 0
+    total_saved = db.session.query(func.sum(Book.discounts)).scalar() or 0
+
+    return render_template('statistics.html',
+                         gender_data=gender_data,
+                         format_data=format_data,
+                         rating_data=rating_data,
+                         monthly_data=monthly_data,
+                         completion_data=completion_data,
+                         total_books=total_books,
+                         total_authors=total_authors,
+                         total_series=total_series,
+                         total_reads=total_reads,
+                         books_with_rating=books_with_rating,
+                         avg_rating=round(avg_rating, 2),
+                         pages_read=pages_read,
+                         avg_days=round(avg_days, 1),
+                         total_spent=total_spent,
+                         total_saved=total_saved)
+
+
 if __name__ == '__main__':
     init_db(app)
     app.run(debug=True)

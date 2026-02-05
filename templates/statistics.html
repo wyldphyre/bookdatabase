@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Statistics - Book Database{% endblock %}
+
+{% block content %}
+<h1>Statistics</h1>
+
+<div class="stats-summary">
+    <div class="stat">
+        <div class="stat-value">{{ total_books }}</div>
+        <div class="stat-label">Total Books</div>
+    </div>
+    <div class="stat">
+        <div class="stat-value">{{ total_authors }}</div>
+        <div class="stat-label">Authors</div>
+    </div>
+    <div class="stat">
+        <div class="stat-value">{{ total_series }}</div>
+        <div class="stat-label">Series</div>
+    </div>
+    <div class="stat">
+        <div class="stat-value">{{ total_reads }}</div>
+        <div class="stat-label">Books Read</div>
+    </div>
+    <div class="stat">
+        <div class="stat-value">{{ "{:,}".format(pages_read) }}</div>
+        <div class="stat-label">Pages Read</div>
+    </div>
+    <div class="stat">
+        <div class="stat-value">{{ avg_days }}</div>
+        <div class="stat-label">Avg Days to Finish</div>
+    </div>
+    <div class="stat">
+        <div class="stat-value">{{ avg_rating }}</div>
+        <div class="stat-label">Avg Rating</div>
+    </div>
+    {% if total_spent > 0 %}
+    <div class="stat">
+        <div class="stat-value">${{ "%.2f"|format(total_spent) }}</div>
+        <div class="stat-label">Total Spent</div>
+    </div>
+    {% endif %}
+    {% if total_saved > 0 %}
+    <div class="stat">
+        <div class="stat-value">${{ "%.2f"|format(total_saved) }}</div>
+        <div class="stat-label">Total Saved</div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="charts-grid">
+    <article class="chart-container">
+        <h3>Books Read by Month</h3>
+        <canvas id="monthlyChart"></canvas>
+    </article>
+
+    <article class="chart-container">
+        <h3>Rating Distribution</h3>
+        <canvas id="ratingChart"></canvas>
+    </article>
+
+    <article class="chart-container">
+        <h3>Author Gender Breakdown</h3>
+        <canvas id="genderChart"></canvas>
+    </article>
+
+    <article class="chart-container">
+        <h3>Book Format Breakdown</h3>
+        <canvas id="formatChart"></canvas>
+    </article>
+
+    <article class="chart-container">
+        <h3>Reading Status</h3>
+        <canvas id="completionChart"></canvas>
+    </article>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Color palette
+const colors = [
+    '#667eea', '#764ba2', '#f5a623', '#50c878', '#ff6b6b',
+    '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#dfe6e9'
+];
+
+// Monthly reads chart
+const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+new Chart(monthlyCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ monthly_data.keys()|list|tojson }},
+        datasets: [{
+            label: 'Books Read',
+            data: {{ monthly_data.values()|list|tojson }},
+            backgroundColor: '#667eea',
+            borderRadius: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+            }
+        }
+    }
+});
+
+// Rating distribution chart
+const ratingCtx = document.getElementById('ratingChart').getContext('2d');
+new Chart(ratingCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ rating_data.keys()|list|tojson }},
+        datasets: [{
+            label: 'Books',
+            data: {{ rating_data.values()|list|tojson }},
+            backgroundColor: '#f5a623',
+            borderRadius: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+            }
+        }
+    }
+});
+
+// Gender breakdown chart
+const genderCtx = document.getElementById('genderChart').getContext('2d');
+new Chart(genderCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ gender_data.keys()|list|tojson }},
+        datasets: [{
+            data: {{ gender_data.values()|list|tojson }},
+            backgroundColor: colors.slice(0, {{ gender_data|length }})
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' }
+        }
+    }
+});
+
+// Format breakdown chart
+const formatCtx = document.getElementById('formatChart').getContext('2d');
+new Chart(formatCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ format_data.keys()|list|tojson }},
+        datasets: [{
+            data: {{ format_data.values()|list|tojson }},
+            backgroundColor: colors.slice(0, {{ format_data|length }})
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' }
+        }
+    }
+});
+
+// Completion status chart
+const completionCtx = document.getElementById('completionChart').getContext('2d');
+new Chart(completionCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ completion_data.keys()|list|tojson }},
+        datasets: [{
+            data: {{ completion_data.values()|list|tojson }},
+            backgroundColor: ['#50c878', '#f5a623', '#ff6b6b']
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' }
+        }
+    }
+});
+</script>
+{% endblock %}
