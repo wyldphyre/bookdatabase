@@ -23,34 +23,40 @@
 <div id="series-results">
 
 {% if series_list %}
-    {% for series in series_list %}
-    <div class="series-list-item">
-        <div class="series-header">
+    <div class="series-grid">
+        {% for series in series_list %}
+        <div class="series-card">
             <div class="series-info">
                 <a href="{{ url_for('series_detail', id=series.id) }}"><strong>{{ series.name }}</strong></a>
                 {% if series.number_in_series %}
-                <small>({{ series.number_in_series }} books in series)</small>
+                <br><small class="secondary">{{ series.number_in_series }} books in series</small>
                 {% endif %}
-                <br>
-                <small>{{ series.books|length }} book{{ 's' if series.books|length != 1 else '' }} in library</small>
+                <br><small>{{ series.books|length }} book{{ 's' if series.books|length != 1 else '' }} in library</small>
+                {% if series.books %}
+                <div class="series-covers">
+                    {% for book in series.books|sort_by('series_number') %}
+                    {% if loop.index <= 5 %}
+                    <a href="{{ url_for('book_detail', id=book.id) }}" class="series-cover-link" title="{{ book.title }}{% if book.series_number %} (#{{ book.series_number }}){% endif %}">
+                        {% if book.cover_image %}
+                        <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}">
+                        {% else %}
+                        <div class="series-cover-placeholder">{{ book.title[0] }}</div>
+                        {% endif %}
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                    {% if series.books|length > 5 %}
+                    <span class="series-more">+{{ series.books|length - 5 }}</span>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
-            <a href="{{ url_for('series_edit', id=series.id) }}" role="button" class="outline secondary small">Edit</a>
+            <div class="button-group">
+                <a href="{{ url_for('series_edit', id=series.id) }}" role="button" class="outline secondary small">Edit</a>
+            </div>
         </div>
-        {% if series.books %}
-        <div class="series-covers">
-            {% for book in series.books|sort_by('series_number') %}
-            <a href="{{ url_for('book_detail', id=book.id) }}" class="series-cover-link" title="{{ book.title }}{% if book.series_number %} (#{{ book.series_number }}){% endif %}">
-                {% if book.cover_image %}
-                <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}">
-                {% else %}
-                <div class="series-cover-placeholder">{{ book.title[0] }}</div>
-                {% endif %}
-            </a>
-            {% endfor %}
-        </div>
-        {% endif %}
+        {% endfor %}
     </div>
-    {% endfor %}
 {% else %}
     <article>
         <p>{% if search %}No series found matching "{{ search }}".{% else %}No series yet.{% endif %}</p>
