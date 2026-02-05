@@ -80,7 +80,7 @@ class Book(db.Model):
         cost = self.cost or 0
         discounts = self.discounts or 0
         paid = self.paid or 0
-        return cost - discounts - paid
+        return cost - paid
 
     @property
     def active_read(self):

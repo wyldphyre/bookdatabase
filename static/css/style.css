@@ -540,8 +540,10 @@ ul.series-search-results {
 
 .author-card {
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
     padding: 1rem;
     background: var(--pico-card-background-color);
     border-radius: var(--pico-border-radius);
@@ -551,8 +553,12 @@ ul.series-search-results {
     background: var(--pico-card-sectionning-background-color);
 }
 
+.author-info {
+    flex: 1;
+}
+
 .author-card .button-group {
-    margin-top: auto;
+    flex-shrink: 0;
 }
 
 @media (min-width: 600px) {

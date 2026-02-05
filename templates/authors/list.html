@@ -26,14 +26,14 @@
     <div class="author-grid">
         {% for author in authors %}
         <div class="author-card">
-            <div>
+            <div class="author-info">
                 <a href="{{ url_for('author_detail', id=author.id) }}"><strong>{{ author.name }}</strong></a>
                 {% if author.pronouns %}<small>({{ author.pronouns }})</small>{% endif %}
                 {% if author.gender %}<br><small class="secondary">{{ author.gender.name }}</small>{% endif %}
+                {% set book_count = author.books|length %}
+                {% set series_count = author.books|unique_series_count %}
+                <br><small>{{ book_count }} book{{ 's' if book_count != 1 else '' }}{% if series_count %}, {{ series_count }} series{% endif %}</small>
             </div>
-            {% set book_count = author.books|length %}
-            {% set series_count = author.books|unique_series_count %}
-            <small>{{ book_count }} book{{ 's' if book_count != 1 else '' }}{% if series_count %}, {{ series_count }} series{% endif %}</small>
             <div class="button-group">
                 <a href="{{ url_for('author_edit', id=author.id) }}" role="button" class="outline secondary small">Edit</a>
             </div>
