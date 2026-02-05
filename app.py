@@ -192,10 +192,18 @@ def scrape_amazon(url):
     if title_el:
         data['title'] = title_el.get_text(strip=True)
 
-    # Author
-    author_el = soup.select_one('.author a, .contributorNameID, #bylineInfo .author a')
-    if author_el:
-        data['authors'] = [author_el.get_text(strip=True)]
+    # Authors (get all, deduplicate while preserving order)
+    author_els = soup.select('#bylineInfo .author a, .author a, .contributorNameID')
+    if author_els:
+        seen = set()
+        authors = []
+        for el in author_els:
+            name = el.get_text(strip=True)
+            if name and name not in seen:
+                seen.add(name)
+                authors.append(name)
+        if authors:
+            data['authors'] = authors
 
     # Description
     desc_el = soup.select_one('#bookDescription_feature_div .a-expander-content, #productDescription')
@@ -237,10 +245,18 @@ def scrape_goodreads(url):
     if title_el:
         data['title'] = title_el.get_text(strip=True)
 
-    # Author
-    author_el = soup.select_one('span[data-testid="name"], a.ContributorLink')
-    if author_el:
-        data['authors'] = [author_el.get_text(strip=True)]
+    # Authors (get all, deduplicate while preserving order)
+    author_els = soup.select('span[data-testid="name"], a.ContributorLink')
+    if author_els:
+        seen = set()
+        authors = []
+        for el in author_els:
+            name = el.get_text(strip=True)
+            if name and name not in seen:
+                seen.add(name)
+                authors.append(name)
+        if authors:
+            data['authors'] = authors
 
     # Description
     desc_el = soup.select_one('div[data-testid="description"] .Formatted, span.Formatted')
