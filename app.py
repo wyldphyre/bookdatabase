@@ -319,6 +319,65 @@ def scrape_goodreads(url):
     return data if data.get('title') else None
 
 
+def scrape_amazon_series(url):
+    """Scrape series page from Amazon to get book count."""
+    try:
+        soup = fetch_page(url)
+
+        # Look for book count in series page
+        # Amazon shows "X books" or "X titles" in series
+        count_el = soup.select_one('.series-childAsin-count, .seriesHeader span')
+        if count_el:
+            text = count_el.get_text()
+            match = re.search(r'(\d+)\s*(?:book|title|item)', text, re.IGNORECASE)
+            if match:
+                return int(match.group(1))
+
+        # Alternative: count items in series list
+        items = soup.select('.series-childAsin-item, .seriesItem')
+        if items:
+            return len(items)
+
+        return None
+    except Exception:
+        return None
+
+
+def scrape_goodreads_series(url):
+    """Scrape series page from Goodreads to get book count."""
+    try:
+        soup = fetch_page(url)
+
+        # Goodreads shows "X primary works, Y total" or just lists books
+        # Look for the count text
+        count_el = soup.select_one('.responsiveSeriesHeader__subtitle, .seriesDesc')
+        if count_el:
+            text = count_el.get_text()
+            # Match "X primary works" or "X works"
+            match = re.search(r'(\d+)\s*(?:primary\s+)?works?', text, re.IGNORECASE)
+            if match:
+                return int(match.group(1))
+
+        # Alternative: count book entries
+        items = soup.select('.listWithDividers__item, .bookTitle')
+        if items:
+            # Filter to only numbered entries (main series books)
+            numbered_count = 0
+            for item in items:
+                num_el = item.select_one('.responsiveBook__seriesNum, .bookMeta')
+                if num_el:
+                    text = num_el.get_text()
+                    if re.search(r'^#?\d+(\.\d+)?$', text.strip()):
+                        numbered_count += 1
+            if numbered_count > 0:
+                return numbered_count
+            return len(items)
+
+        return None
+    except Exception:
+        return None
+
+
 @app.route('/books/<int:id>/edit', methods=['GET', 'POST'])
 def book_edit(id):
     book = Book.query.get_or_404(id)
@@ -731,6 +790,30 @@ def series_delete(id):
     if request.headers.get('HX-Request'):
         return '', 200, {'HX-Redirect': url_for('series_list')}
     return redirect(url_for('series_list'))
+
+
+@app.route('/series/<int:id>/update-count', methods=['POST'])
+def series_update_count(id):
+    series = Series.query.get_or_404(id)
+    count = None
+
+    # Try Goodreads first, then Amazon
+    if series.goodreads_url:
+        count = scrape_goodreads_series(series.goodreads_url)
+    if count is None and series.amazon_url:
+        count = scrape_amazon_series(series.amazon_url)
+
+    if count is not None:
+        if series.number_in_series != count:
+            series.number_in_series = count
+            db.session.commit()
+            flash(f'Series updated: {count} books in series', 'success')
+        else:
+            flash(f'Series count is already up to date ({count} books)', 'success')
+    else:
+        flash('Could not determine book count from the series page', 'error')
+
+    return redirect(url_for('series_detail', id=id))
 
 
 # Search routes

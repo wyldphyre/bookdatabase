@@ -6,7 +6,7 @@
 <hgroup>
     <h1>{{ series.name }}</h1>
     {% if series.number_in_series %}
-    <p>{{ series.number_in_series }} books in series</p>
+    <p>{{ series.books|length }} of {{ series.number_in_series }} books in library</p>
     {% endif %}
 </hgroup>
 
@@ -26,6 +26,11 @@
 
 <div class="button-group" style="margin-top: 1rem;">
     <a href="{{ url_for('series_edit', id=series.id) }}" role="button">Edit Series</a>
+    {% if series.goodreads_url or series.amazon_url %}
+    <form method="post" action="{{ url_for('series_update_count', id=series.id) }}" style="margin: 0;">
+        <button type="submit" class="outline" style="margin: 0;">Update Book Count</button>
+    </form>
+    {% endif %}
     <button class="secondary"
             hx-delete="{{ url_for('series_delete', id=series.id) }}"
             hx-confirm="Are you sure you want to delete this series?"
