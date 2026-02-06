@@ -50,7 +50,8 @@
             <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
                 <div>
                     {% if read.start_date %}
-                    <small>Started: {{ read.start_date.strftime('%B %d, %Y') }} ({{ read.start_date|days_since }} days ago)</small>
+                    {% set days = read.start_date|days_since %}
+                    <small>Started: {{ read.start_date.strftime('%B %d, %Y') }} ({{ days }} {{ 'day' if days == 1 else 'days' }} ago)</small>
                     {% endif %}
                     {% if read.book.page_count %}
                     <small> | {{ read.book.page_count }} pages</small>
