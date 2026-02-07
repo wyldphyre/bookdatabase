@@ -205,10 +205,72 @@
         </label>
     </fieldset>
 
-    <label>
-        Description
-        <textarea name="description" rows="4">{{ prefill.description if prefill and prefill.description else (book.description or '' if book else '') }}</textarea>
-    </label>
+    <div class="description-field">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <label for="description" style="margin: 0;">Description</label>
+            <div class="fetch-buttons" style="display: flex; gap: 0.5rem;">
+                <button type="button" class="outline secondary" onclick="fetchDescriptionFrom('amazon')" id="fetch-amazon-btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                    Fetch from Amazon
+                </button>
+                <button type="button" class="outline secondary" onclick="fetchDescriptionFrom('goodreads')" id="fetch-goodreads-btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                    Fetch from Goodreads
+                </button>
+            </div>
+        </div>
+        <textarea name="description" id="description" rows="4">{{ prefill.description if prefill and prefill.description else (book.description or '' if book else '') }}</textarea>
+        <div id="fetch-description-error" style="color: var(--pico-del-color); margin-top: 0.5rem;"></div>
+    </div>
+
+    <script>
+    async function fetchDescriptionFrom(source) {
+        const title = document.querySelector('input[name="title"]').value.trim();
+        const errorEl = document.getElementById('fetch-description-error');
+        const btn = document.getElementById('fetch-' + source + '-btn');
+
+        if (!title) {
+            errorEl.textContent = 'Please enter a book title first';
+            return;
+        }
+
+        // Get author names from selected authors
+        const authorChips = document.querySelectorAll('#selected-authors .author-chip');
+        const authorNames = Array.from(authorChips).map(chip => {
+            // Get text content excluding the remove button
+            const clone = chip.cloneNode(true);
+            const button = clone.querySelector('button');
+            if (button) button.remove();
+            const input = clone.querySelector('input');
+            if (input) input.remove();
+            return clone.textContent.trim();
+        }).join(', ');
+
+        errorEl.textContent = '';
+        btn.setAttribute('aria-busy', 'true');
+        btn.disabled = true;
+
+        try {
+            const params = new URLSearchParams({
+                title: title,
+                author: authorNames,
+                source: source
+            });
+            const response = await fetch('{{ url_for("search_description") }}?' + params);
+            const data = await response.json();
+
+            if (response.ok && data.description) {
+                document.getElementById('description').value = data.description;
+                errorEl.textContent = '';
+            } else {
+                errorEl.textContent = data.error || 'Failed to fetch description';
+            }
+        } catch (e) {
+            errorEl.textContent = 'Network error: ' + e.message;
+        } finally {
+            btn.removeAttribute('aria-busy');
+            btn.disabled = false;
+        }
+    }
+    </script>
 
     <fieldset>
         <legend>Cover Image</legend>

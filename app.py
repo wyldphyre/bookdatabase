@@ -3,7 +3,7 @@ import re
 import requests as http_requests
 from datetime import datetime
 from urllib.parse import urlparse
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
 from bs4 import BeautifulSoup
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender
@@ -231,6 +231,30 @@ def fetch_page(url):
     return BeautifulSoup(response.text, 'html.parser')
 
 
+def get_text_with_linebreaks(element):
+    """Extract text from HTML element preserving paragraph breaks."""
+    if element is None:
+        return None
+
+    # Replace block-level elements with newlines
+    for br in element.find_all('br'):
+        br.replace_with('\n')
+    for p in element.find_all('p'):
+        p.insert_before('\n\n')
+        p.unwrap()
+
+    # Get text and clean up
+    text = element.get_text()
+    # Normalize whitespace within lines but preserve line breaks
+    lines = text.split('\n')
+    lines = [' '.join(line.split()) for line in lines]
+    text = '\n'.join(lines)
+    # Remove excessive blank lines
+    while '\n\n\n' in text:
+        text = text.replace('\n\n\n', '\n\n')
+    return text.strip()
+
+
 def scrape_amazon(url):
     """Scrape book data from Amazon."""
     soup = fetch_page(url)
@@ -258,7 +282,7 @@ def scrape_amazon(url):
     # Description
     desc_el = soup.select_one('#bookDescription_feature_div .a-expander-content, #productDescription')
     if desc_el:
-        data['description'] = desc_el.get_text(strip=True)
+        data['description'] = get_text_with_linebreaks(desc_el)
 
     # Cover image
     img_el = soup.select_one('#imgBlkFront, #ebooksImgBlkFront, #landingImage')
@@ -311,7 +335,7 @@ def scrape_goodreads(url):
     # Description
     desc_el = soup.select_one('div[data-testid="description"] .Formatted, span.Formatted')
     if desc_el:
-        data['description'] = desc_el.get_text(strip=True)
+        data['description'] = get_text_with_linebreaks(desc_el)
 
     # Cover image
     img_el = soup.select_one('img.ResponsiveImage, div.BookCover img')
@@ -401,6 +425,122 @@ def scrape_goodreads_series(url):
         return None
     except Exception:
         return None
+
+
+def search_amazon_for_book(title, author):
+    """Search Amazon for a book by title and author, return the first result URL."""
+    from urllib.parse import quote_plus
+
+    # Try Amazon AU first, then fall back to Amazon US
+    search_query = f"{title} {author}".strip()
+    domains = [
+        ('amazon.com.au', 'https://www.amazon.com.au/s?k={}&i=digital-text'),
+        ('amazon.com', 'https://www.amazon.com/s?k={}&i=digital-text'),
+    ]
+
+    for domain, url_template in domains:
+        try:
+            search_url = url_template.format(quote_plus(search_query))
+            soup = fetch_page(search_url)
+
+            # Find the first book result link
+            result_link = soup.select_one('div[data-component-type="s-search-result"] h2 a')
+            if result_link:
+                href = result_link.get('href', '')
+                if href:
+                    if href.startswith('/'):
+                        return f"https://www.{domain}{href}"
+                    return href
+        except Exception:
+            continue
+
+    return None
+
+
+def search_goodreads_for_book(title, author):
+    """Search Goodreads for a book by title and author, return the first result URL."""
+    from urllib.parse import quote_plus
+
+    search_query = f"{title} {author}".strip()
+    search_url = f"https://www.goodreads.com/search?q={quote_plus(search_query)}"
+
+    try:
+        soup = fetch_page(search_url)
+
+        # Find the first book result link
+        result_link = soup.select_one('a.bookTitle')
+        if result_link:
+            href = result_link.get('href', '')
+            if href:
+                if href.startswith('/'):
+                    return f"https://www.goodreads.com{href}"
+                return href
+    except Exception:
+        pass
+
+    return None
+
+
+@app.route('/books/scrape-description')
+def scrape_description():
+    """Scrape book description from Amazon or Goodreads URL."""
+    url = request.args.get('url', '').strip()
+
+    if not url:
+        return jsonify({'error': 'URL is required'}), 400
+
+    try:
+        # Determine source from URL
+        if 'amazon' in url:
+            data = scrape_amazon(url)
+        elif 'goodreads' in url:
+            data = scrape_goodreads(url)
+        else:
+            return jsonify({'error': 'URL must be from Amazon or Goodreads'}), 400
+
+        if data and data.get('description'):
+            return jsonify({'description': data['description']})
+        else:
+            return jsonify({'error': 'Could not find description on page'}), 404
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch page: {str(e)}'}), 500
+
+
+@app.route('/books/search-description')
+def search_description():
+    """Search for a book by title/author and scrape its description."""
+    title = request.args.get('title', '').strip()
+    author = request.args.get('author', '').strip()
+    source = request.args.get('source', 'amazon').strip()
+
+    if not title:
+        return jsonify({'error': 'Book title is required'}), 400
+
+    try:
+        book_url = None
+
+        if source == 'amazon':
+            book_url = search_amazon_for_book(title, author)
+            if book_url:
+                data = scrape_amazon(book_url)
+        elif source == 'goodreads':
+            book_url = search_goodreads_for_book(title, author)
+            if book_url:
+                data = scrape_goodreads(book_url)
+        else:
+            return jsonify({'error': 'Source must be amazon or goodreads'}), 400
+
+        if not book_url:
+            return jsonify({'error': f'Could not find book on {source.title()}'}), 404
+
+        if data and data.get('description'):
+            return jsonify({'description': data['description'], 'source_url': book_url})
+        else:
+            return jsonify({'error': 'Found book but could not extract description', 'source_url': book_url}), 404
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to search: {str(e)}'}), 500
 
 
 @app.route('/books/<int:id>/edit', methods=['GET', 'POST'])
