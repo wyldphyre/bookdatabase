@@ -115,11 +115,14 @@ def dashboard():
 @app.route('/books')
 def book_list():
     page = request.args.get('page', 1, type=int)
-    per_page = 25
+    per_page = request.args.get('per_page', 10, type=int)
+    # Constrain to valid options
+    if per_page not in [10, 25, 50, 100]:
+        per_page = 10
     books = Book.query.order_by(Book.date_added.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
-    return render_template('books/list.html', books=books)
+    return render_template('books/list.html', books=books, per_page=per_page)
 
 
 @app.route('/books/<int:id>')
