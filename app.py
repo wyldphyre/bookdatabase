@@ -149,8 +149,9 @@ def book_list():
 
 @app.route('/books/<int:id>')
 def book_detail(id):
+    from datetime import date
     book = Book.query.get_or_404(id)
-    return render_template('books/detail.html', book=book)
+    return render_template('books/detail.html', book=book, today=date.today().isoformat())
 
 
 @app.route('/books/new', methods=['GET', 'POST'])
@@ -1141,4 +1142,4 @@ def statistics():
 
 if __name__ == '__main__':
     init_db(app)
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
