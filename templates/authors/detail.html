@@ -14,6 +14,14 @@
 <p><mark>Alias of <a href="{{ url_for('author_detail', id=author.alias_of.id) }}">{{ author.alias_of.name }}</a></mark></p>
 {% endif %}
 
+{% if author.aliases %}
+<p><mark>Also writes as:
+    {% for alias in author.aliases %}
+    <a href="{{ url_for('author_detail', id=alias.id) }}">{{ alias.name }}</a>{% if not loop.last %}, {% endif %}
+    {% endfor %}
+</mark></p>
+{% endif %}
+
 <div class="meta-info">
     {% if author.gender %}
     <div class="meta-item">

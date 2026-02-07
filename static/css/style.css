@@ -742,3 +742,9 @@ ul.series-search-results {
 .chart-container canvas {
     max-height: 300px;
 }
+
+/* Mark/highlight styling */
+mark {
+    border-radius: var(--pico-border-radius);
+    padding: 0.25rem 0.5rem;
+}
