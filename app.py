@@ -116,13 +116,35 @@ def dashboard():
 def book_list():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
+    filter_status = request.args.get('filter', 'all')
     # Constrain to valid options
     if per_page not in [10, 25, 50, 100]:
         per_page = 10
-    books = Book.query.order_by(Book.date_added.desc()).paginate(
+    if filter_status not in ['all', 'unread', 'read']:
+        filter_status = 'all'
+
+    # Build query based on filter
+    if filter_status == 'read':
+        # Books with at least one completed read
+        query = Book.query.filter(
+            Book.id.in_(
+                db.session.query(Read.book_id).filter(Read.status == 'Completed')
+            )
+        )
+    elif filter_status == 'unread':
+        # Books with no completed reads
+        query = Book.query.filter(
+            ~Book.id.in_(
+                db.session.query(Read.book_id).filter(Read.status == 'Completed')
+            )
+        )
+    else:
+        query = Book.query
+
+    books = query.order_by(Book.date_added.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
-    return render_template('books/list.html', books=books, per_page=per_page)
+    return render_template('books/list.html', books=books, per_page=per_page, filter_status=filter_status)
 
 
 @app.route('/books/<int:id>')

@@ -5,10 +5,10 @@
 {% block content %}
 <header>
     <hgroup>
-        <h1>Books</h1>
-        <p>{{ books.total }} book{{ 's' if books.total != 1 else '' }} in your library</p>
+        <h1>{% if filter_status == 'unread' %}Unread {% elif filter_status == 'read' %}Read {% endif %}Books</h1>
+        <p>{{ books.total }} book{{ 's' if books.total != 1 else '' }}{% if filter_status != 'all' %} matching filter{% endif %}</p>
     </hgroup>
-    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+    <div class="books-toolbar">
         <div class="dropdown-button">
             <a href="{{ url_for('book_new') }}" role="button" class="dropdown-main">Add New Book</a>
             <button type="button" class="dropdown-toggle" onclick="toggleDropdown(this)" aria-label="More options">▾</button>
@@ -17,9 +17,14 @@
                 <li><a href="#" onclick="promptImportUrl('goodreads')">from GoodReads</a></li>
             </ul>
         </div>
-        <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-            <span style="white-space: nowrap;">Per page:</span>
-            <select id="per-page-select" style="width: auto; margin: 0;" onchange="changePerPage(this.value)">
+        <div class="filter-tabs">
+            <a href="{{ url_for('book_list', per_page=per_page, filter='all') }}" class="filter-btn{% if filter_status == 'all' %} active{% endif %}">All</a>
+            <a href="{{ url_for('book_list', per_page=per_page, filter='unread') }}" class="filter-btn{% if filter_status == 'unread' %} active{% endif %}">Unread</a>
+            <a href="{{ url_for('book_list', per_page=per_page, filter='read') }}" class="filter-btn{% if filter_status == 'read' %} active{% endif %}">Read</a>
+        </div>
+        <label class="per-page-label">
+            <span>Per page:</span>
+            <select id="per-page-select" onchange="changePerPage(this.value)">
                 <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
                 <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
                 <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
@@ -87,7 +92,8 @@ document.addEventListener('click', function(e) {
 // Per-page selection with localStorage
 function changePerPage(value) {
     localStorage.setItem('books_per_page', value);
-    window.location.href = '{{ url_for("book_list") }}?per_page=' + value;
+    const filter = '{{ filter_status }}';
+    window.location.href = '{{ url_for("book_list") }}?per_page=' + value + '&filter=' + filter;
 }
 
 // On page load, check if we should redirect to stored preference
@@ -95,10 +101,11 @@ function changePerPage(value) {
     const storedPerPage = localStorage.getItem('books_per_page');
     const urlParams = new URLSearchParams(window.location.search);
     const currentPerPage = urlParams.get('per_page');
+    const filter = urlParams.get('filter') || 'all';
 
     // If there's a stored preference and no per_page in URL, redirect
     if (storedPerPage && !currentPerPage && !urlParams.has('page')) {
-        window.location.href = '{{ url_for("book_list") }}?per_page=' + storedPerPage;
+        window.location.href = '{{ url_for("book_list") }}?per_page=' + storedPerPage + '&filter=' + filter;
     }
 })();
 </script>
@@ -131,7 +138,7 @@ function changePerPage(value) {
 {% if books.pages > 1 %}
 <nav class="pagination">
     {% if books.has_prev %}
-    <a href="{{ url_for('book_list', page=books.prev_num, per_page=per_page) }}">Previous</a>
+    <a href="{{ url_for('book_list', page=books.prev_num, per_page=per_page, filter=filter_status) }}">Previous</a>
     {% endif %}
 
     {% for page in books.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
@@ -139,7 +146,7 @@ function changePerPage(value) {
             {% if page == books.page %}
             <span class="current">{{ page }}</span>
             {% else %}
-            <a href="{{ url_for('book_list', page=page, per_page=per_page) }}">{{ page }}</a>
+            <a href="{{ url_for('book_list', page=page, per_page=per_page, filter=filter_status) }}">{{ page }}</a>
             {% endif %}
         {% else %}
         <span>...</span>
@@ -147,15 +154,23 @@ function changePerPage(value) {
     {% endfor %}
 
     {% if books.has_next %}
-    <a href="{{ url_for('book_list', page=books.next_num, per_page=per_page) }}">Next</a>
+    <a href="{{ url_for('book_list', page=books.next_num, per_page=per_page, filter=filter_status) }}">Next</a>
     {% endif %}
 </nav>
 {% endif %}
 
 {% else %}
 <article>
+    {% if filter_status == 'unread' %}
+    <p>No unread books found.</p>
+    <a href="{{ url_for('book_list', per_page=per_page, filter='all') }}" role="button">View All Books</a>
+    {% elif filter_status == 'read' %}
+    <p>No read books found.</p>
+    <a href="{{ url_for('book_list', per_page=per_page, filter='all') }}" role="button">View All Books</a>
+    {% else %}
     <p>No books in your library yet.</p>
     <a href="{{ url_for('book_new') }}" role="button">Add Your First Book</a>
+    {% endif %}
 </article>
 {% endif %}
 {% endblock %}
