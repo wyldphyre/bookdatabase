@@ -366,6 +366,14 @@
                 <button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>
             </span>
             {% endfor %}
+            {% elif prefill_tags is defined and prefill_tags %}
+            {% for tag in prefill_tags %}
+            <span class="tag-chip" data-tag-id="{{ tag.id }}">
+                {{ tag.name }}
+                <input type="hidden" name="tags" value="{{ tag.id }}">
+                <button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>
+            </span>
+            {% endfor %}
             {% endif %}
         </div>
 

@@ -166,12 +166,18 @@ def book_new():
     # Check for pre-filled data from import
     prefill = session.pop('book_prefill', None)
 
+    # Resolve prefill tag IDs to Tag objects
+    prefill_tags = []
+    if prefill and prefill.get('tag_ids'):
+        prefill_tags = Tag.query.filter(Tag.id.in_(prefill['tag_ids'])).all()
+
     return render_template('books/form.html',
                          book=None,
                          formats=formats,
                          authors=authors,
                          series_list=series_list,
-                         prefill=prefill)
+                         prefill=prefill,
+                         prefill_tags=prefill_tags)
 
 
 @app.route('/books/import')
@@ -197,6 +203,18 @@ def book_import():
     try:
         book_data = scraper(url)
         if book_data:
+            # Auto-create tags from genres
+            if book_data.get('genres'):
+                tag_ids = []
+                for genre_name in book_data['genres']:
+                    tag = Tag.query.filter(Tag.name.ilike(genre_name)).first()
+                    if not tag:
+                        tag = Tag(name=genre_name)
+                        db.session.add(tag)
+                        db.session.commit()
+                    tag_ids.append(tag.id)
+                book_data['tag_ids'] = tag_ids
+
             session['book_prefill'] = book_data
             flash('Book data imported. Please review and save.', 'success')
         else:
@@ -362,6 +380,19 @@ def scrape_goodreads(url):
             data['series_number'] = float(match.group(2))
         else:
             data['series_name'] = series_text
+
+    # Genres/tags
+    genre_els = soup.select('span.BookPageMetadataSection__genreButton a, a[href*="/genres/"]')
+    if genre_els:
+        seen = set()
+        genres = []
+        for el in genre_els:
+            name = el.get_text(strip=True)
+            if name and name.lower() not in seen:
+                seen.add(name.lower())
+                genres.append(name)
+        if genres:
+            data['genres'] = genres
 
     # Goodreads URL for author
     data['goodreads_url'] = url
