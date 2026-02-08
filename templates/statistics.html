@@ -19,6 +19,10 @@
         <div class="stat-label">Series</div>
     </div>
     <div class="stat">
+        <div class="stat-value">{{ total_tags }}</div>
+        <div class="stat-label">Tags</div>
+    </div>
+    <div class="stat">
         <div class="stat-value">{{ total_reads }}</div>
         <div class="stat-label">Books Read</div>
     </div>
@@ -73,6 +77,13 @@
         <h3>Reading Status</h3>
         <canvas id="completionChart"></canvas>
     </article>
+
+    {% if top_tag_data %}
+    <article class="chart-container">
+        <h3>Top Tags</h3>
+        <canvas id="tagChart"></canvas>
+    </article>
+    {% endif %}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -193,5 +204,57 @@ new Chart(completionCtx, {
         }
     }
 });
+
+{% if top_tag_data %}
+// Top tags chart (stacked bar by entity type)
+const tagCtx = document.getElementById('tagChart').getContext('2d');
+const tagLabels = {{ top_tag_breakdown.keys()|list|tojson }};
+const tagBooks = {{ top_tag_breakdown.values()|map(attribute='books')|list|tojson }};
+const tagAuthors = {{ top_tag_breakdown.values()|map(attribute='authors')|list|tojson }};
+const tagSeries = {{ top_tag_breakdown.values()|map(attribute='series')|list|tojson }};
+new Chart(tagCtx, {
+    type: 'bar',
+    data: {
+        labels: tagLabels,
+        datasets: [
+            {
+                label: 'Books',
+                data: tagBooks,
+                backgroundColor: '#667eea',
+                borderRadius: 4
+            },
+            {
+                label: 'Authors',
+                data: tagAuthors,
+                backgroundColor: '#764ba2',
+                borderRadius: 4
+            },
+            {
+                label: 'Series',
+                data: tagSeries,
+                backgroundColor: '#f5a623',
+                borderRadius: 4
+            }
+        ]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' }
+        },
+        scales: {
+            x: {
+                stacked: true,
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+            },
+            y: {
+                stacked: true
+            }
+        }
+    }
+});
+{% endif %}
 </script>
 {% endblock %}

@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
 from bs4 import BeautifulSoup
-from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag
+from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
 app = Flask(__name__)
@@ -1175,6 +1175,49 @@ def statistics():
     total_spent = db.session.query(func.sum(Book.paid)).scalar() or 0
     total_saved = db.session.query(func.sum(Book.discounts)).scalar() or 0
 
+    # Tag statistics
+    total_tags = Tag.query.count()
+
+    # Top tags by total usage (across books, authors, series)
+    tag_book_counts = db.session.query(
+        Tag.id, Tag.name, func.count(book_tags.c.book_id).label('count')
+    ).outerjoin(book_tags, Tag.id == book_tags.c.tag_id)\
+     .group_by(Tag.id, Tag.name).all()
+
+    tag_author_counts = db.session.query(
+        Tag.id, func.count(author_tags.c.author_id).label('count')
+    ).outerjoin(author_tags, Tag.id == author_tags.c.tag_id)\
+     .group_by(Tag.id).all()
+
+    tag_series_counts = db.session.query(
+        Tag.id, func.count(series_tags.c.series_id).label('count')
+    ).outerjoin(series_tags, Tag.id == series_tags.c.tag_id)\
+     .group_by(Tag.id).all()
+
+    # Merge counts
+    tag_totals = {}
+    tag_names = {}
+    tag_by_type = {}
+    for tag_id, tag_name, count in tag_book_counts:
+        tag_totals[tag_id] = count
+        tag_names[tag_id] = tag_name
+        tag_by_type[tag_name] = {'books': count, 'authors': 0, 'series': 0}
+    for tag_id, count in tag_author_counts:
+        tag_totals[tag_id] = tag_totals.get(tag_id, 0) + count
+        if tag_names.get(tag_id) in tag_by_type:
+            tag_by_type[tag_names[tag_id]]['authors'] = count
+    for tag_id, count in tag_series_counts:
+        tag_totals[tag_id] = tag_totals.get(tag_id, 0) + count
+        if tag_names.get(tag_id) in tag_by_type:
+            tag_by_type[tag_names[tag_id]]['series'] = count
+
+    # Sort by total usage, take top 15
+    top_tags = sorted(tag_totals.items(), key=lambda x: x[1], reverse=True)[:15]
+    top_tag_data = {tag_names[tid]: count for tid, count in top_tags if count > 0}
+
+    # Breakdown for top tags (books/authors/series stacked)
+    top_tag_breakdown = {name: tag_by_type[name] for name in top_tag_data}
+
     return render_template('statistics.html',
                          gender_data=gender_data,
                          format_data=format_data,
@@ -1185,12 +1228,15 @@ def statistics():
                          total_authors=total_authors,
                          total_series=total_series,
                          total_reads=total_reads,
+                         total_tags=total_tags,
                          books_with_rating=books_with_rating,
                          avg_rating=round(avg_rating, 2),
                          pages_read=pages_read,
                          avg_days=round(avg_days, 1),
                          total_spent=total_spent,
-                         total_saved=total_saved)
+                         total_saved=total_saved,
+                         top_tag_data=top_tag_data,
+                         top_tag_breakdown=top_tag_breakdown)
 
 
 if __name__ == '__main__':
