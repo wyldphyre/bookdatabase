@@ -1,0 +1,109 @@
+{% if scan.status == 'idle' %}
+<div id="scan-controls">
+    <fieldset>
+        <label>
+            <input type="checkbox" name="untagged_only" id="untagged-only" checked>
+            Only scan books with no tags
+        </label>
+    </fieldset>
+    <button hx-post="{{ url_for('scan_genres_start') }}"
+            hx-target="#scan-area"
+            hx-include="#untagged-only">
+        Start Scan
+    </button>
+</div>
+
+{% elif scan.status in ('running', 'paused') %}
+<div id="scan-controls"
+     hx-get="{{ url_for('scan_genres_progress') }}"
+     hx-trigger="every 1s"
+     hx-target="#scan-area">
+
+    <div class="scan-stats">
+        <strong>{{ scan.progress }}</strong> of <strong>{{ scan.total }}</strong> books scanned
+        {% if scan.tags_added > 0 %}
+        &mdash; <strong>{{ scan.tags_added }}</strong> tags added
+        {% endif %}
+        {% if scan.status == 'paused' %}
+        &mdash; <em>Paused</em>
+        {% endif %}
+    </div>
+
+    <progress value="{{ scan.progress }}" max="{{ scan.total }}"></progress>
+
+    {% if scan.current_book %}
+    <p class="scan-current">Processing: <strong>{{ scan.current_book }}</strong></p>
+    {% endif %}
+
+    <div class="button-group">
+        <button hx-post="{{ url_for('scan_genres_pause') }}"
+                hx-target="#scan-area"
+                class="outline">
+            {{ 'Resume' if scan.status == 'paused' else 'Pause' }}
+        </button>
+        <button hx-post="{{ url_for('scan_genres_stop') }}"
+                hx-target="#scan-area"
+                class="secondary">
+            Stop
+        </button>
+    </div>
+</div>
+
+{% elif scan.status == 'complete' %}
+<div id="scan-controls">
+    <div class="scan-stats">
+        Scan complete: <strong>{{ scan.progress }}</strong> of <strong>{{ scan.total }}</strong> books scanned
+        &mdash; <strong>{{ scan.tags_added }}</strong> tags added
+    </div>
+    <progress value="{{ scan.total }}" max="{{ scan.total }}"></progress>
+</div>
+
+{% elif scan.status == 'stopped' %}
+<div id="scan-controls">
+    <div class="scan-stats">
+        Scan stopped: <strong>{{ scan.progress }}</strong> of <strong>{{ scan.total }}</strong> books scanned
+        &mdash; <strong>{{ scan.tags_added }}</strong> tags added
+    </div>
+    <progress value="{{ scan.progress }}" max="{{ scan.total }}"></progress>
+</div>
+{% endif %}
+
+{% if scan.results %}
+<details open class="scan-log">
+    <summary>Scan Log ({{ scan.results|length }} entries)</summary>
+    <div class="scan-log-entries">
+        {% for entry in scan.results|reverse %}
+        <div class="scan-log-entry {{ entry.status }}">
+            <strong>{{ entry.book }}</strong>
+            {% if entry.status == 'found' %}
+            &mdash; {{ entry.tags|join(', ') }}
+            {% elif entry.status == 'skipped' %}
+            &mdash; <em>already has tags</em>
+            {% elif entry.status == 'not_found' %}
+            &mdash; <em>not found on Goodreads</em>
+            {% elif entry.status == 'no_genres' %}
+            &mdash; <em>no genres listed</em>
+            {% elif entry.status == 'error' %}
+            &mdash; <em>error: {{ entry.message }}</em>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</details>
+{% endif %}
+
+{% if scan.status in ('complete', 'stopped') %}
+<div style="margin-top: 1rem;">
+    <fieldset>
+        <label>
+            <input type="checkbox" name="untagged_only" id="untagged-only" checked>
+            Only scan books with no tags
+        </label>
+    </fieldset>
+    <button hx-post="{{ url_for('scan_genres_start') }}"
+            hx-target="#scan-area"
+            hx-include="#untagged-only">
+        Start New Scan
+    </button>
+</div>
+{% endif %}

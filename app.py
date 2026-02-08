@@ -1,5 +1,7 @@
 import os
 import re
+import time
+import threading
 import requests as http_requests
 from datetime import datetime
 from urllib.parse import urlparse
@@ -493,16 +495,36 @@ def search_goodreads_for_book(title, author):
     """Search Goodreads for a book by title and author, return the first result URL."""
     from urllib.parse import quote_plus
 
+    # Patterns that indicate junk listings rather than the actual book
+    skip_patterns = ['book only', 'study guide', 'summary', 'workbook', 'analysis', 'notebook']
+
     search_query = f"{title} {author}".strip()
     search_url = f"https://www.goodreads.com/search?q={quote_plus(search_query)}"
 
     try:
         soup = fetch_page(search_url)
 
-        # Find the first book result link
-        result_link = soup.select_one('a.bookTitle')
-        if result_link:
-            href = result_link.get('href', '')
+        # Check all result rows, skip junk listings
+        rows = soup.select('table.tableList tr')
+        for row in rows:
+            title_el = row.select_one('a.bookTitle')
+            if not title_el:
+                continue
+
+            result_title = title_el.get_text(strip=True).lower()
+
+            # Skip junk listings by title
+            if any(pattern in result_title for pattern in skip_patterns):
+                continue
+
+            # Skip results with 0 ratings (usually spam/junk entries)
+            rating_el = row.select_one('span.minirating')
+            if rating_el:
+                rating_text = rating_el.get_text(strip=True)
+                if '0 ratings' in rating_text:
+                    continue
+
+            href = title_el.get('href', '')
             if href:
                 if href.startswith('/'):
                     return f"https://www.goodreads.com{href}"
@@ -1268,6 +1290,166 @@ def statistics():
                          total_saved=total_saved,
                          top_tag_data=top_tag_data,
                          top_tag_breakdown=top_tag_breakdown)
+
+
+# --- System Page & Genre Scanner ---
+
+genre_scan = {
+    'status': 'idle',       # idle, running, paused, complete, stopped
+    'progress': 0,
+    'total': 0,
+    'current_book': '',
+    'tags_added': 0,
+    'results': [],
+    'paused': False,
+    'stop_requested': False,
+}
+
+
+@app.route('/system')
+def system():
+    return render_template('system.html', scan=genre_scan)
+
+
+@app.route('/system/scan-genres', methods=['POST'])
+def scan_genres_start():
+    if genre_scan['status'] == 'running':
+        return render_template('system/_scan_progress.html', scan=genre_scan)
+
+    untagged_only = request.form.get('untagged_only') == 'on'
+
+    # Reset state
+    genre_scan.update({
+        'status': 'running',
+        'progress': 0,
+        'total': 0,
+        'current_book': '',
+        'tags_added': 0,
+        'results': [],
+        'paused': False,
+        'stop_requested': False,
+    })
+
+    thread = threading.Thread(target=run_genre_scan, args=(untagged_only,), daemon=True)
+    thread.start()
+
+    return render_template('system/_scan_progress.html', scan=genre_scan)
+
+
+@app.route('/system/scan-genres/progress')
+def scan_genres_progress():
+    return render_template('system/_scan_progress.html', scan=genre_scan)
+
+
+@app.route('/system/scan-genres/pause', methods=['POST'])
+def scan_genres_pause():
+    if genre_scan['status'] == 'running':
+        genre_scan['paused'] = True
+        genre_scan['status'] = 'paused'
+    elif genre_scan['status'] == 'paused':
+        genre_scan['paused'] = False
+        genre_scan['status'] = 'running'
+    return render_template('system/_scan_progress.html', scan=genre_scan)
+
+
+@app.route('/system/scan-genres/stop', methods=['POST'])
+def scan_genres_stop():
+    genre_scan['stop_requested'] = True
+    return render_template('system/_scan_progress.html', scan=genre_scan)
+
+
+def run_genre_scan(untagged_only):
+    """Background thread that scans Goodreads for genres and imports as tags."""
+    from sqlalchemy.orm import joinedload
+    with app.app_context():
+        query = Book.query.options(
+            joinedload(Book.authors),
+            joinedload(Book.tags)
+        )
+
+        if untagged_only:
+            query = query.filter(~Book.tags.any())
+
+        books = query.all()
+        genre_scan['total'] = len(books)
+
+        for i, book in enumerate(books):
+            # Check for stop
+            if genre_scan['stop_requested']:
+                genre_scan['status'] = 'stopped'
+                genre_scan['current_book'] = ''
+                return
+
+            # Handle pause
+            while genre_scan['paused']:
+                if genre_scan['stop_requested']:
+                    genre_scan['status'] = 'stopped'
+                    genre_scan['current_book'] = ''
+                    return
+                time.sleep(0.5)
+
+            genre_scan['current_book'] = book.title
+            genre_scan['progress'] = i
+
+            author_names = ', '.join(a.name for a in book.authors) if book.authors else ''
+
+            try:
+                # Search Goodreads for this book
+                book_url = search_goodreads_for_book(book.title, author_names)
+                if not book_url:
+                    genre_scan['results'].append({
+                        'book': book.title,
+                        'status': 'not_found',
+                    })
+                    time.sleep(1)
+                    continue
+
+                # Scrape the Goodreads page for genres
+                book_data = scrape_goodreads(book_url)
+                if not book_data or not book_data.get('genres'):
+                    genre_scan['results'].append({
+                        'book': book.title,
+                        'status': 'no_genres',
+                    })
+                    time.sleep(1)
+                    continue
+
+                # Find or create tags and add to book
+                new_tags = []
+                for genre_name in book_data['genres']:
+                    tag = Tag.query.filter(Tag.name.ilike(genre_name)).first()
+                    if not tag:
+                        tag = Tag(name=genre_name)
+                        db.session.add(tag)
+                        db.session.commit()
+
+                    if tag not in book.tags:
+                        book.tags.append(tag)
+                        new_tags.append(tag.name)
+
+                if new_tags:
+                    db.session.commit()
+                    genre_scan['tags_added'] += len(new_tags)
+
+                genre_scan['results'].append({
+                    'book': book.title,
+                    'status': 'found',
+                    'tags': new_tags if new_tags else book_data['genres'],
+                })
+
+            except Exception as e:
+                genre_scan['results'].append({
+                    'book': book.title,
+                    'status': 'error',
+                    'message': str(e),
+                })
+
+            # Brief delay to avoid rate limiting
+            time.sleep(2)
+
+        genre_scan['progress'] = genre_scan['total']
+        genre_scan['current_book'] = ''
+        genre_scan['status'] = 'complete'
 
 
 if __name__ == '__main__':

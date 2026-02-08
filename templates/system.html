@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}System - Book Database{% endblock %}
+
+{% block content %}
+<h1>System</h1>
+
+<article>
+    <h3>Goodreads Genre Scanner</h3>
+    <p>Scan Goodreads for each book in your library and import genres as tags. Existing tags will be reused.</p>
+
+    <div id="scan-area">
+        {% include "system/_scan_progress.html" %}
+    </div>
+</article>
+
+<script>
+// Preserve scan log scroll position across htmx polling swaps
+document.addEventListener('htmx:beforeSwap', function(e) {
+    if (e.detail.target.id === 'scan-area') {
+        var logEl = document.querySelector('.scan-log-entries');
+        if (logEl) window._scanLogScroll = logEl.scrollTop;
+    }
+});
+document.addEventListener('htmx:afterSettle', function(e) {
+    if (e.detail.target.id === 'scan-area') {
+        var logEl = document.querySelector('.scan-log-entries');
+        if (logEl && window._scanLogScroll !== undefined) {
+            logEl.scrollTop = window._scanLogScroll;
+        }
+    }
+});
+</script>
+{% endblock %}

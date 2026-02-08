@@ -934,3 +934,47 @@ ul.tag-search-results {
     padding: 0.25rem 0.5rem;
     font-size: 0.85rem;
 }
+
+/* Scan progress */
+.scan-stats {
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+}
+
+.scan-current {
+    color: var(--pico-muted-color);
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+}
+
+.scan-log {
+    margin-top: 1.5rem;
+}
+
+.scan-log-entries {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.scan-log-entry {
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+    font-size: 0.9rem;
+}
+
+.scan-log-entry:last-child {
+    border-bottom: none;
+}
+
+.scan-log-entry.not_found em,
+.scan-log-entry.error em {
+    color: var(--pico-del-color);
+}
+
+.scan-log-entry.no_genres em {
+    color: var(--pico-muted-color);
+}
+
+.scan-log-entry.found {
+    color: var(--pico-ins-color);
+}
