@@ -266,7 +266,12 @@ book-database/
 
 ### Image Handling
 - Allow uploading book cover images
-- Store images in `static/uploads/`
+- Store images on the filesystem in `static/uploads/`, not as BLOBs in the database:
+  - Better performance: Flask serves static files directly without database reads
+  - Keeps the SQLite database small and fast to back up/copy
+  - Browsers cache static files naturally by URL
+  - No need for a dedicated route to stream binary data with content-type headers
+  - Tradeoff: images must be backed up separately from the database
 - Display placeholder if no cover exists
 - Support common image formats (jpg, png, webp)
 
