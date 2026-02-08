@@ -10,6 +10,14 @@
         {% else %}
         <div class="book-cover-placeholder">📚</div>
         {% endif %}
+
+        {% if not book.active_read %}
+        <form method="post" action="{{ url_for('read_add', book_id=book.id) }}" style="margin: 1rem 0 0 0;">
+            <input type="hidden" name="status" value="Reading">
+            <input type="hidden" name="start_date" value="{{ today }}">
+            <button type="submit" style="width: 100%;">Start Reading</button>
+        </form>
+        {% endif %}
     </div>
 
     <div>
@@ -37,14 +45,6 @@
         </p>
         {% endif %}
 
-        {% if not book.active_read %}
-        <form method="post" action="{{ url_for('read_add', book_id=book.id) }}" style="display: inline; margin: 0;">
-            <input type="hidden" name="status" value="Reading">
-            <input type="hidden" name="start_date" value="{{ today }}">
-            <button type="submit" style="width: auto;">Start Reading</button>
-        </form>
-        {% endif %}
-
         {% if book.rating %}
         <p class="rating">
             {% for i in range(5) %}
@@ -60,6 +60,13 @@
             <mark class="tag-label">{{ tag.name }}</mark>
             {% endfor %}
         </p>
+        {% endif %}
+
+        {% if book.description %}
+        <article>
+            <h3>Description</h3>
+            <p style="white-space: pre-line;">{{ book.description }}</p>
+        </article>
         {% endif %}
 
         <div class="meta-info">
@@ -118,13 +125,6 @@
 
         {% if book.is_book_bundle %}
         <p><mark>Book Bundle</mark> {% if book.bundled_books %}({{ book.bundled_books }}){% endif %}</p>
-        {% endif %}
-
-        {% if book.description %}
-        <article>
-            <h3>Description</h3>
-            <p style="white-space: pre-line;">{{ book.description }}</p>
-        </article>
         {% endif %}
 
         {% if book.comment %}
