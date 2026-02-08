@@ -54,6 +54,14 @@
         </p>
         {% endif %}
 
+        {% if book.tags %}
+        <p class="detail-tags">
+            {% for tag in book.tags %}
+            <mark class="tag-label">{{ tag.name }}</mark>
+            {% endfor %}
+        </p>
+        {% endif %}
+
         <div class="meta-info">
             {% if book.format %}
             <div class="meta-item">

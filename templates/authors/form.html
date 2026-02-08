@@ -67,6 +67,83 @@
         <input type="url" name="website" value="{{ author.website or '' if author else '' }}" placeholder="https://...">
     </label>
 
+    <fieldset>
+        <legend>Tags</legend>
+
+        <div id="selected-tags" class="selected-tags">
+            {% if author %}
+            {% for tag in author.tags %}
+            <span class="tag-chip" data-tag-id="{{ tag.id }}">
+                {{ tag.name }}
+                <input type="hidden" name="tags" value="{{ tag.id }}">
+                <button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>
+            </span>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="tag-picker">
+            <div class="tag-picker-row">
+                <input type="text"
+                       id="tag-search"
+                       placeholder="Search for tags..."
+                       autocomplete="off"
+                       hx-get="{{ url_for('tag_search') }}"
+                       hx-trigger="input changed delay:200ms, focus"
+                       hx-target="#tag-search-results"
+                       hx-vals='js:{exclude: Array.from(document.querySelectorAll("#selected-tags input[name=tags]")).map(i => i.value).join(",")}'
+                       name="q">
+                <button type="button" class="outline secondary tag-new-btn" onclick="toggleNewTag()">+ New</button>
+            </div>
+            <div id="tag-search-results"></div>
+        </div>
+
+        <div id="quick-add-tag-form" hidden class="quick-add-tag-form">
+            <input type="text" name="tag_name" id="new-tag-name" placeholder="New tag name...">
+            <button type="button" class="secondary tag-new-btn"
+                    hx-post="{{ url_for('tag_quick_add') }}"
+                    hx-include="#new-tag-name"
+                    hx-target="#selected-tags"
+                    hx-swap="beforeend"
+                    hx-on::after-request="document.getElementById('quick-add-tag-form').hidden = true; document.getElementById('new-tag-name').value = '';">
+                Add
+            </button>
+        </div>
+    </fieldset>
+
+    <script>
+    function toggleNewTag() {
+        const form = document.getElementById('quick-add-tag-form');
+        form.hidden = !form.hidden;
+        if (!form.hidden) document.getElementById('new-tag-name').focus();
+    }
+
+    function addTag(id, name) {
+        if (document.querySelector(`#selected-tags [data-tag-id="${id}"]`)) {
+            return;
+        }
+
+        const chip = document.createElement('span');
+        chip.className = 'tag-chip';
+        chip.dataset.tagId = id;
+        chip.innerHTML = `
+            ${name}
+            <input type="hidden" name="tags" value="${id}">
+            <button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>
+        `;
+
+        document.getElementById('selected-tags').appendChild(chip);
+        document.getElementById('tag-search').value = '';
+        document.getElementById('tag-search-results').innerHTML = '';
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.tag-picker')) {
+            document.getElementById('tag-search-results').innerHTML = '';
+        }
+    });
+    </script>
+
     <div class="button-group">
         <button type="submit">{{ 'Update' if author else 'Add' }} Author</button>
         <a href="{{ url_for('author_detail', id=author.id) if author else url_for('author_list') }}" role="button" class="secondary">Cancel</a>

@@ -9,6 +9,31 @@ book_authors = db.Table('book_authors',
     db.Column('author_id', db.Integer, db.ForeignKey('author.id'), primary_key=True)
 )
 
+# Association tables for Tag many-to-many relationships
+book_tags = db.Table('book_tags',
+    db.Column('book_id', db.Integer, db.ForeignKey('book.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True)
+)
+
+author_tags = db.Table('author_tags',
+    db.Column('author_id', db.Integer, db.ForeignKey('author.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True)
+)
+
+series_tags = db.Table('series_tags',
+    db.Column('series_id', db.Integer, db.ForeignKey('series.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True)
+)
+
+
+class Tag(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+
+    books = db.relationship('Book', secondary=book_tags, back_populates='tags')
+    authors = db.relationship('Author', secondary=author_tags, back_populates='tags')
+    series = db.relationship('Series', secondary=series_tags, back_populates='tags')
+
 
 class BookFormat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -33,6 +58,7 @@ class Series(db.Model):
     storygraph_url = db.Column(db.String(500))
 
     books = db.relationship('Book', backref='series', lazy=True, order_by='Book.series_number')
+    tags = db.relationship('Tag', secondary=series_tags, back_populates='series')
 
 
 class Author(db.Model):
@@ -50,6 +76,7 @@ class Author(db.Model):
     alias_of = db.relationship('Author', remote_side=[id], backref='aliases')
 
     books = db.relationship('Book', secondary=book_authors, back_populates='authors')
+    tags = db.relationship('Tag', secondary=author_tags, back_populates='authors')
 
 
 class Book(db.Model):
@@ -73,6 +100,7 @@ class Book(db.Model):
     comment = db.Column(db.Text)
 
     authors = db.relationship('Author', secondary=book_authors, back_populates='books')
+    tags = db.relationship('Tag', secondary=book_tags, back_populates='books')
     reads = db.relationship('Read', backref='book', lazy=True, order_by='Read.start_date.desc()')
 
     @property

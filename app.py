@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
 from bs4 import BeautifulSoup
-from models import db, Book, Author, Series, Read, BookFormat, AuthorGender
+from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag
 from database import init_db
 
 app = Flask(__name__)
@@ -590,6 +590,10 @@ def save_book(book):
     author_ids = request.form.getlist('authors')
     book.authors = Author.query.filter(Author.id.in_(author_ids)).all() if author_ids else []
 
+    # Handle tags
+    tag_ids = request.form.getlist('tags')
+    book.tags = Tag.query.filter(Tag.id.in_(tag_ids)).all() if tag_ids else []
+
     # Handle cover image upload (file takes priority over URL)
     if 'cover_image' in request.files:
         file = request.files['cover_image']
@@ -791,6 +795,10 @@ def save_author(author):
     author.website = request.form.get('website', '').strip() or None
     author.alias_of_id = request.form.get('alias_of_id', type=int) or None
 
+    # Handle tags
+    tag_ids = request.form.getlist('tags')
+    author.tags = Tag.query.filter(Tag.id.in_(tag_ids)).all() if tag_ids else []
+
     if is_new:
         db.session.add(author)
     db.session.commit()
@@ -873,6 +881,47 @@ def series_quick_add():
     return render_template('books/_series_chip.html', series=series)
 
 
+@app.route('/tags/search')
+def tag_search():
+    """Search tags for the tag picker."""
+    query = request.args.get('q', '').strip()
+    exclude_str = request.args.get('exclude', '')
+
+    exclude_ids = []
+    if exclude_str:
+        exclude_ids = [int(x) for x in exclude_str.split(',') if x.strip().isdigit()]
+
+    if len(query) < 1:
+        return ''
+
+    tags = Tag.query.filter(Tag.name.ilike(f'%{query}%'))
+
+    if exclude_ids:
+        tags = tags.filter(~Tag.id.in_(exclude_ids))
+
+    tags = tags.order_by(Tag.name).limit(10).all()
+    return render_template('books/_tag_search_results.html', tags=tags, query=query)
+
+
+@app.route('/tags/quick-add', methods=['POST'])
+def tag_quick_add():
+    """Quick add a tag via htmx from a form."""
+    name = request.form.get('tag_name', '').strip()
+    if not name:
+        return '<p class="error">Name is required</p>', 400
+
+    # Check if tag already exists (case-insensitive)
+    existing = Tag.query.filter(Tag.name.ilike(name)).first()
+    if existing:
+        return render_template('books/_tag_chip.html', tag=existing)
+
+    tag = Tag(name=name)
+    db.session.add(tag)
+    db.session.commit()
+
+    return render_template('books/_tag_chip.html', tag=tag)
+
+
 @app.route('/authors/<int:id>/delete', methods=['DELETE', 'POST'])
 def author_delete(id):
     author = Author.query.get_or_404(id)
@@ -936,6 +985,10 @@ def save_series(series):
     series.goodreads_url = request.form.get('goodreads_url', '').strip() or None
     series.amazon_url = request.form.get('amazon_url', '').strip() or None
     series.storygraph_url = request.form.get('storygraph_url', '').strip() or None
+
+    # Handle tags
+    tag_ids = request.form.getlist('tags')
+    series.tags = Tag.query.filter(Tag.id.in_(tag_ids)).all() if tag_ids else []
 
     if is_new:
         db.session.add(series)

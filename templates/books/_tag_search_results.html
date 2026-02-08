@@ -1,0 +1,14 @@
+{% if tags %}
+<ul class="tag-search-results">
+    {% for tag in tags %}
+    <li class="tag-search-item"
+        onclick="addTag({{ tag.id }}, '{{ tag.name|e }}')"
+        tabindex="0"
+        onkeydown="if(event.key==='Enter') addTag({{ tag.id }}, '{{ tag.name|e }}')">
+        {{ tag.name }}
+    </li>
+    {% endfor %}
+</ul>
+{% elif query %}
+<p class="tag-search-empty">No tags found matching "{{ query }}"</p>
+{% endif %}

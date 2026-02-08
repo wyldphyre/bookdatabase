@@ -22,6 +22,14 @@
 </mark></p>
 {% endif %}
 
+{% if author.tags %}
+<p class="detail-tags">
+    {% for tag in author.tags %}
+    <mark class="tag-label">{{ tag.name }}</mark>
+    {% endfor %}
+</p>
+{% endif %}
+
 <div class="meta-info">
     {% if author.gender %}
     <div class="meta-item">

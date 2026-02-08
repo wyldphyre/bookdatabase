@@ -1,0 +1,5 @@
+<span class="tag-chip" data-tag-id="{{ tag.id }}">
+    {{ tag.name }}
+    <input type="hidden" name="tags" value="{{ tag.id }}">
+    <button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>
+</span>

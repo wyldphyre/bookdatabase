@@ -818,3 +818,119 @@ mark {
 .filter-tabs .filter-btn:hover:not(.active) {
     background: var(--pico-primary-focus);
 }
+
+/* Tag picker */
+.tag-picker {
+    position: relative;
+}
+
+.tag-picker input[type="text"] {
+    margin-bottom: 0;
+}
+
+.tag-picker-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+.tag-picker-row input[type="text"] {
+    flex: 1;
+}
+
+.tag-new-btn {
+    white-space: nowrap;
+    margin: 0;
+    width: auto;
+}
+
+.quick-add-tag-form {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+    margin-top: 0.5rem;
+}
+
+.quick-add-tag-form input[type="text"] {
+    flex: 1;
+    margin: 0;
+}
+
+.selected-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    min-height: 1rem;
+}
+
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: var(--pico-secondary-background);
+    color: var(--pico-secondary-inverse);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--pico-border-radius);
+    font-size: 0.9rem;
+}
+
+.tag-search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--pico-background-color);
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: var(--pico-border-radius);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.tag-search-results:empty {
+    display: none;
+}
+
+ul.tag-search-results {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.tag-search-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.tag-search-item:last-child {
+    border-bottom: none;
+}
+
+.tag-search-item:hover,
+.tag-search-item:focus {
+    background: var(--pico-primary-focus);
+    outline: none;
+}
+
+.tag-search-empty {
+    padding: 0.75rem 1rem;
+    color: var(--pico-muted-color);
+    font-style: italic;
+    margin: 0;
+}
+
+/* Tags on detail pages */
+.detail-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.tag-label {
+    border-radius: var(--pico-border-radius);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+}

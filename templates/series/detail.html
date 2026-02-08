@@ -10,6 +10,14 @@
     {% endif %}
 </hgroup>
 
+{% if series.tags %}
+<p class="detail-tags">
+    {% for tag in series.tags %}
+    <mark class="tag-label">{{ tag.name }}</mark>
+    {% endfor %}
+</p>
+{% endif %}
+
 {% if series.goodreads_url or series.amazon_url or series.storygraph_url %}
 <div class="external-links">
     {% if series.goodreads_url %}
