@@ -36,7 +36,7 @@ A personal book database web application for tracking books, authors, series, an
    python app.py
    ```
 
-4. Open http://localhost:5000 in your browser
+4. Open http://localhost:5001 in your browser
 
 ## File Structure
 
@@ -74,6 +74,10 @@ book-database/
 The SQLite database (`books.db`) is created automatically on first run with seed data for:
 - Book formats: Kindle, Kobo, ePub, Hardcover, Paperback, Comic Archive, Audiobook, PDF
 - Author genders: Female, Male, Nonbinary, Unknown
+
+### Cover Images
+
+Book cover images are stored on the filesystem in `static/uploads/` rather than as BLOBs in the database. This keeps the database small, allows Flask to serve images directly as static files with browser caching, and avoids the overhead of streaming binary data through a database query. The tradeoff is that `static/uploads/` must be backed up separately from `books.db`.
 
 ## Usage
 
