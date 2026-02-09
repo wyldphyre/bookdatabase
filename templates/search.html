@@ -11,7 +11,17 @@
            hx-get="{{ url_for('search') }}"
            hx-trigger="keyup changed delay:300ms"
            hx-target="#search-results"
-           hx-push-url="true">
+           hx-push-url="true"
+           hx-include="[name=tags]">
+    <label>
+        <input type="checkbox" name="tags" value="1" {% if include_tags %}checked{% endif %}
+               hx-get="{{ url_for('search') }}"
+               hx-trigger="change"
+               hx-target="#search-results"
+               hx-push-url="true"
+               hx-include="[name=q]">
+        Include tags in search
+    </label>
 </form>
 
 <div id="search-results">

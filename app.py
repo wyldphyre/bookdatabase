@@ -1101,28 +1101,44 @@ def series_update_count(id):
 @app.route('/search')
 def search():
     query = request.args.get('q', '').strip()
+    include_tags = request.args.get('tags') == '1'
     books = []
     authors = []
     series_results = []
 
     if query:
         # Search books
-        books = Book.query.filter(
-            db.or_(
-                Book.title.ilike(f'%{query}%'),
-                Book.subtitle.ilike(f'%{query}%'),
-                Book.description.ilike(f'%{query}%')
+        book_filters = [
+            Book.title.ilike(f'%{query}%'),
+            Book.subtitle.ilike(f'%{query}%'),
+            Book.description.ilike(f'%{query}%')
+        ]
+        if include_tags:
+            book_filters.append(
+                Book.tags.any(Tag.name.ilike(f'%{query}%'))
             )
+        books = Book.query.filter(
+            db.or_(*book_filters)
         ).order_by(Book.title).limit(20).all()
 
         # Search authors
+        author_filters = [Author.name.ilike(f'%{query}%')]
+        if include_tags:
+            author_filters.append(
+                Author.tags.any(Tag.name.ilike(f'%{query}%'))
+            )
         authors = Author.query.filter(
-            Author.name.ilike(f'%{query}%')
+            db.or_(*author_filters)
         ).order_by(Author.name).limit(20).all()
 
         # Search series
+        series_filters = [Series.name.ilike(f'%{query}%')]
+        if include_tags:
+            series_filters.append(
+                Series.tags.any(Tag.name.ilike(f'%{query}%'))
+            )
         series_results = Series.query.filter(
-            Series.name.ilike(f'%{query}%')
+            db.or_(*series_filters)
         ).order_by(Series.name).limit(20).all()
 
     # For htmx requests, return just the results
@@ -1135,6 +1151,7 @@ def search():
 
     return render_template('search.html',
                          query=query,
+                         include_tags=include_tags,
                          books=books,
                          authors=authors,
                          series_results=series_results)
