@@ -206,52 +206,25 @@ new Chart(completionCtx, {
 });
 
 {% if top_tag_data %}
-// Top tags chart (stacked bar by entity type)
+// Top tags pie chart
 const tagCtx = document.getElementById('tagChart').getContext('2d');
-const tagLabels = {{ top_tag_breakdown.keys()|list|tojson }};
-const tagBooks = {{ top_tag_breakdown.values()|map(attribute='books')|list|tojson }};
-const tagAuthors = {{ top_tag_breakdown.values()|map(attribute='authors')|list|tojson }};
-const tagSeries = {{ top_tag_breakdown.values()|map(attribute='series')|list|tojson }};
 new Chart(tagCtx, {
-    type: 'bar',
+    type: 'pie',
     data: {
-        labels: tagLabels,
-        datasets: [
-            {
-                label: 'Books',
-                data: tagBooks,
-                backgroundColor: '#667eea',
-                borderRadius: 4
-            },
-            {
-                label: 'Authors',
-                data: tagAuthors,
-                backgroundColor: '#764ba2',
-                borderRadius: 4
-            },
-            {
-                label: 'Series',
-                data: tagSeries,
-                backgroundColor: '#f5a623',
-                borderRadius: 4
-            }
-        ]
+        labels: {{ top_tag_data.keys()|list|tojson }},
+        datasets: [{
+            data: {{ top_tag_data.values()|list|tojson }},
+            backgroundColor: [
+                '#667eea', '#764ba2', '#f5a623', '#50c878', '#ff6b6b',
+                '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#dfe6e9',
+                '#a29bfe', '#fd79a8', '#00b894', '#e17055', '#0984e3'
+            ]
+        }]
     },
     options: {
-        indexAxis: 'y',
         responsive: true,
         plugins: {
             legend: { position: 'bottom' }
-        },
-        scales: {
-            x: {
-                stacked: true,
-                beginAtZero: true,
-                ticks: { stepSize: 1 }
-            },
-            y: {
-                stacked: true
-            }
         }
     }
 });
