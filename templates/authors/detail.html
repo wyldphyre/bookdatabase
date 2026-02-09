@@ -95,9 +95,9 @@
             <div class="placeholder-cover">📚</div>
             {% endif %}
             <div class="book-card-content">
-                <div class="book-card-title">{{ book.title }}</div>
+                <div class="book-card-title" title="{{ book.title }}">{{ book.title }}</div>
                 {% if book.series %}
-                <div class="book-card-author">{{ book.series.name }} {% if book.series_number %}#{{ book.series_number }}{% endif %}</div>
+                <div class="book-card-author" title="{{ book.series.name }}{% if book.series_number %} #{{ book.series_number }}{% endif %}">{{ book.series.name }} {% if book.series_number %}#{{ book.series_number }}{% endif %}</div>
                 {% endif %}
                 {% if book.rating %}
                 <div class="rating">

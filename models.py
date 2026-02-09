@@ -75,7 +75,7 @@ class Author(db.Model):
     # Self-referential relationship for aliases
     alias_of = db.relationship('Author', remote_side=[id], backref='aliases')
 
-    books = db.relationship('Book', secondary=book_authors, back_populates='authors')
+    books = db.relationship('Book', secondary=book_authors, back_populates='authors', order_by='Book.title')
     tags = db.relationship('Tag', secondary=author_tags, back_populates='authors')
 
 

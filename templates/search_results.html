@@ -11,8 +11,8 @@
                 <div class="placeholder-cover">📚</div>
                 {% endif %}
                 <div class="book-card-content">
-                    <div class="book-card-title">{{ book.title }}</div>
-                    <div class="book-card-author">{{ book.author_names or 'Unknown Author' }}</div>
+                    <div class="book-card-title" title="{{ book.title }}">{{ book.title }}</div>
+                    <div class="book-card-author" title="{{ book.author_names or 'Unknown Author' }}">{{ book.author_names or 'Unknown Author' }}</div>
                 </div>
             </a>
             {% endfor %}
