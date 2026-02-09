@@ -984,6 +984,40 @@ def tag_quick_add():
     return render_template('books/_tag_chip.html', tag=tag)
 
 
+@app.route('/system/tags/search')
+def system_tag_search():
+    query = request.args.get('q', '').strip()
+    if len(query) < 1:
+        return ''
+    tags = Tag.query.filter(Tag.name.ilike(f'%{query}%')).order_by(Tag.name).limit(50).all()
+    return render_template('system/_tag_results.html', tags=tags, query=query)
+
+
+@app.route('/system/tags/<int:id>/rename', methods=['POST'])
+def system_tag_rename(id):
+    tag = Tag.query.get_or_404(id)
+    new_name = request.form.get('name', '').strip()
+    if not new_name:
+        return render_template('system/_tag_row.html', tag=tag, error='Name is required')
+    existing = Tag.query.filter(Tag.name.ilike(new_name), Tag.id != id).first()
+    if existing:
+        return render_template('system/_tag_row.html', tag=tag, error=f'A tag named "{existing.name}" already exists')
+    tag.name = new_name
+    db.session.commit()
+    return render_template('system/_tag_row.html', tag=tag)
+
+
+@app.route('/system/tags/<int:id>/delete', methods=['DELETE', 'POST'])
+def system_tag_delete(id):
+    tag = Tag.query.get_or_404(id)
+    tag.books = []
+    tag.authors = []
+    tag.series = []
+    db.session.delete(tag)
+    db.session.commit()
+    return ''
+
+
 @app.route('/authors/<int:id>/delete', methods=['DELETE', 'POST'])
 def author_delete(id):
     author = Author.query.get_or_404(id)

@@ -1,0 +1,33 @@
+<tr id="tag-row-{{ tag.id }}">
+    <td>
+        <span id="tag-name-{{ tag.id }}"{% if error %} hidden{% endif %}>{{ tag.name }}</span>
+        <form {% if not error %}hidden{% endif %} id="tag-rename-form-{{ tag.id }}" class="tag-rename-form"
+              hx-post="{{ url_for('system_tag_rename', id=tag.id) }}"
+              hx-target="#tag-row-{{ tag.id }}"
+              hx-swap="outerHTML">
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="text" name="name" value="{{ tag.name }}">
+                <button type="submit" class="outline" style="white-space: nowrap;">Save</button>
+                <button type="button" class="outline secondary" style="white-space: nowrap;"
+                        onclick="cancelRename({{ tag.id }})">Cancel</button>
+            </div>
+            {% if error %}
+            <small style="color: var(--pico-del-color);">{{ error }}</small>
+            {% endif %}
+        </form>
+    </td>
+    <td>{{ tag.books|length }}</td>
+    <td>{{ tag.authors|length }}</td>
+    <td>{{ tag.series|length }}</td>
+    <td>
+        <div style="display: flex; gap: 0.5rem;">
+            <button class="outline" style="white-space: nowrap;"
+                    onclick="startRename({{ tag.id }})">Rename</button>
+            <button class="outline secondary" style="white-space: nowrap;"
+                    hx-delete="{{ url_for('system_tag_delete', id=tag.id) }}"
+                    hx-confirm="Delete tag '{{ tag.name }}'? It will be removed from {{ tag.books|length }} book(s), {{ tag.authors|length }} author(s), and {{ tag.series|length }} series."
+                    hx-target="#tag-row-{{ tag.id }}"
+                    hx-swap="outerHTML">Delete</button>
+        </div>
+    </td>
+</tr>

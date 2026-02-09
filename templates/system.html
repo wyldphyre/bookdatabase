@@ -6,6 +6,22 @@
 <h1>System</h1>
 
 <article>
+    <h3>Tag Management</h3>
+    <p>Search, rename, or delete tags across your library.</p>
+
+    <input type="search"
+           id="system-tag-search"
+           name="q"
+           placeholder="Search tags by name..."
+           autocomplete="off"
+           hx-get="{{ url_for('system_tag_search') }}"
+           hx-trigger="input changed delay:200ms"
+           hx-target="#system-tag-results">
+
+    <div id="system-tag-results"></div>
+</article>
+
+<article>
     <h3>Goodreads Genre Scanner</h3>
     <p>Scan Goodreads for each book in your library and import genres as tags. Existing tags will be reused.</p>
 
@@ -15,6 +31,17 @@
 </article>
 
 <script>
+function startRename(tagId) {
+    document.getElementById('tag-name-' + tagId).hidden = true;
+    document.getElementById('tag-rename-form-' + tagId).hidden = false;
+    document.querySelector('#tag-rename-form-' + tagId + ' input[name="name"]').focus();
+}
+
+function cancelRename(tagId) {
+    document.getElementById('tag-name-' + tagId).hidden = false;
+    document.getElementById('tag-rename-form-' + tagId).hidden = true;
+}
+
 // Preserve scan log scroll position across htmx polling swaps
 document.addEventListener('htmx:beforeSwap', function(e) {
     if (e.detail.target.id === 'scan-area') {

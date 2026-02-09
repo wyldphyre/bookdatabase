@@ -1,0 +1,20 @@
+{% if tags %}
+<table class="system-tag-table">
+    <thead>
+        <tr>
+            <th>Tag Name</th>
+            <th>Books</th>
+            <th>Authors</th>
+            <th>Series</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for tag in tags %}
+        {% include "system/_tag_row.html" %}
+        {% endfor %}
+    </tbody>
+</table>
+{% elif query %}
+<p class="secondary">No tags found matching "{{ query }}".</p>
+{% endif %}

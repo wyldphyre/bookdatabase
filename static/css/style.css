@@ -984,3 +984,28 @@ ul.tag-search-results {
 .scan-log-entry.found {
     color: var(--pico-ins-color);
 }
+
+/* Tag management table */
+.system-tag-table {
+    margin-top: 1rem;
+}
+
+.system-tag-table td,
+.system-tag-table th {
+    padding: 0.5rem 0.75rem;
+    vertical-align: middle;
+}
+
+.tag-rename-form {
+    margin: 0;
+}
+
+.tag-rename-form input[type="text"] {
+    margin: 0;
+    padding: 0.25rem 0.5rem;
+}
+
+.tag-rename-form button {
+    padding: 0.25rem 0.5rem;
+    margin: 0;
+}
