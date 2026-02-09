@@ -44,7 +44,7 @@
             {% if read.book.series %}
             <p style="margin: 0.25rem 0;">
                 <a href="{{ url_for('series_detail', id=read.book.series.id) }}">{{ read.book.series.name }}</a>
-                {% if read.book.series_number %}#{{ read.book.series_number }}{% endif %}
+                {% if read.book.series_number %}#{{ read.book.series_number|num }}{% endif %}
             </p>
             {% endif %}
             <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">

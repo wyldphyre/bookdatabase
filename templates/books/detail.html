@@ -41,7 +41,7 @@
         <p>
             <strong>Series:</strong>
             <a href="{{ url_for('series_detail', id=book.series.id) }}">{{ book.series.name }}</a>
-            {% if book.series_number %}(#{{ book.series_number }}){% endif %}
+            {% if book.series_number %}(#{{ book.series_number|num }}){% endif %}
         </p>
         {% endif %}
 

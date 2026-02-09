@@ -36,7 +36,7 @@
                 <div class="series-covers">
                     {% for book in series.books|sort_by('series_number') %}
                     {% if loop.index <= 5 %}
-                    <a href="{{ url_for('book_detail', id=book.id) }}" class="series-cover-link" title="{{ book.title }}{% if book.series_number %} (#{{ book.series_number }}){% endif %}">
+                    <a href="{{ url_for('book_detail', id=book.id) }}" class="series-cover-link" title="{{ book.title }}{% if book.series_number %} (#{{ book.series_number|num }}){% endif %}">
                         {% if book.cover_image %}
                         <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}">
                         {% else %}

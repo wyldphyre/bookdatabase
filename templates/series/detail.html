@@ -65,7 +65,7 @@
         <tbody>
             {% for book in series.books %}
             <tr>
-                <td>{{ book.series_number or '-' }}</td>
+                <td>{{ book.series_number|num or '-' }}</td>
                 <td>
                     {% if book.cover_image %}
                     <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" style="width: 50px; height: 75px; object-fit: cover;">

@@ -62,6 +62,15 @@ def days_between_filter(start_date, end_date):
         end_date = end_date.date()
     return (end_date - start_date).days
 
+@app.template_filter('num')
+def num_filter(value):
+    """Display a number without trailing .0"""
+    if value is None:
+        return ''
+    if value == int(value):
+        return str(int(value))
+    return str(value)
+
 
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
