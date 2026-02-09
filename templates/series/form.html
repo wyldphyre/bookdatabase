@@ -17,22 +17,23 @@
         <small>Optional: Total number of books in the complete series</small>
     </label>
 
-    <h3>External Links</h3>
-
-    <label>
-        Goodreads URL
-        <input type="url" name="goodreads_url" value="{{ series.goodreads_url or '' if series else '' }}" placeholder="https://goodreads.com/series/...">
-    </label>
-
-    <label>
-        Amazon URL
-        <input type="url" name="amazon_url" value="{{ series.amazon_url or '' if series else '' }}" placeholder="https://amazon.com/...">
-    </label>
-
-    <label>
-        StoryGraph URL
-        <input type="url" name="storygraph_url" value="{{ series.storygraph_url or '' if series else '' }}" placeholder="https://app.thestorygraph.com/...">
-    </label>
+    <details>
+        <summary>External Links</summary>
+        <div class="form-grid">
+            <label>
+                Goodreads URL
+                <input type="url" name="goodreads_url" value="{{ series.goodreads_url or '' if series else '' }}" placeholder="https://goodreads.com/series/...">
+            </label>
+            <label>
+                Amazon URL
+                <input type="url" name="amazon_url" value="{{ series.amazon_url or '' if series else '' }}" placeholder="https://amazon.com/...">
+            </label>
+        </div>
+        <label>
+            StoryGraph URL
+            <input type="url" name="storygraph_url" value="{{ series.storygraph_url or '' if series else '' }}" placeholder="https://app.thestorygraph.com/...">
+        </label>
+    </details>
 
     <fieldset>
         <legend>Tags</legend>

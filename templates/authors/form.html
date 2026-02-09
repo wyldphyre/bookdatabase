@@ -45,27 +45,29 @@
         <small>If this is a pen name or alternate name for another author</small>
     </label>
 
-    <h3>External Links</h3>
-
-    <label>
-        Goodreads URL
-        <input type="url" name="goodreads_url" value="{{ author.goodreads_url or '' if author else '' }}" placeholder="https://goodreads.com/author/...">
-    </label>
-
-    <label>
-        Amazon URL
-        <input type="url" name="amazon_url" value="{{ author.amazon_url or '' if author else '' }}" placeholder="https://amazon.com/...">
-    </label>
-
-    <label>
-        StoryGraph URL
-        <input type="url" name="storygraph_url" value="{{ author.storygraph_url or '' if author else '' }}" placeholder="https://app.thestorygraph.com/authors/...">
-    </label>
-
-    <label>
-        Website
-        <input type="url" name="website" value="{{ author.website or '' if author else '' }}" placeholder="https://...">
-    </label>
+    <details>
+        <summary>External Links</summary>
+        <div class="form-grid">
+            <label>
+                Goodreads URL
+                <input type="url" name="goodreads_url" value="{{ author.goodreads_url or '' if author else '' }}" placeholder="https://goodreads.com/author/...">
+            </label>
+            <label>
+                Amazon URL
+                <input type="url" name="amazon_url" value="{{ author.amazon_url or '' if author else '' }}" placeholder="https://amazon.com/...">
+            </label>
+        </div>
+        <div class="form-grid">
+            <label>
+                StoryGraph URL
+                <input type="url" name="storygraph_url" value="{{ author.storygraph_url or '' if author else '' }}" placeholder="https://app.thestorygraph.com/authors/...">
+            </label>
+            <label>
+                Website
+                <input type="url" name="website" value="{{ author.website or '' if author else '' }}" placeholder="https://...">
+            </label>
+        </div>
+    </details>
 
     <fieldset>
         <legend>Tags</legend>

@@ -1,5 +1,11 @@
 /* Custom styles for Book Database */
 
+/* Compact form spacing */
+form label,
+form fieldset {
+    margin-bottom: 0.5rem;
+}
+
 /* Flash messages */
 .flash {
     padding: 1rem;

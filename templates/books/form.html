@@ -6,15 +6,17 @@
 <h1>{{ 'Edit' if book else 'Add New' }} Book</h1>
 
 <form method="post" enctype="multipart/form-data">
-    <label>
-        Title *
-        <input type="text" name="title" value="{{ prefill.title if prefill else (book.title if book else '') }}" required>
-    </label>
+    <div class="form-grid">
+        <label>
+            Title *
+            <input type="text" name="title" value="{{ prefill.title if prefill else (book.title if book else '') }}" required>
+        </label>
 
-    <label>
-        Subtitle
-        <input type="text" name="subtitle" value="{{ book.subtitle or '' if book else '' }}">
-    </label>
+        <label>
+            Subtitle
+            <input type="text" name="subtitle" value="{{ book.subtitle or '' if book else '' }}">
+        </label>
+    </div>
 
     {% if prefill and prefill.authors %}
     <article class="prefill-notice">
@@ -300,20 +302,19 @@
     }
     </script>
 
-    <fieldset>
-        <legend>Cover Image</legend>
-        {% if book and book.cover_image %}
-        <p><small>Current: {{ book.cover_image }}</small></p>
-        {% endif %}
-        <label>
-            Upload file
-            <input type="file" name="cover_image" accept="image/*">
-        </label>
-        <label>
-            Or provide URL
-            <input type="url" name="cover_image_url" placeholder="https://example.com/cover.jpg" value="{{ prefill.cover_url if prefill and prefill.cover_url else '' }}">
-        </label>
-    </fieldset>
+    <details{% if prefill and prefill.cover_url %} open{% endif %}>
+        <summary>Cover Image{% if book and book.cover_image %} ({{ book.cover_image }}){% endif %}</summary>
+        <div class="form-grid">
+            <label>
+                Upload file
+                <input type="file" name="cover_image" accept="image/*">
+            </label>
+            <label>
+                Or provide URL
+                <input type="url" name="cover_image_url" placeholder="https://example.com/cover.jpg" value="{{ prefill.cover_url if prefill and prefill.cover_url else '' }}">
+            </label>
+        </div>
+    </details>
 
     <div class="form-grid">
         <label>
@@ -337,17 +338,19 @@
         </label>
     </div>
 
-    <fieldset>
-        <label>
-            <input type="checkbox" name="is_book_bundle" {% if book and book.is_book_bundle %}checked{% endif %}>
-            This is a book bundle
-        </label>
-    </fieldset>
+    <div class="form-grid" style="align-items: center;">
+        <fieldset>
+            <label>
+                <input type="checkbox" name="is_book_bundle" {% if book and book.is_book_bundle %}checked{% endif %}>
+                This is a book bundle
+            </label>
+        </fieldset>
 
-    <label>
-        Bundled Books (e.g., "1-3, 1-10")
-        <input type="text" name="bundled_books" value="{{ book.bundled_books or '' if book else '' }}">
-    </label>
+        <label>
+            Bundled Books (e.g., "1-3, 1-10")
+            <input type="text" name="bundled_books" value="{{ book.bundled_books or '' if book else '' }}">
+        </label>
+    </div>
 
     <label>
         Notes/Comments
