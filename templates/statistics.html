@@ -148,6 +148,23 @@ new Chart(ratingCtx, {
     }
 });
 
+// Shared pie/doughnut options with percentage in tooltip
+const pieOptions = {
+    responsive: true,
+    plugins: {
+        legend: { position: 'bottom' },
+        tooltip: {
+            callbacks: {
+                label: function(context) {
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const pct = ((context.raw / total) * 100).toFixed(1);
+                    return context.label + ': ' + context.raw + ' (' + pct + '%)';
+                }
+            }
+        }
+    }
+};
+
 // Gender breakdown chart
 const genderCtx = document.getElementById('genderChart').getContext('2d');
 new Chart(genderCtx, {
@@ -159,12 +176,7 @@ new Chart(genderCtx, {
             backgroundColor: colors.slice(0, {{ gender_data|length }})
         }]
     },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: { position: 'bottom' }
-        }
-    }
+    options: pieOptions
 });
 
 // Format breakdown chart
@@ -178,12 +190,7 @@ new Chart(formatCtx, {
             backgroundColor: colors.slice(0, {{ format_data|length }})
         }]
     },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: { position: 'bottom' }
-        }
-    }
+    options: pieOptions
 });
 
 // Completion status chart
@@ -197,12 +204,7 @@ new Chart(completionCtx, {
             backgroundColor: ['#50c878', '#f5a623', '#ff6b6b']
         }]
     },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: { position: 'bottom' }
-        }
-    }
+    options: pieOptions
 });
 
 {% if top_tag_data %}
@@ -221,12 +223,7 @@ new Chart(tagCtx, {
             ]
         }]
     },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: { position: 'bottom' }
-        }
-    }
+    options: pieOptions
 });
 {% endif %}
 </script>
