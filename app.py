@@ -799,6 +799,16 @@ def read_complete(id):
     return redirect(url_for('book_detail', id=read.book_id))
 
 
+@app.route('/reads/<int:id>/abandon', methods=['POST'])
+def read_abandon(id):
+    read = Read.query.get_or_404(id)
+    read.status = 'Abandoned'
+    read.finish_date = datetime.now()
+    db.session.commit()
+    flash('Read marked as abandoned', 'success')
+    return redirect(url_for('book_detail', id=read.book_id))
+
+
 # Author routes
 @app.route('/authors')
 def author_list():

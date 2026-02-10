@@ -11,7 +11,15 @@
         <div class="book-cover-placeholder">📚</div>
         {% endif %}
 
-        {% if not book.active_read %}
+        {% if book.active_read %}
+        <form method="post" action="{{ url_for('read_complete', id=book.active_read.id) }}" style="margin: 1rem 0 0 0;">
+            <button type="submit" style="width: 100%;">Mark Complete</button>
+        </form>
+        <form method="post" action="{{ url_for('read_abandon', id=book.active_read.id) }}" style="margin: 0.5rem 0 0 0;"
+              onsubmit="return confirm('Abandon reading this book?');">
+            <button type="submit" class="outline secondary" style="width: 100%;">Abandon</button>
+        </form>
+        {% else %}
         <form method="post" action="{{ url_for('read_add', book_id=book.id) }}" style="margin: 1rem 0 0 0;">
             <input type="hidden" name="status" value="Reading">
             <input type="hidden" name="start_date" value="{{ today }}">

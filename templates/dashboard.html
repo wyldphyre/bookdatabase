@@ -60,6 +60,10 @@
                 <form method="post" action="{{ url_for('read_complete', id=read.id) }}" style="margin: 0;">
                     <button type="submit" class="outline small" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0;">Mark Complete</button>
                 </form>
+                <form method="post" action="{{ url_for('read_abandon', id=read.id) }}" style="margin: 0;"
+                      onsubmit="return confirm('Abandon reading {{ read.book.title|e }}?');">
+                    <button type="submit" class="outline secondary small" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0;">Abandon</button>
+                </form>
             </div>
         </div>
     </div>
