@@ -41,6 +41,20 @@
         <div class="meta-label">Books</div>
         <div class="meta-value">{{ author.books|length }}</div>
     </div>
+    {% set total_pages = author.books|selectattr('page_count')|sum(attribute='page_count') %}
+    {% if total_pages %}
+    <div class="meta-item">
+        <div class="meta-label">Total Pages</div>
+        <div class="meta-value">{{ "{:,}".format(total_pages) }}</div>
+    </div>
+    {% endif %}
+    {% set series_count = author.books|unique_series_count %}
+    {% if series_count %}
+    <div class="meta-item">
+        <div class="meta-label">Series</div>
+        <div class="meta-value">{{ series_count }}</div>
+    </div>
+    {% endif %}
 </div>
 
 {% if author.goodreads_url or author.amazon_url or author.storygraph_url or author.website %}
