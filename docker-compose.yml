@@ -1,0 +1,11 @@
+services:
+  bookdatabase:
+    build: .
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./data/instance:/app/instance
+      - ./data/uploads:/app/static/uploads
+    environment:
+      - SECRET_KEY=change-me-to-something-random
+    restart: unless-stopped

@@ -22,6 +22,10 @@ static/uploads/*
 # OS
 .DS_Store
 
+# Docker
+data/
+*.tar
+
 # IDE
 .vscode/
 .idea/

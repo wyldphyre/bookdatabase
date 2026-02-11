@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.db
+instance/
+venv/
+.env
+.git/
+.gitignore
+.vscode/
+.idea/
+.DS_Store
+data/
+static/uploads/*
+!static/uploads/.gitkeep
+notion_data.json

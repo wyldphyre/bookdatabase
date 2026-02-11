@@ -8,11 +8,12 @@ from urllib.parse import urlparse
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
 from bs4 import BeautifulSoup
+from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'dev-secret-key-change-in-production'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///books.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(app.static_folder, 'uploads')
@@ -113,7 +114,10 @@ def validate_rating(rating):
 # Dashboard
 @app.route('/')
 def dashboard():
-    active_reads = Read.query.filter_by(status='Reading').order_by(Read.start_date.desc()).all()
+    active_reads = Read.query.options(
+        joinedload(Read.book).subqueryload(Book.authors),
+        joinedload(Read.book).joinedload(Book.series)
+    ).filter_by(status='Reading').order_by(Read.start_date.desc()).all()
     total_books = Book.query.count()
     total_reads = Read.query.filter_by(status='Completed').count()
     return render_template('dashboard.html',
@@ -135,22 +139,23 @@ def book_list():
         filter_status = 'all'
 
     # Build query based on filter
+    base = Book.query.options(subqueryload(Book.authors))
     if filter_status == 'read':
         # Books with at least one completed read
-        query = Book.query.filter(
+        query = base.filter(
             Book.id.in_(
                 db.session.query(Read.book_id).filter(Read.status == 'Completed')
             )
         )
     elif filter_status == 'unread':
         # Books with no completed reads
-        query = Book.query.filter(
+        query = base.filter(
             ~Book.id.in_(
                 db.session.query(Read.book_id).filter(Read.status == 'Completed')
             )
         )
     else:
-        query = Book.query
+        query = base
 
     books = query.order_by(Book.date_added.desc()).paginate(
         page=page, per_page=per_page, error_out=False
@@ -813,7 +818,7 @@ def read_abandon(id):
 @app.route('/authors')
 def author_list():
     search = request.args.get('search', '').strip()
-    query = Author.query.filter_by(alias_of_id=None)
+    query = Author.query.options(subqueryload(Author.books)).filter_by(alias_of_id=None)
     if search:
         query = query.filter(Author.name.ilike(f'%{search}%'))
     authors = query.order_by(Author.name).all()
@@ -1048,7 +1053,7 @@ def author_delete(id):
 @app.route('/series')
 def series_list():
     search = request.args.get('search', '').strip()
-    query = Series.query
+    query = Series.query.options(subqueryload(Series.books))
     if search:
         query = query.filter(Series.name.ilike(f'%{search}%'))
     all_series = query.order_by(Series.name).all()
@@ -1522,6 +1527,7 @@ def run_genre_scan(untagged_only):
         genre_scan['status'] = 'complete'
 
 
+init_db(app)
+
 if __name__ == '__main__':
-    init_db(app)
     app.run(debug=True, port=5001)
