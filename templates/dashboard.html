@@ -26,7 +26,7 @@
     {% for read in active_reads %}
     <div class="active-read-card">
         {% if read.book.cover_image %}
-        <img src="{{ url_for('static', filename='uploads/' + read.book.cover_image) }}" alt="{{ read.book.title }}">
+        <img src="{{ url_for('static', filename='uploads/' + read.book.cover_image) }}" alt="{{ read.book.title }}" loading="lazy">
         {% else %}
         <div class="active-read-placeholder">📚</div>
         {% endif %}

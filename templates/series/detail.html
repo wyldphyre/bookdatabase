@@ -68,7 +68,7 @@
                 <td>{{ book.series_number|num or '-' }}</td>
                 <td>
                     {% if book.cover_image %}
-                    <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" style="width: 50px; height: 75px; object-fit: cover;">
+                    <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" style="width: 50px; height: 75px; object-fit: cover;" loading="lazy">
                     {% else %}
                     <div style="width: 50px; height: 75px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white;">📚</div>
                     {% endif %}
