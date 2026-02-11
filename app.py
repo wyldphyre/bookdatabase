@@ -1053,11 +1053,15 @@ def author_delete(id):
 @app.route('/series')
 def series_list():
     search = request.args.get('search', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 25, type=int)
+    if per_page not in [25, 50, 100]:
+        per_page = 25
     query = Series.query.options(subqueryload(Series.books))
     if search:
         query = query.filter(Series.name.ilike(f'%{search}%'))
-    all_series = query.order_by(Series.name).all()
-    return render_template('series/list.html', series_list=all_series, search=search)
+    all_series = query.order_by(Series.name).paginate(page=page, per_page=per_page, error_out=False)
+    return render_template('series/list.html', series_list=all_series, search=search, per_page=per_page)
 
 
 @app.route('/series/<int:id>')

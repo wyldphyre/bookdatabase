@@ -6,7 +6,7 @@
 <header>
     <hgroup>
         <h1>Series</h1>
-        <p>Browse and manage book series</p>
+        <p>{{ series_list.total }} series{% if search %} matching "{{ search }}"{% endif %}</p>
     </hgroup>
     <a href="{{ url_for('series_new') }}" role="button">Add New Series</a>
 </header>
@@ -22,9 +22,9 @@
 
 <div id="series-results">
 
-{% if series_list %}
+{% if series_list.items %}
     <div class="series-grid">
-        {% for series in series_list %}
+        {% for series in series_list.items %}
         <div class="series-card">
             <div class="series-info">
                 <a href="{{ url_for('series_detail', id=series.id) }}"><strong>{{ series.name }}</strong></a>
@@ -38,7 +38,7 @@
                     {% if loop.index <= 5 %}
                     <a href="{{ url_for('book_detail', id=book.id) }}" class="series-cover-link" title="{{ book.title }}{% if book.series_number %} (#{{ book.series_number|num }}){% endif %}">
                         {% if book.cover_image %}
-                        <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}">
+                        <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
                         {% else %}
                         <div class="series-cover-placeholder">{{ book.title[0] }}</div>
                         {% endif %}
@@ -57,6 +57,31 @@
         </div>
         {% endfor %}
     </div>
+
+{% if series_list.pages > 1 %}
+<nav class="pagination">
+    {% if series_list.has_prev %}
+    <a href="{{ url_for('series_list', page=series_list.prev_num, per_page=per_page, search=search) }}">Previous</a>
+    {% endif %}
+
+    {% for page in series_list.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if page %}
+            {% if page == series_list.page %}
+            <span class="current">{{ page }}</span>
+            {% else %}
+            <a href="{{ url_for('series_list', page=page, per_page=per_page, search=search) }}">{{ page }}</a>
+            {% endif %}
+        {% else %}
+        <span>...</span>
+        {% endif %}
+    {% endfor %}
+
+    {% if series_list.has_next %}
+    <a href="{{ url_for('series_list', page=series_list.next_num, per_page=per_page, search=search) }}">Next</a>
+    {% endif %}
+</nav>
+{% endif %}
+
 {% else %}
     <article>
         <p>{% if search %}No series found matching "{{ search }}".{% else %}No series yet.{% endif %}</p>
