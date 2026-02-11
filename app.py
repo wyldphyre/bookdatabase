@@ -818,11 +818,15 @@ def read_abandon(id):
 @app.route('/authors')
 def author_list():
     search = request.args.get('search', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 25, type=int)
+    if per_page not in [25, 50, 100]:
+        per_page = 25
     query = Author.query.options(subqueryload(Author.books)).filter_by(alias_of_id=None)
     if search:
         query = query.filter(Author.name.ilike(f'%{search}%'))
-    authors = query.order_by(Author.name).all()
-    return render_template('authors/list.html', authors=authors, search=search)
+    authors = query.order_by(Author.name).paginate(page=page, per_page=per_page, error_out=False)
+    return render_template('authors/list.html', authors=authors, search=search, per_page=per_page)
 
 
 @app.route('/authors/<int:id>')

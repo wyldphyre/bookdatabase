@@ -6,7 +6,7 @@
 <header>
     <hgroup>
         <h1>Authors</h1>
-        <p>Browse and manage authors</p>
+        <p>{{ authors.total }} author{{ 's' if authors.total != 1 else '' }}{% if search %} matching "{{ search }}"{% endif %}</p>
     </hgroup>
     <a href="{{ url_for('author_new') }}" role="button">Add New Author</a>
 </header>
@@ -24,9 +24,9 @@
 
 <div id="author-results">
 
-{% if authors %}
+{% if authors.items %}
     <div class="author-grid">
-        {% for author in authors %}
+        {% for author in authors.items %}
         <div class="author-card">
             <div class="author-info">
                 <a href="{{ url_for('author_detail', id=author.id) }}"><strong>{{ author.name }}</strong></a>
@@ -42,6 +42,31 @@
         </div>
         {% endfor %}
     </div>
+
+{% if authors.pages > 1 %}
+<nav class="pagination">
+    {% if authors.has_prev %}
+    <a href="{{ url_for('author_list', page=authors.prev_num, per_page=per_page, search=search) }}">Previous</a>
+    {% endif %}
+
+    {% for page in authors.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if page %}
+            {% if page == authors.page %}
+            <span class="current">{{ page }}</span>
+            {% else %}
+            <a href="{{ url_for('author_list', page=page, per_page=per_page, search=search) }}">{{ page }}</a>
+            {% endif %}
+        {% else %}
+        <span>...</span>
+        {% endif %}
+    {% endfor %}
+
+    {% if authors.has_next %}
+    <a href="{{ url_for('author_list', page=authors.next_num, per_page=per_page, search=search) }}">Next</a>
+    {% endif %}
+</nav>
+{% endif %}
+
 {% else %}
     <article>
         <p>{% if search %}No authors found matching "{{ search }}".{% else %}No authors yet.{% endif %}</p>
