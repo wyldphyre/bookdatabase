@@ -3,3 +3,11 @@
     <input type="hidden" name="authors" value="{{ author.id }}">
     <button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>
 </span>
+<script>
+(function() {
+    var opt = document.createElement('option');
+    opt.value = '{{ author.name }}';
+    opt.dataset.id = '{{ author.id }}';
+    document.getElementById('author-options').appendChild(opt);
+})();
+</script>

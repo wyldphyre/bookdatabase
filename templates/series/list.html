@@ -11,6 +11,8 @@
     <a href="{{ url_for('series_new') }}" role="button">Add New Series</a>
 </header>
 
+<div style="margin-top: 1rem;"></div>
+
 <form action="{{ url_for('series_list') }}" method="get">
     <input type="search" name="search" id="series-list-search" placeholder="Search series..." value="{{ search }}"
            hx-get="{{ url_for('series_list') }}"

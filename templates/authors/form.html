@@ -33,17 +33,42 @@
 
     <label>
         Alias Of
-        <select name="alias_of_id">
-            <option value="">Not an alias</option>
+        <input type="text" id="alias-of-input" list="alias-of-options" autocomplete="off"
+               placeholder="Search for an author..."
+               value="{% if author and author.alias_of %}{{ author.alias_of.name }}{% endif %}">
+        <input type="hidden" name="alias_of_id" id="alias-of-id"
+               value="{{ author.alias_of_id or '' if author else '' }}">
+        <datalist id="alias-of-options">
             {% for other_author in authors %}
-            <option value="{{ other_author.id }}"
-                    {% if author and author.alias_of_id == other_author.id %}selected{% endif %}>
-                {{ other_author.name }}
-            </option>
+            <option value="{{ other_author.name }}" data-id="{{ other_author.id }}"></option>
             {% endfor %}
-        </select>
+        </datalist>
         <small>If this is a pen name or alternate name for another author</small>
     </label>
+
+    <script>
+    (function() {
+        const input = document.getElementById('alias-of-input');
+        const hidden = document.getElementById('alias-of-id');
+        const options = document.querySelectorAll('#alias-of-options option');
+        const nameToId = {};
+        options.forEach(opt => { nameToId[opt.value] = opt.dataset.id; });
+
+        input.addEventListener('input', function() {
+            if (nameToId[this.value]) {
+                hidden.value = nameToId[this.value];
+            } else if (this.value === '') {
+                hidden.value = '';
+            }
+        });
+        input.addEventListener('change', function() {
+            if (!nameToId[this.value] && this.value !== '') {
+                this.value = '';
+                hidden.value = '';
+            }
+        });
+    })();
+    </script>
 
     <details>
         <summary>External Links</summary>

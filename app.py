@@ -12,6 +12,8 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
+APP_VERSION = '0.9.1'
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///books.db'
@@ -958,8 +960,16 @@ def series_quick_add():
     db.session.add(series)
     db.session.commit()
 
-    # Return the new series as a selected chip
-    return render_template('books/_series_chip.html', series=series)
+    # Update the series datalist input and hidden field
+    from markupsafe import escape
+    return f'''<script>
+        document.getElementById('series-input').value = '{escape(series.name)}';
+        document.getElementById('series-id').value = '{series.id}';
+        var opt = document.createElement('option');
+        opt.value = '{escape(series.name)}';
+        opt.dataset.id = '{series.id}';
+        document.getElementById('series-options').appendChild(opt);
+    </script>'''
 
 
 @app.route('/tags/search')
@@ -1391,7 +1401,7 @@ genre_scan = {
 
 @app.route('/system')
 def system():
-    return render_template('system.html', scan=genre_scan)
+    return render_template('system.html', scan=genre_scan, version=APP_VERSION)
 
 
 @app.route('/system/scan-genres', methods=['POST'])

@@ -43,18 +43,15 @@
             {% endif %}
         </div>
 
-        <div class="author-picker">
-            <input type="text"
-                   id="author-search"
-                   placeholder="Search for authors..."
-                   autocomplete="off"
-                   hx-get="{{ url_for('author_search') }}"
-                   hx-trigger="input changed delay:200ms, focus"
-                   hx-target="#author-search-results"
-                   hx-vals='js:{exclude: Array.from(document.querySelectorAll("#selected-authors input[name=authors]")).map(i => i.value).join(",")}'
-                   name="q">
-            <div id="author-search-results"></div>
-        </div>
+        <label>
+            <input type="text" id="author-input" list="author-options" autocomplete="off"
+                   placeholder="Search for an author...">
+            <datalist id="author-options">
+                {% for a in authors %}
+                <option value="{{ a.name }}" data-id="{{ a.id }}"></option>
+                {% endfor %}
+            </datalist>
+        </label>
 
         <details id="quick-add-author">
             <summary role="button" class="outline secondary">+ Add New Author</summary>
@@ -77,42 +74,41 @@
     </fieldset>
 
     <script>
-    function addAuthor(id, name) {
-        // Check if author already selected
-        if (document.querySelector(`#selected-authors [data-author-id="${id}"]`)) {
-            return;
+    // Author datalist picker
+    (function() {
+        const authorInput = document.getElementById('author-input');
+        const authorOptions = document.querySelectorAll('#author-options option');
+        const authorNameToId = {};
+        authorOptions.forEach(opt => { authorNameToId[opt.value] = opt.dataset.id; });
+
+        function addAuthorChip(id, name) {
+            if (document.querySelector('#selected-authors [data-author-id="' + id + '"]')) {
+                authorInput.value = '';
+                return;
+            }
+            const chip = document.createElement('span');
+            chip.className = 'author-chip';
+            chip.dataset.authorId = id;
+            chip.innerHTML = name +
+                '<input type="hidden" name="authors" value="' + id + '">' +
+                '<button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>';
+            document.getElementById('selected-authors').appendChild(chip);
+            authorInput.value = '';
         }
 
-        const chip = document.createElement('span');
-        chip.className = 'author-chip';
-        chip.dataset.authorId = id;
-        chip.innerHTML = `
-            ${name}
-            <input type="hidden" name="authors" value="${id}">
-            <button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>
-        `;
-
-        document.getElementById('selected-authors').appendChild(chip);
-        document.getElementById('author-search').value = '';
-        document.getElementById('author-search-results').innerHTML = '';
-    }
-
-    function selectSeries(id, name) {
-        const container = document.getElementById('selected-series');
-        container.innerHTML = `
-            <span class="series-chip" data-series-id="${id}">
-                ${name}
-                <input type="hidden" name="series_id" value="${id}">
-                <button type="button" class="chip-remove" onclick="clearSeries()" aria-label="Remove">&times;</button>
-            </span>
-        `;
-        document.getElementById('series-search').value = '';
-        document.getElementById('series-search-results').innerHTML = '';
-    }
-
-    function clearSeries() {
-        document.getElementById('selected-series').innerHTML = '';
-    }
+        authorInput.addEventListener('input', function() {
+            if (authorNameToId[this.value]) {
+                addAuthorChip(authorNameToId[this.value], this.value);
+            }
+        });
+        authorInput.addEventListener('change', function() {
+            if (authorNameToId[this.value]) {
+                addAuthorChip(authorNameToId[this.value], this.value);
+            } else if (this.value !== '') {
+                this.value = '';
+            }
+        });
+    })();
 
     function toggleNewTag() {
         const form = document.getElementById('quick-add-tag-form');
@@ -121,32 +117,24 @@
     }
 
     function addTag(id, name) {
-        if (document.querySelector(`#selected-tags [data-tag-id="${id}"]`)) {
+        if (document.querySelector('#selected-tags [data-tag-id="' + id + '"]')) {
             return;
         }
 
         const chip = document.createElement('span');
         chip.className = 'tag-chip';
         chip.dataset.tagId = id;
-        chip.innerHTML = `
-            ${name}
-            <input type="hidden" name="tags" value="${id}">
-            <button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>
-        `;
+        chip.innerHTML = name +
+            '<input type="hidden" name="tags" value="' + id + '">' +
+            '<button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>';
 
         document.getElementById('selected-tags').appendChild(chip);
         document.getElementById('tag-search').value = '';
         document.getElementById('tag-search-results').innerHTML = '';
     }
 
-    // Close search results when clicking outside
+    // Close tag search results when clicking outside
     document.addEventListener('click', function(e) {
-        if (!e.target.closest('.author-picker')) {
-            document.getElementById('author-search-results').innerHTML = '';
-        }
-        if (!e.target.closest('.series-picker')) {
-            document.getElementById('series-search-results').innerHTML = '';
-        }
         if (!e.target.closest('.tag-picker')) {
             document.getElementById('tag-search-results').innerHTML = '';
         }
@@ -188,28 +176,19 @@
         </article>
         {% endif %}
 
-        <div id="selected-series" class="selected-series">
-            {% if book and book.series %}
-            <span class="series-chip" data-series-id="{{ book.series.id }}">
-                {{ book.series.name }}
-                <input type="hidden" name="series_id" value="{{ book.series.id }}">
-                <button type="button" class="chip-remove" onclick="clearSeries()" aria-label="Remove">&times;</button>
-            </span>
-            {% endif %}
-        </div>
-
-        <div class="series-picker">
-            <input type="text"
-                   id="series-search"
-                   placeholder="Search for series..."
-                   autocomplete="off"
-                   hx-get="{{ url_for('series_search') }}"
-                   hx-trigger="input changed delay:200ms, focus"
-                   hx-target="#series-search-results"
-                   hx-vals='js:{current: (document.querySelector("#selected-series input[name=series_id]") || {}).value || ""}'
-                   name="q">
-            <div id="series-search-results"></div>
-        </div>
+        <label>
+            Series
+            <input type="text" id="series-input" list="series-options" autocomplete="off"
+                   placeholder="Search for a series..."
+                   value="{% if book and book.series %}{{ book.series.name }}{% endif %}">
+            <input type="hidden" name="series_id" id="series-id"
+                   value="{{ book.series_id or '' if book else '' }}">
+            <datalist id="series-options">
+                {% for s in series_list %}
+                <option value="{{ s.name }}" data-id="{{ s.id }}"></option>
+                {% endfor %}
+            </datalist>
+        </label>
 
         <details id="quick-add-series">
             <summary role="button" class="outline secondary">+ Add New Series</summary>
@@ -221,11 +200,12 @@
                 <button type="button" class="secondary"
                         hx-post="{{ url_for('series_quick_add') }}"
                         hx-include="#new-series-name"
-                        hx-target="#selected-series"
+                        hx-target="#series-quick-add-result"
                         hx-swap="innerHTML"
                         hx-on::after-request="document.getElementById('quick-add-series').removeAttribute('open'); document.getElementById('new-series-name').value = '';">
                     Add Series
                 </button>
+                <div id="series-quick-add-result"></div>
             </div>
         </details>
 
@@ -234,6 +214,30 @@
             <input type="number" name="series_number" value="{{ prefill.series_number if prefill and prefill.series_number else (book.series_number or '' if book else '') }}" step="0.1" min="0">
         </label>
     </fieldset>
+
+    <script>
+    (function() {
+        const seriesInput = document.getElementById('series-input');
+        const seriesHidden = document.getElementById('series-id');
+        const seriesOptions = document.querySelectorAll('#series-options option');
+        const seriesNameToId = {};
+        seriesOptions.forEach(opt => { seriesNameToId[opt.value] = opt.dataset.id; });
+
+        seriesInput.addEventListener('input', function() {
+            if (seriesNameToId[this.value]) {
+                seriesHidden.value = seriesNameToId[this.value];
+            } else if (this.value === '') {
+                seriesHidden.value = '';
+            }
+        });
+        seriesInput.addEventListener('change', function() {
+            if (!seriesNameToId[this.value] && this.value !== '') {
+                this.value = '';
+                seriesHidden.value = '';
+            }
+        });
+    })();
+    </script>
 
     <div class="description-field">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
