@@ -19,12 +19,14 @@
     </div>
 
     {% if prefill and prefill.authors %}
-    <article class="prefill-notice">
+    <article class="prefill-notice" id="suggested-authors">
         <strong>Suggested authors from import:</strong>
         {% for author_name in prefill.authors %}
-        <span class="author-suggestion">{{ author_name }}</span>
+        <span class="author-suggestion" data-name="{{ author_name }}">
+            {{ author_name }}
+            <button type="button" class="outline secondary suggestion-add-btn" onclick="addSuggestedAuthor(this, '{{ author_name|e }}')" title="Add author">+</button>
+        </span>
         {% endfor %}
-        <br><small>Search for these authors below or add them as new authors.</small>
     </article>
     {% endif %}
 
@@ -75,26 +77,11 @@
 
     <script>
     // Author datalist picker
+    var authorNameToId = {};
     (function() {
         const authorInput = document.getElementById('author-input');
         const authorOptions = document.querySelectorAll('#author-options option');
-        const authorNameToId = {};
         authorOptions.forEach(opt => { authorNameToId[opt.value] = opt.dataset.id; });
-
-        function addAuthorChip(id, name) {
-            if (document.querySelector('#selected-authors [data-author-id="' + id + '"]')) {
-                authorInput.value = '';
-                return;
-            }
-            const chip = document.createElement('span');
-            chip.className = 'author-chip';
-            chip.dataset.authorId = id;
-            chip.innerHTML = name +
-                '<input type="hidden" name="authors" value="' + id + '">' +
-                '<button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>';
-            document.getElementById('selected-authors').appendChild(chip);
-            authorInput.value = '';
-        }
 
         authorInput.addEventListener('input', function() {
             if (authorNameToId[this.value]) {
@@ -109,6 +96,102 @@
             }
         });
     })();
+
+    function addAuthorChip(id, name) {
+        if (document.querySelector('#selected-authors [data-author-id="' + id + '"]')) {
+            return;
+        }
+        const chip = document.createElement('span');
+        chip.className = 'author-chip';
+        chip.dataset.authorId = id;
+        chip.innerHTML = name +
+            '<input type="hidden" name="authors" value="' + id + '">' +
+            '<button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>';
+        document.getElementById('selected-authors').appendChild(chip);
+        document.getElementById('author-input').value = '';
+    }
+
+    async function addSuggestedAuthor(btn, name) {
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+
+        // Check if author already exists in datalist
+        if (authorNameToId[name]) {
+            addAuthorChip(authorNameToId[name], name);
+            btn.parentElement.classList.add('suggestion-added');
+            btn.remove();
+            return;
+        }
+
+        // Create new author via quick-add
+        try {
+            const formData = new FormData();
+            formData.append('name', name);
+            const response = await fetch('{{ url_for("author_quick_add") }}', { method: 'POST', body: formData });
+            if (!response.ok) throw new Error('Failed to add author');
+            const html = await response.text();
+
+            // Parse the returned chip to extract the ID
+            const temp = document.createElement('div');
+            temp.innerHTML = html;
+            const chipEl = temp.querySelector('.author-chip');
+            if (chipEl) {
+                const id = chipEl.dataset.authorId;
+                addAuthorChip(id, name);
+                // Add to datalist for future use
+                authorNameToId[name] = id;
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.dataset.id = id;
+                document.getElementById('author-options').appendChild(opt);
+            }
+            btn.parentElement.classList.add('suggestion-added');
+            btn.remove();
+        } catch (e) {
+            btn.disabled = false;
+            btn.removeAttribute('aria-busy');
+        }
+    }
+
+    async function addSuggestedSeries(btn, name) {
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+
+        var seriesNameToId = {};
+        document.querySelectorAll('#series-options option').forEach(opt => {
+            seriesNameToId[opt.value] = opt.dataset.id;
+        });
+
+        // Check if series already exists in datalist
+        if (seriesNameToId[name]) {
+            document.getElementById('series-input').value = name;
+            document.getElementById('series-id').value = seriesNameToId[name];
+            btn.parentElement.classList.add('suggestion-added');
+            btn.remove();
+            return;
+        }
+
+        // Create new series via quick-add
+        try {
+            const formData = new FormData();
+            formData.append('series_name', name);
+            const response = await fetch('{{ url_for("series_quick_add") }}', { method: 'POST', body: formData });
+            if (!response.ok) throw new Error('Failed to add series');
+            const html = await response.text();
+
+            // The response is a script tag that sets the input values
+            const temp = document.createElement('div');
+            temp.innerHTML = html;
+            const script = temp.querySelector('script');
+            if (script) eval(script.textContent);
+
+            btn.parentElement.classList.add('suggestion-added');
+            btn.remove();
+        } catch (e) {
+            btn.disabled = false;
+            btn.removeAttribute('aria-busy');
+        }
+    }
 
     function toggleNewTag() {
         const form = document.getElementById('quick-add-tag-form');
@@ -170,9 +253,12 @@
         <legend>Series</legend>
 
         {% if prefill and prefill.series_name %}
-        <article class="prefill-notice">
-            <strong>Suggested series from import:</strong> {{ prefill.series_name }}
-            <br><small>Search for this series below or create it.</small>
+        <article class="prefill-notice" id="suggested-series">
+            <strong>Suggested series from import:</strong>
+            <span class="series-suggestion" data-name="{{ prefill.series_name }}">
+                {{ prefill.series_name }}
+                <button type="button" class="outline secondary suggestion-add-btn" onclick="addSuggestedSeries(this, '{{ prefill.series_name|e }}')" title="Add series">+</button>
+            </span>
         </article>
         {% endif %}
 
