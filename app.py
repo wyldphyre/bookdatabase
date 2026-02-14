@@ -12,7 +12,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.9.3'
+APP_VERSION = '0.9.4'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -1364,6 +1364,27 @@ def statistics():
     # Breakdown for top tags (books/authors/series stacked)
     top_tag_breakdown = {name: tag_by_type[name] for name in top_tag_data}
 
+    # Most read books (by number of completed reads)
+    most_read_books = db.session.query(
+        Book, func.count(Read.id).label('read_count')
+    ).join(Read, Read.book_id == Book.id)\
+     .filter(Read.status == 'Completed')\
+     .group_by(Book.id)\
+     .order_by(func.count(Read.id).desc())\
+     .limit(10).all()
+
+    # Most read authors (by number of completed reads across their books)
+    from models import book_authors
+    most_read_authors = db.session.query(
+        Author, func.count(Read.id).label('read_count')
+    ).join(book_authors, Author.id == book_authors.c.author_id)\
+     .join(Book, Book.id == book_authors.c.book_id)\
+     .join(Read, Read.book_id == Book.id)\
+     .filter(Read.status == 'Completed', Author.alias_of_id.is_(None))\
+     .group_by(Author.id)\
+     .order_by(func.count(Read.id).desc())\
+     .limit(10).all()
+
     return render_template('statistics.html',
                          gender_data=gender_data,
                          format_data=format_data,
@@ -1382,7 +1403,9 @@ def statistics():
                          total_spent=total_spent,
                          total_saved=total_saved,
                          top_tag_data=top_tag_data,
-                         top_tag_breakdown=top_tag_breakdown)
+                         top_tag_breakdown=top_tag_breakdown,
+                         most_read_books=most_read_books,
+                         most_read_authors=most_read_authors)
 
 
 # --- System Page & Genre Scanner ---

@@ -52,6 +52,52 @@
     {% endif %}
 </div>
 
+{% if most_read_books %}
+<article>
+    <h3>Most Read Books</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Book</th>
+                <th>Author(s)</th>
+                <th>Times Read</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for book, read_count in most_read_books %}
+            <tr>
+                <td><a href="{{ url_for('book_detail', id=book.id) }}">{{ book.title }}</a></td>
+                <td>{{ book.author_names or 'Unknown' }}</td>
+                <td>{{ read_count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</article>
+{% endif %}
+
+{% if most_read_authors %}
+<article>
+    <h3>Most Read Authors</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Author</th>
+                <th>Books Read</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for author, read_count in most_read_authors %}
+            <tr>
+                <td><a href="{{ url_for('author_detail', id=author.id) }}">{{ author.name }}</a></td>
+                <td>{{ read_count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</article>
+{% endif %}
+
 <div class="charts-grid">
     <article class="chart-container">
         <h3>Books Read by Month</h3>
