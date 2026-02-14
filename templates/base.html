@@ -13,7 +13,14 @@
         <ul>
             <li><a href="{{ url_for('dashboard') }}"><strong>Book Database</strong></a></li>
         </ul>
-        <ul>
+        <button class="nav-toggle" aria-label="Toggle navigation" onclick="document.querySelector('nav').classList.toggle('nav-open')">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+        <ul class="nav-links">
             <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
             <li><a href="{{ url_for('book_list') }}">Books</a></li>
             <li><a href="{{ url_for('author_list') }}">Authors</a></li>

@@ -52,40 +52,58 @@
 <section>
     <h2>Books in Series</h2>
     {% if series.books %}
-    <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Cover</th>
-                <th>Title</th>
-                <th>Author(s)</th>
-                <th>Rating</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for book in series.books %}
-            <tr>
-                <td>{{ book.series_number|num or '-' }}</td>
-                <td>
-                    {% if book.cover_image %}
-                    <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" style="width: 50px; height: 75px; object-fit: cover;" loading="lazy">
-                    {% else %}
-                    <div style="width: 50px; height: 75px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white;">📚</div>
-                    {% endif %}
-                </td>
-                <td><a href="{{ url_for('book_detail', id=book.id) }}">{{ book.title }}</a></td>
-                <td>{{ book.author_names or 'Unknown' }}</td>
-                <td>
-                    {% if book.rating %}
-                    <span class="rating">{{ book.rating }}/5</span>
-                    {% else %}
-                    -
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="series-books-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Cover</th>
+                    <th>Title</th>
+                    <th>Author(s)</th>
+                    <th>Rating</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for book in series.books %}
+                <tr>
+                    <td>{{ book.series_number|num or '-' }}</td>
+                    <td>
+                        {% if book.cover_image %}
+                        <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" style="width: 50px; height: 75px; object-fit: cover;" loading="lazy">
+                        {% else %}
+                        <div style="width: 50px; height: 75px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white;">📚</div>
+                        {% endif %}
+                    </td>
+                    <td><a href="{{ url_for('book_detail', id=book.id) }}">{{ book.title }}</a></td>
+                    <td>{{ book.author_names or 'Unknown' }}</td>
+                    <td>
+                        {% if book.rating %}
+                        <span class="rating">{{ book.rating }}/5</span>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="series-books-cards">
+        {% for book in series.books %}
+        <a href="{{ url_for('book_detail', id=book.id) }}" class="series-book-card">
+            {% if book.cover_image %}
+            <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
+            {% else %}
+            <div class="series-book-card-placeholder">📚</div>
+            {% endif %}
+            <div class="series-book-card-info">
+                <strong>{% if book.series_number %}#{{ book.series_number|num }} {% endif %}{{ book.title }}</strong>
+                <small>{{ book.author_names or 'Unknown' }}</small>
+                {% if book.rating %}<span class="rating">{{ book.rating }}/5</span>{% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
     {% else %}
     <p>No books from this series in your library.</p>
     {% endif %}
