@@ -71,6 +71,7 @@ function promptImportUrl(source) {
     document.getElementById('import-modal-title').textContent = titles[source];
     document.getElementById('import-url').value = '';
     document.getElementById('import-modal').showModal();
+    document.getElementById('import-url').focus();
     // Close dropdown
     document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
 }
