@@ -1224,6 +1224,78 @@ def search():
                          series_results=series_results)
 
 
+@app.route('/recommendations')
+def recommendations():
+    from sqlalchemy import func
+    from datetime import timedelta
+
+    twelve_months_ago = datetime.now() - timedelta(days=365)
+
+    # --- Continue Reading: next unread book in recently-read series ---
+    # Find series where user completed a book in the last 12 months
+    recent_series_reads = db.session.query(
+        Book.series_id,
+        func.max(Book.series_number).label('max_read_num'),
+        func.max(Read.finish_date).label('last_finished')
+    ).join(Read, Read.book_id == Book.id)\
+     .filter(
+        Read.status == 'Completed',
+        Read.finish_date >= twelve_months_ago,
+        Book.series_id.isnot(None)
+    ).group_by(Book.series_id).all()
+
+    continue_reading = []
+    for series_id, max_read_num, last_finished in recent_series_reads:
+        # Find all completed/reading book numbers in this series
+        read_numbers = db.session.query(Book.series_number).join(
+            Read, Read.book_id == Book.id
+        ).filter(
+            Book.series_id == series_id,
+            Read.status.in_(['Completed', 'Reading'])
+        ).all()
+        read_nums = {r[0] for r in read_numbers if r[0] is not None}
+
+        # Find the next unread book in the series (lowest series_number not yet read)
+        next_book = Book.query.options(
+            subqueryload(Book.authors),
+            joinedload(Book.series)
+        ).filter(
+            Book.series_id == series_id,
+            Book.series_number.isnot(None),
+            ~Book.series_number.in_(read_nums) if read_nums else True
+        ).order_by(Book.series_number).first()
+
+        if next_book:
+            # Get the last book read in this series for context
+            last_read_book = db.session.query(Book).join(
+                Read, Read.book_id == Book.id
+            ).filter(
+                Book.series_id == series_id,
+                Read.status == 'Completed'
+            ).order_by(Read.finish_date.desc()).first()
+            continue_reading.append((next_book, last_read_book, last_finished))
+
+    # Sort by most recently read series first
+    continue_reading.sort(key=lambda x: x[2] or datetime.min, reverse=True)
+
+    # --- From the Pile: random unread books ---
+    # Books with no Completed or Reading reads
+    read_book_ids = db.session.query(Read.book_id).filter(
+        Read.status.in_(['Completed', 'Reading'])
+    ).distinct()
+
+    from_the_pile = Book.query.options(
+        subqueryload(Book.authors),
+        joinedload(Book.series)
+    ).filter(
+        ~Book.id.in_(read_book_ids)
+    ).order_by(func.random()).limit(5).all()
+
+    return render_template('recommendations.html',
+                         continue_reading=continue_reading,
+                         from_the_pile=from_the_pile)
+
+
 @app.route('/statistics')
 def statistics():
     from sqlalchemy import func
