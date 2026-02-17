@@ -6,16 +6,24 @@
 <header>
     <hgroup>
         <h1>Series</h1>
-        <p>{{ series_list.total }} series{% if search %} matching "{{ search }}"{% endif %}</p>
+        <p>{{ series_list.total }} series{% if search %} matching "{{ search }}"{% endif %}{% if filter_type != 'all' %} (filtered){% endif %}</p>
     </hgroup>
-    <a href="{{ url_for('series_new') }}" role="button">Add New Series</a>
+    <div class="books-toolbar">
+        <a href="{{ url_for('series_new') }}" role="button">Add New Series</a>
+        <div class="filter-tabs">
+            <a href="{{ url_for('series_list', per_page=per_page, search=search, filter='all') }}" class="filter-btn{% if filter_type == 'all' %} active{% endif %}">All</a>
+            <a href="{{ url_for('series_list', per_page=per_page, search=search, filter='no_links') }}" class="filter-btn{% if filter_type == 'no_links' %} active{% endif %}">No Links</a>
+            <a href="{{ url_for('series_list', per_page=per_page, search=search, filter='incomplete') }}" class="filter-btn{% if filter_type == 'incomplete' %} active{% endif %}">Incomplete</a>
+        </div>
+    </div>
 </header>
 
 <div style="margin-top: 1rem;"></div>
 
 <form action="{{ url_for('series_list') }}" method="get">
+    {% if filter_type != 'all' %}<input type="hidden" name="filter" value="{{ filter_type }}">{% endif %}
     <input type="search" name="search" id="series-list-search" placeholder="Search series..." value="{{ search }}"
-           hx-get="{{ url_for('series_list') }}"
+           hx-get="{{ url_for('series_list', filter=filter_type) }}"
            hx-trigger="keyup changed delay:300ms"
            hx-target="#series-results"
            hx-select="#series-results"
@@ -63,7 +71,7 @@
 {% if series_list.pages > 1 %}
 <nav class="pagination">
     {% if series_list.has_prev %}
-    <a href="{{ url_for('series_list', page=series_list.prev_num, per_page=per_page, search=search) }}">Previous</a>
+    <a href="{{ url_for('series_list', page=series_list.prev_num, per_page=per_page, search=search, filter=filter_type) }}">Previous</a>
     {% endif %}
 
     {% for page in series_list.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
@@ -71,7 +79,7 @@
             {% if page == series_list.page %}
             <span class="current">{{ page }}</span>
             {% else %}
-            <a href="{{ url_for('series_list', page=page, per_page=per_page, search=search) }}">{{ page }}</a>
+            <a href="{{ url_for('series_list', page=page, per_page=per_page, search=search, filter=filter_type) }}">{{ page }}</a>
             {% endif %}
         {% else %}
         <span>...</span>
@@ -79,15 +87,25 @@
     {% endfor %}
 
     {% if series_list.has_next %}
-    <a href="{{ url_for('series_list', page=series_list.next_num, per_page=per_page, search=search) }}">Next</a>
+    <a href="{{ url_for('series_list', page=series_list.next_num, per_page=per_page, search=search, filter=filter_type) }}">Next</a>
     {% endif %}
 </nav>
 {% endif %}
 
 {% else %}
     <article>
-        <p>{% if search %}No series found matching "{{ search }}".{% else %}No series yet.{% endif %}</p>
+        {% if filter_type == 'no_links' %}
+        <p>All series have external links.</p>
+        <a href="{{ url_for('series_list', per_page=per_page, filter='all') }}" role="button">View All Series</a>
+        {% elif filter_type == 'incomplete' %}
+        <p>All series are complete. Nice work!</p>
+        <a href="{{ url_for('series_list', per_page=per_page, filter='all') }}" role="button">View All Series</a>
+        {% elif search %}
+        <p>No series found matching "{{ search }}".</p>
+        {% else %}
+        <p>No series yet.</p>
         <a href="{{ url_for('series_new') }}" role="button">Add Your First Series</a>
+        {% endif %}
     </article>
 {% endif %}
 </div>

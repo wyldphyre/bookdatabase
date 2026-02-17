@@ -12,7 +12,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.9.6'
+APP_VERSION = '0.9.7'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -1067,15 +1067,49 @@ def author_delete(id):
 @app.route('/series')
 def series_list():
     search = request.args.get('search', '').strip()
+    filter_type = request.args.get('filter', 'all')
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 25, type=int)
     if per_page not in [25, 50, 100]:
         per_page = 25
-    query = Series.query.options(subqueryload(Series.books))
+    if filter_type == 'incomplete':
+        query = Series.query.options(subqueryload(Series.books).subqueryload(Book.reads))
+    else:
+        query = Series.query.options(subqueryload(Series.books))
     if search:
         query = query.filter(Series.name.ilike(f'%{search}%'))
+    if filter_type == 'no_links':
+        query = query.filter(
+            (Series.goodreads_url.is_(None) | (Series.goodreads_url == '')),
+            (Series.amazon_url.is_(None) | (Series.amazon_url == '')),
+            (Series.storygraph_url.is_(None) | (Series.storygraph_url == ''))
+        )
+    elif filter_type == 'incomplete':
+        # Get IDs of series that are incomplete - handled in Python after query
+        # since it requires checking reads per book and series count
+        pass
     all_series = query.order_by(Series.name).paginate(page=page, per_page=per_page, error_out=False)
-    return render_template('series/list.html', series_list=all_series, search=search, per_page=per_page)
+
+    if filter_type == 'incomplete':
+        # Filter to series where user hasn't read all books:
+        # Either they have fewer books than number_in_series, or some owned books are unread
+        incomplete_items = []
+        for series in all_series.items:
+            read_book_ids = set()
+            for book in series.books:
+                for read in book.reads:
+                    if read.status == 'Completed':
+                        read_book_ids.add(book.id)
+                        break
+            owned_count = len(series.books)
+            read_count = len(read_book_ids)
+            has_unread_books = read_count < owned_count
+            has_missing_books = series.number_in_series and owned_count < series.number_in_series
+            if has_unread_books or has_missing_books:
+                incomplete_items.append(series)
+        all_series.items = incomplete_items
+
+    return render_template('series/list.html', series_list=all_series, search=search, per_page=per_page, filter_type=filter_type)
 
 
 @app.route('/series/<int:id>')
