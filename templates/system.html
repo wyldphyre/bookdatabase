@@ -7,6 +7,29 @@
 <p class="secondary">Book Database v{{ version }}</p>
 
 <article>
+    <h3>Appearance</h3>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+        <span>Theme:</span>
+        <button id="theme-toggle" class="outline" style="margin: 0; width: auto;" onclick="toggleTheme()">
+        </button>
+    </div>
+    <script>
+    function updateThemeButton() {
+        var current = document.documentElement.getAttribute('data-theme') || 'light';
+        document.getElementById('theme-toggle').textContent = current === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+    }
+    function toggleTheme() {
+        var current = document.documentElement.getAttribute('data-theme') || 'light';
+        var next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+        updateThemeButton();
+    }
+    updateThemeButton();
+    </script>
+</article>
+
+<article>
     <h3>Tag Management</h3>
     <p>Search, rename, or delete tags across your library.</p>
 
