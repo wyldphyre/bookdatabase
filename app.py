@@ -12,7 +12,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.9.7'
+APP_VERSION = '0.9.8'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -1115,7 +1115,8 @@ def series_list():
 @app.route('/series/<int:id>')
 def series_detail(id):
     series = Series.query.get_or_404(id)
-    return render_template('series/detail.html', series=series)
+    read_count = sum(1 for book in series.books if any(r.status == 'Completed' for r in book.reads))
+    return render_template('series/detail.html', series=series, read_count=read_count)
 
 
 @app.route('/series/new', methods=['GET', 'POST'])

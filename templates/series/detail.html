@@ -5,8 +5,15 @@
 {% block content %}
 <hgroup>
     <h1>{{ series.name }}</h1>
+    {% set owned = series.books|length %}
     {% if series.number_in_series %}
-    <p>{{ series.books|length }} of {{ series.number_in_series }} books in library</p>
+    <p>{{ owned }} of {{ series.number_in_series }} books in library — {{ read_count }} read
+        {% if read_count >= owned and owned >= series.number_in_series %} <mark>Series Complete</mark>{% endif %}
+    </p>
+    {% elif owned > 0 %}
+    <p>{{ owned }} book{{ 's' if owned != 1 else '' }} in library — {{ read_count }} read
+        {% if read_count >= owned %} <mark>All Read</mark>{% endif %}
+    </p>
     {% endif %}
 </hgroup>
 
