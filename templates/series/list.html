@@ -14,6 +14,7 @@
             <a href="{{ url_for('series_list', per_page=per_page, search=search, filter='all') }}" class="filter-btn{% if filter_type == 'all' %} active{% endif %}">All</a>
             <a href="{{ url_for('series_list', per_page=per_page, search=search, filter='no_links') }}" class="filter-btn{% if filter_type == 'no_links' %} active{% endif %}">No Links</a>
             <a href="{{ url_for('series_list', per_page=per_page, search=search, filter='incomplete') }}" class="filter-btn{% if filter_type == 'incomplete' %} active{% endif %}">Incomplete</a>
+            <a href="{{ url_for('series_list', per_page=per_page, search=search, filter='complete') }}" class="filter-btn{% if filter_type == 'complete' %} active{% endif %}">Complete</a>
         </div>
     </div>
 </header>
@@ -99,6 +100,9 @@
         <a href="{{ url_for('series_list', per_page=per_page, filter='all') }}" role="button">View All Series</a>
         {% elif filter_type == 'incomplete' %}
         <p>All series are complete. Nice work!</p>
+        <a href="{{ url_for('series_list', per_page=per_page, filter='all') }}" role="button">View All Series</a>
+        {% elif filter_type == 'complete' %}
+        <p>No series are fully complete yet. Keep reading!</p>
         <a href="{{ url_for('series_list', per_page=per_page, filter='all') }}" role="button">View All Series</a>
         {% elif search %}
         <p>No series found matching "{{ search }}".</p>
