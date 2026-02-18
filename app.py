@@ -12,7 +12,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.9.8'
+APP_VERSION = '0.9.9'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -1515,7 +1515,7 @@ def statistics():
                          most_read_authors=most_read_authors)
 
 
-# --- System Page & Genre Scanner ---
+# --- System Page & Scanners ---
 
 genre_scan = {
     'status': 'idle',       # idle, running, paused, complete, stopped
@@ -1528,10 +1528,21 @@ genre_scan = {
     'stop_requested': False,
 }
 
+series_scan = {
+    'status': 'idle',
+    'progress': 0,
+    'total': 0,
+    'current_series': '',
+    'updated': 0,
+    'results': [],
+    'paused': False,
+    'stop_requested': False,
+}
+
 
 @app.route('/system')
 def system():
-    return render_template('system.html', scan=genre_scan, version=APP_VERSION)
+    return render_template('system.html', scan=genre_scan, series_scan=series_scan, version=APP_VERSION)
 
 
 @app.route('/system/scan-genres', methods=['POST'])
@@ -1673,6 +1684,130 @@ def run_genre_scan(untagged_only):
         genre_scan['progress'] = genre_scan['total']
         genre_scan['current_book'] = ''
         genre_scan['status'] = 'complete'
+
+
+# --- Series Book Count Scanner ---
+
+@app.route('/system/scan-series', methods=['POST'])
+def scan_series_start():
+    if series_scan['status'] == 'running':
+        return render_template('system/_series_scan_progress.html', scan=series_scan)
+
+    series_scan.update({
+        'status': 'running',
+        'progress': 0,
+        'total': 0,
+        'current_series': '',
+        'updated': 0,
+        'results': [],
+        'paused': False,
+        'stop_requested': False,
+    })
+
+    thread = threading.Thread(target=run_series_scan, daemon=True)
+    thread.start()
+
+    return render_template('system/_series_scan_progress.html', scan=series_scan)
+
+
+@app.route('/system/scan-series/progress')
+def scan_series_progress():
+    return render_template('system/_series_scan_progress.html', scan=series_scan)
+
+
+@app.route('/system/scan-series/pause', methods=['POST'])
+def scan_series_pause():
+    if series_scan['status'] == 'running':
+        series_scan['paused'] = True
+        series_scan['status'] = 'paused'
+    elif series_scan['status'] == 'paused':
+        series_scan['paused'] = False
+        series_scan['status'] = 'running'
+    return render_template('system/_series_scan_progress.html', scan=series_scan)
+
+
+@app.route('/system/scan-series/stop', methods=['POST'])
+def scan_series_stop():
+    series_scan['stop_requested'] = True
+    return render_template('system/_series_scan_progress.html', scan=series_scan)
+
+
+def run_series_scan():
+    """Background thread that scans Goodreads/Amazon for series book counts."""
+    with app.app_context():
+        all_series = Series.query.filter(
+            (Series.goodreads_url.isnot(None) & (Series.goodreads_url != '')) |
+            (Series.amazon_url.isnot(None) & (Series.amazon_url != ''))
+        ).order_by(Series.name).all()
+
+        series_scan['total'] = len(all_series)
+
+        for i, series in enumerate(all_series):
+            if series_scan['stop_requested']:
+                series_scan['status'] = 'stopped'
+                series_scan['current_series'] = ''
+                return
+
+            while series_scan['paused']:
+                if series_scan['stop_requested']:
+                    series_scan['status'] = 'stopped'
+                    series_scan['current_series'] = ''
+                    return
+                time.sleep(0.5)
+
+            series_scan['current_series'] = series.name
+            series_scan['progress'] = i
+
+            try:
+                count = None
+                source = None
+                if series.goodreads_url:
+                    count = scrape_goodreads_series(series.goodreads_url)
+                    if count is not None:
+                        source = 'Goodreads'
+                if count is None and series.amazon_url:
+                    count = scrape_amazon_series(series.amazon_url)
+                    if count is not None:
+                        source = 'Amazon'
+
+                if count is not None:
+                    old_count = series.number_in_series
+                    if old_count is None or count > old_count:
+                        series.number_in_series = count
+                        db.session.commit()
+                        series_scan['updated'] += 1
+                        series_scan['results'].append({
+                            'series': series.name,
+                            'status': 'updated',
+                            'old_count': old_count,
+                            'new_count': count,
+                            'source': source,
+                        })
+                    else:
+                        series_scan['results'].append({
+                            'series': series.name,
+                            'status': 'unchanged',
+                            'count': count,
+                            'source': source,
+                        })
+                else:
+                    series_scan['results'].append({
+                        'series': series.name,
+                        'status': 'not_found',
+                    })
+
+            except Exception as e:
+                series_scan['results'].append({
+                    'series': series.name,
+                    'status': 'error',
+                    'message': str(e),
+                })
+
+            time.sleep(2)
+
+        series_scan['progress'] = series_scan['total']
+        series_scan['current_series'] = ''
+        series_scan['status'] = 'complete'
 
 
 init_db(app)

@@ -46,6 +46,15 @@
 </article>
 
 <article>
+    <h3>Series Book Count Scanner</h3>
+    <p>Scan Goodreads and Amazon to update the number of books in each series. Only series with external links will be scanned.</p>
+
+    <div id="series-scan-area">
+        {% include "system/_series_scan_progress.html" %}
+    </div>
+</article>
+
+<article>
     <h3>Goodreads Genre Scanner</h3>
     <p>Scan Goodreads for each book in your library and import genres as tags. Existing tags will be reused.</p>
 
@@ -69,15 +78,25 @@ function cancelRename(tagId) {
 // Preserve scan log scroll position across htmx polling swaps
 document.addEventListener('htmx:beforeSwap', function(e) {
     if (e.detail.target.id === 'scan-area') {
-        var logEl = document.querySelector('.scan-log-entries');
+        var logEl = document.querySelector('#scan-area .scan-log-entries');
         if (logEl) window._scanLogScroll = logEl.scrollTop;
+    }
+    if (e.detail.target.id === 'series-scan-area') {
+        var logEl = document.querySelector('#series-scan-area .scan-log-entries');
+        if (logEl) window._seriesScanLogScroll = logEl.scrollTop;
     }
 });
 document.addEventListener('htmx:afterSettle', function(e) {
     if (e.detail.target.id === 'scan-area') {
-        var logEl = document.querySelector('.scan-log-entries');
+        var logEl = document.querySelector('#scan-area .scan-log-entries');
         if (logEl && window._scanLogScroll !== undefined) {
             logEl.scrollTop = window._scanLogScroll;
+        }
+    }
+    if (e.detail.target.id === 'series-scan-area') {
+        var logEl = document.querySelector('#series-scan-area .scan-log-entries');
+        if (logEl && window._seriesScanLogScroll !== undefined) {
+            logEl.scrollTop = window._seriesScanLogScroll;
         }
     }
 });

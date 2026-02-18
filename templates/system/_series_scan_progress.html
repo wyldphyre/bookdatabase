@@ -1,0 +1,93 @@
+{% if scan.status == 'idle' %}
+<div id="series-scan-controls">
+    <button hx-post="{{ url_for('scan_series_start') }}"
+            hx-target="#series-scan-area">
+        Start Scan
+    </button>
+</div>
+
+{% elif scan.status in ('running', 'paused') %}
+<div id="series-scan-controls"
+     hx-get="{{ url_for('scan_series_progress') }}"
+     hx-trigger="every 1s"
+     hx-target="#series-scan-area">
+
+    <div class="scan-stats">
+        <strong>{{ scan.progress }}</strong> of <strong>{{ scan.total }}</strong> series scanned
+        {% if scan.updated > 0 %}
+        &mdash; <strong>{{ scan.updated }}</strong> updated
+        {% endif %}
+        {% if scan.status == 'paused' %}
+        &mdash; <em>Paused</em>
+        {% endif %}
+    </div>
+
+    <progress value="{{ scan.progress }}" max="{{ scan.total }}"></progress>
+
+    {% if scan.current_series %}
+    <p class="scan-current">Processing: <strong>{{ scan.current_series }}</strong></p>
+    {% endif %}
+
+    <div class="button-group">
+        <button hx-post="{{ url_for('scan_series_pause') }}"
+                hx-target="#series-scan-area"
+                class="outline">
+            {{ 'Resume' if scan.status == 'paused' else 'Pause' }}
+        </button>
+        <button hx-post="{{ url_for('scan_series_stop') }}"
+                hx-target="#series-scan-area"
+                class="secondary">
+            Stop
+        </button>
+    </div>
+</div>
+
+{% elif scan.status == 'complete' %}
+<div id="series-scan-controls">
+    <div class="scan-stats">
+        Scan complete: <strong>{{ scan.progress }}</strong> of <strong>{{ scan.total }}</strong> series scanned
+        &mdash; <strong>{{ scan.updated }}</strong> updated
+    </div>
+    <progress value="{{ scan.total }}" max="{{ scan.total }}"></progress>
+</div>
+
+{% elif scan.status == 'stopped' %}
+<div id="series-scan-controls">
+    <div class="scan-stats">
+        Scan stopped: <strong>{{ scan.progress }}</strong> of <strong>{{ scan.total }}</strong> series scanned
+        &mdash; <strong>{{ scan.updated }}</strong> updated
+    </div>
+    <progress value="{{ scan.progress }}" max="{{ scan.total }}"></progress>
+</div>
+{% endif %}
+
+{% if scan.results %}
+<details open class="scan-log">
+    <summary>Scan Log ({{ scan.results|length }} entries)</summary>
+    <div class="scan-log-entries">
+        {% for entry in scan.results|reverse %}
+        <div class="scan-log-entry {{ entry.status }}">
+            <strong>{{ entry.series }}</strong>
+            {% if entry.status == 'updated' %}
+            &mdash; {{ entry.old_count or '?' }} &rarr; {{ entry.new_count }} books ({{ entry.source }})
+            {% elif entry.status == 'unchanged' %}
+            &mdash; {{ entry.count }} books, up to date ({{ entry.source }})
+            {% elif entry.status == 'not_found' %}
+            &mdash; <em>could not determine count</em>
+            {% elif entry.status == 'error' %}
+            &mdash; <em>error: {{ entry.message }}</em>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</details>
+{% endif %}
+
+{% if scan.status in ('complete', 'stopped') %}
+<div style="margin-top: 1rem;">
+    <button hx-post="{{ url_for('scan_series_start') }}"
+            hx-target="#series-scan-area">
+        Start New Scan
+    </button>
+</div>
+{% endif %}
