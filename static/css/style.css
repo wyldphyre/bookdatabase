@@ -1077,11 +1077,18 @@ nav .nav-toggle {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    color: var(--pico-color) !important;
     cursor: pointer;
     padding: 0.5rem;
     margin: 0;
     width: auto;
+}
+
+nav .nav-toggle .nav-toggle-icon {
+    stroke: #333;
+}
+
+[data-theme="dark"] nav .nav-toggle .nav-toggle-icon {
+    stroke: #e0e0e0;
 }
 
 /* Series detail: mobile cards hidden by default, table shown */
