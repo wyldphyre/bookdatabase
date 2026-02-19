@@ -16,6 +16,15 @@
             <a href="{{ url_for('series_list', per_page=per_page, search=search, filter='incomplete') }}" class="filter-btn{% if filter_type == 'incomplete' %} active{% endif %}">Incomplete</a>
             <a href="{{ url_for('series_list', per_page=per_page, search=search, filter='complete') }}" class="filter-btn{% if filter_type == 'complete' %} active{% endif %}">Complete</a>
         </div>
+        <label class="per-page-label">
+            <span>Per page:</span>
+            <select id="per-page-select" onchange="changePerPage(this.value)">
+                <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+                <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+            </select>
+        </label>
     </div>
 </header>
 
@@ -113,4 +122,29 @@
     </article>
 {% endif %}
 </div>
+
+<script>
+function changePerPage(value) {
+    localStorage.setItem('series_per_page', value);
+    var filter = '{{ filter_type }}';
+    var search = '{{ search }}';
+    var url = '{{ url_for("series_list") }}?per_page=' + value + '&filter=' + filter;
+    if (search) url += '&search=' + encodeURIComponent(search);
+    window.location.href = url;
+}
+
+(function() {
+    var storedPerPage = localStorage.getItem('series_per_page');
+    var urlParams = new URLSearchParams(window.location.search);
+    var currentPerPage = urlParams.get('per_page');
+
+    if (storedPerPage && !currentPerPage && !urlParams.has('page')) {
+        var filter = urlParams.get('filter') || 'all';
+        var search = urlParams.get('search') || '';
+        var url = '{{ url_for("series_list") }}?per_page=' + storedPerPage + '&filter=' + filter;
+        if (search) url += '&search=' + encodeURIComponent(search);
+        window.location.href = url;
+    }
+})();
+</script>
 {% endblock %}

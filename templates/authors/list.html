@@ -8,7 +8,18 @@
         <h1>Authors</h1>
         <p>{{ authors.total }} author{{ 's' if authors.total != 1 else '' }}{% if search %} matching "{{ search }}"{% endif %}</p>
     </hgroup>
-    <a href="{{ url_for('author_new') }}" role="button">Add New Author</a>
+    <div class="books-toolbar">
+        <a href="{{ url_for('author_new') }}" role="button">Add New Author</a>
+        <label class="per-page-label">
+            <span>Per page:</span>
+            <select id="per-page-select" onchange="changePerPage(this.value)">
+                <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+                <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+            </select>
+        </label>
+    </div>
 </header>
 
 <div style="margin-top: 1rem;"></div>
@@ -74,4 +85,27 @@
     </article>
 {% endif %}
 </div>
+
+<script>
+function changePerPage(value) {
+    localStorage.setItem('authors_per_page', value);
+    var search = '{{ search }}';
+    var url = '{{ url_for("author_list") }}?per_page=' + value;
+    if (search) url += '&search=' + encodeURIComponent(search);
+    window.location.href = url;
+}
+
+(function() {
+    var storedPerPage = localStorage.getItem('authors_per_page');
+    var urlParams = new URLSearchParams(window.location.search);
+    var currentPerPage = urlParams.get('per_page');
+
+    if (storedPerPage && !currentPerPage && !urlParams.has('page')) {
+        var search = urlParams.get('search') || '';
+        var url = '{{ url_for("author_list") }}?per_page=' + storedPerPage;
+        if (search) url += '&search=' + encodeURIComponent(search);
+        window.location.href = url;
+    }
+})();
+</script>
 {% endblock %}

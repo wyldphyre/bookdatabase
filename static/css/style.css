@@ -779,8 +779,18 @@ mark {
     margin-bottom: 1.5rem;
 }
 
+.books-toolbar [role="button"],
+.books-toolbar button {
+    padding: 0.5rem 1rem !important;
+    margin-bottom: 0;
+}
+
 .books-toolbar .dropdown-button {
     margin-bottom: 0;
+}
+
+.books-toolbar .dropdown-toggle {
+    padding: 0.5rem 0.75rem !important;
 }
 
 .books-toolbar .per-page-label {
@@ -794,6 +804,7 @@ mark {
 .books-toolbar .per-page-label select {
     width: auto;
     margin: 0;
+    padding: 0.5rem 1rem !important;
 }
 
 /* Filter tabs */

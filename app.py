@@ -12,7 +12,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.10.0'
+APP_VERSION = '0.10.1'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -822,7 +822,7 @@ def author_list():
     search = request.args.get('search', '').strip()
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 25, type=int)
-    if per_page not in [25, 50, 100]:
+    if per_page not in [10, 25, 50, 100]:
         per_page = 25
     query = Author.query.options(subqueryload(Author.books)).filter_by(alias_of_id=None)
     if search:
@@ -1070,7 +1070,7 @@ def series_list():
     filter_type = request.args.get('filter', 'all')
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 25, type=int)
-    if per_page not in [25, 50, 100]:
+    if per_page not in [10, 25, 50, 100]:
         per_page = 25
     if filter_type in ('incomplete', 'complete'):
         query = Series.query.options(subqueryload(Series.books).subqueryload(Book.reads))
