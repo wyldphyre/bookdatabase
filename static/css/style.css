@@ -269,6 +269,73 @@ form fieldset {
     margin: 0;
 }
 
+/* Recommendations grid */
+.rec-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.rec-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: inherit;
+}
+
+.rec-card:hover {
+    opacity: 0.85;
+}
+
+.rec-card img {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: var(--pico-border-radius);
+}
+
+.rec-cover-placeholder {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2rem;
+    border-radius: var(--pico-border-radius);
+}
+
+.rec-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.rec-info strong {
+    font-size: 0.85rem;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.rec-info small {
+    font-size: 0.75rem;
+    color: var(--pico-muted-color);
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.rec-series {
+    color: var(--pico-color) !important;
+}
+
 /* Recently added horizontal scroll */
 .recently-added-scroll {
     display: flex;

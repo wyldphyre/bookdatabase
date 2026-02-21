@@ -8,85 +8,69 @@
 <section>
     <h2>Continue Reading</h2>
     {% if continue_reading %}
+    <div class="rec-grid">
         {% for book, last_read, _ in continue_reading %}
-        <div class="active-read-card">
+        <a href="{{ url_for('book_detail', id=book.id) }}" class="rec-card">
             {% if book.cover_image %}
             <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
             {% else %}
-            <div class="active-read-placeholder">📚</div>
+            <div class="rec-cover-placeholder">{{ book.title[0] }}</div>
             {% endif %}
-            <div style="flex: 1;">
-                <h3 style="margin: 0;">
-                    <a href="{{ url_for('book_detail', id=book.id) }}">{{ book.title }}</a>
-                </h3>
+            <div class="rec-info">
+                <strong>{{ book.title }}</strong>
                 {% if book.authors %}
-                <p style="margin: 0.25rem 0; color: var(--pico-muted-color);">
-                    {% for author in book.authors %}
-                    <a href="{{ url_for('author_detail', id=author.id) }}">{{ author.name }}</a>{% if not loop.last %}, {% endif %}
-                    {% endfor %}
-                </p>
+                <small>{% for author in book.authors %}{{ author.name }}{% if not loop.last %}, {% endif %}{% endfor %}</small>
                 {% endif %}
                 {% if book.series %}
-                <p style="margin: 0.25rem 0;">
-                    <a href="{{ url_for('series_detail', id=book.series.id) }}">{{ book.series.name }}</a>
-                    {% if book.series_number %}#{{ book.series_number|num }}{% endif %}
-                </p>
+                <small class="rec-series">{{ book.series.name }}{% if book.series_number %} #{{ book.series_number|num }}{% endif %}</small>
                 {% endif %}
                 {% if last_read %}
-                <p style="margin: 0.25rem 0;">
-                    <small class="secondary">Last read: {{ last_read.title }}{% if last_read.series_number %} (#{{ last_read.series_number|num }}){% endif %}</small>
-                </p>
+                <small class="rec-meta">After: {{ last_read.title }}{% if last_read.series_number %} (#{{ last_read.series_number|num }}){% endif %}</small>
                 {% endif %}
                 {% if book.page_count %}
-                <small class="secondary">{{ book.page_count }} pages</small>
+                <small class="rec-meta">{{ book.page_count }} pages</small>
                 {% endif %}
             </div>
-        </div>
+        </a>
         {% endfor %}
+    </div>
     {% else %}
-        <article>
-            <p>No series continuations to suggest. Complete a book in a series to get recommendations here.</p>
-        </article>
+    <article>
+        <p>No series continuations to suggest. Complete a book in a series to get recommendations here.</p>
+    </article>
     {% endif %}
 </section>
 
 <section>
     <h2>From the Pile</h2>
     {% if from_the_pile %}
+    <div class="rec-grid">
         {% for book in from_the_pile %}
-        <div class="active-read-card">
+        <a href="{{ url_for('book_detail', id=book.id) }}" class="rec-card">
             {% if book.cover_image %}
             <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
             {% else %}
-            <div class="active-read-placeholder">📚</div>
+            <div class="rec-cover-placeholder">{{ book.title[0] }}</div>
             {% endif %}
-            <div style="flex: 1;">
-                <h3 style="margin: 0;">
-                    <a href="{{ url_for('book_detail', id=book.id) }}">{{ book.title }}</a>
-                </h3>
+            <div class="rec-info">
+                <strong>{{ book.title }}</strong>
                 {% if book.authors %}
-                <p style="margin: 0.25rem 0; color: var(--pico-muted-color);">
-                    {% for author in book.authors %}
-                    <a href="{{ url_for('author_detail', id=author.id) }}">{{ author.name }}</a>{% if not loop.last %}, {% endif %}
-                    {% endfor %}
-                </p>
+                <small>{% for author in book.authors %}{{ author.name }}{% if not loop.last %}, {% endif %}{% endfor %}</small>
                 {% endif %}
                 {% if book.series %}
-                <p style="margin: 0.25rem 0;">
-                    <a href="{{ url_for('series_detail', id=book.series.id) }}">{{ book.series.name }}</a>
-                    {% if book.series_number %}#{{ book.series_number|num }}{% endif %}
-                </p>
+                <small class="rec-series">{{ book.series.name }}{% if book.series_number %} #{{ book.series_number|num }}{% endif %}</small>
                 {% endif %}
                 {% if book.page_count %}
-                <small class="secondary">{{ book.page_count }} pages</small>
+                <small class="rec-meta">{{ book.page_count }} pages</small>
                 {% endif %}
             </div>
-        </div>
+        </a>
         {% endfor %}
+    </div>
     {% else %}
-        <article>
-            <p>You've read everything in your library!</p>
-        </article>
+    <article>
+        <p>You've read everything in your library!</p>
+    </article>
     {% endif %}
 </section>
 {% endblock %}
