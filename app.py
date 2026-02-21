@@ -12,7 +12,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.10.5'
+APP_VERSION = '0.10.6'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -123,7 +123,8 @@ def dashboard():
     total_books = Book.query.count()
     total_reads = Read.query.filter_by(status='Completed').count()
     recently_added = Book.query.options(
-        subqueryload(Book.authors)
+        subqueryload(Book.authors),
+        subqueryload(Book.reads)
     ).order_by(Book.date_added.desc()).limit(10).all()
     return render_template('dashboard.html',
                          active_reads=active_reads,
@@ -145,7 +146,7 @@ def book_list():
         filter_status = 'all'
 
     # Build query based on filter
-    base = Book.query.options(subqueryload(Book.authors))
+    base = Book.query.options(subqueryload(Book.authors), subqueryload(Book.reads))
     if filter_status == 'read':
         # Books with at least one completed read
         query = base.filter(
@@ -837,7 +838,9 @@ def author_list():
 
 @app.route('/authors/<int:id>')
 def author_detail(id):
-    author = Author.query.get_or_404(id)
+    author = Author.query.options(
+        subqueryload(Author.books).subqueryload(Book.reads)
+    ).get_or_404(id)
     return render_template('authors/detail.html', author=author)
 
 
@@ -1130,7 +1133,9 @@ def series_list():
 
 @app.route('/series/<int:id>')
 def series_detail(id):
-    series = Series.query.get_or_404(id)
+    series = Series.query.options(
+        subqueryload(Series.books).subqueryload(Book.reads)
+    ).get_or_404(id)
     read_count = sum(1 for book in series.books if any(r.status == 'Completed' for r in book.reads))
     return render_template('series/detail.html', series=series, read_count=read_count)
 

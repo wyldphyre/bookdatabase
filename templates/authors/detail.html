@@ -103,11 +103,15 @@
     <div class="book-grid">
         {% for book in author.books %}
         <a href="{{ url_for('book_detail', id=book.id) }}" class="book-card" style="text-decoration: none; color: inherit;">
-            {% if book.cover_image %}
-            <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
-            {% else %}
-            <div class="placeholder-cover">📚</div>
-            {% endif %}
+            {% set is_read = book.reads|selectattr('status', 'equalto', 'Completed')|list|length > 0 %}
+            <div class="cover-wrapper">
+                {% if book.cover_image %}
+                <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
+                {% else %}
+                <div class="placeholder-cover">📚</div>
+                {% endif %}
+                {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
+            </div>
             <div class="book-card-content">
                 <div class="book-card-title" title="{{ book.title }}">{{ book.title }}</div>
                 {% if book.series %}
