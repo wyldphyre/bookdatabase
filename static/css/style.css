@@ -41,13 +41,13 @@ form fieldset {
 
 .book-card img {
     width: 100%;
-    height: 250px;
+    aspect-ratio: 2 / 3;
     object-fit: cover;
 }
 
 .book-card .placeholder-cover {
     width: 100%;
-    height: 250px;
+    aspect-ratio: 2 / 3;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     display: flex;
     align-items: center;
@@ -267,6 +267,21 @@ form fieldset {
     padding: 0.3rem 0.5rem !important;
     font-size: 0.8rem;
     margin: 0;
+}
+
+/* Read overlay on cover images */
+.cover-wrapper {
+    position: relative;
+    display: block;
+}
+
+.read-overlay {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 28px !important;
+    height: 28px !important;
+    pointer-events: none;
 }
 
 /* Recommendations grid */
@@ -1494,11 +1509,4 @@ nav .nav-toggle .nav-toggle-icon {
         gap: 0.75rem;
     }
 
-    .book-card img {
-        height: 180px;
-    }
-
-    .book-card .placeholder-cover {
-        height: 180px;
-    }
 }
