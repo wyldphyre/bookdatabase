@@ -5,11 +5,15 @@
 {% block content %}
 <div class="book-detail">
     <div>
-        {% if book.cover_image %}
-        <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" class="book-cover">
-        {% else %}
-        <div class="book-cover-placeholder">📚</div>
-        {% endif %}
+        {% set is_read = book.reads|selectattr('status', 'equalto', 'Completed')|list|length > 0 %}
+        <div class="cover-wrapper">
+            {% if book.cover_image %}
+            <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" class="book-cover">
+            {% else %}
+            <div class="book-cover-placeholder">📚</div>
+            {% endif %}
+            {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
+        </div>
 
         {% if book.active_read %}
         <form method="post" action="{{ url_for('read_complete', id=book.active_read.id) }}" style="margin: 1rem 0 0 0;">

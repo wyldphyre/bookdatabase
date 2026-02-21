@@ -75,11 +75,15 @@
                 <tr>
                     <td>{{ book.series_number|num or '-' }}</td>
                     <td>
-                        {% if book.cover_image %}
-                        <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" style="width: 50px; height: 75px; object-fit: cover;" loading="lazy">
-                        {% else %}
-                        <div style="width: 50px; height: 75px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white;">📚</div>
-                        {% endif %}
+                        {% set is_read = book.reads|selectattr('status', 'equalto', 'Completed')|list|length > 0 %}
+                        <div class="cover-wrapper" style="width: 50px;">
+                            {% if book.cover_image %}
+                            <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" style="width: 50px; height: 75px; object-fit: cover; display: block;" loading="lazy">
+                            {% else %}
+                            <div style="width: 50px; height: 75px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white;">📚</div>
+                            {% endif %}
+                            {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
+                        </div>
                     </td>
                     <td><a href="{{ url_for('book_detail', id=book.id) }}">{{ book.title }}</a></td>
                     <td>{{ book.author_names or 'Unknown' }}</td>
@@ -98,11 +102,15 @@
     <div class="series-books-cards">
         {% for book in series.books %}
         <a href="{{ url_for('book_detail', id=book.id) }}" class="series-book-card">
-            {% if book.cover_image %}
-            <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
-            {% else %}
-            <div class="series-book-card-placeholder">📚</div>
-            {% endif %}
+            {% set is_read = book.reads|selectattr('status', 'equalto', 'Completed')|list|length > 0 %}
+            <div class="cover-wrapper">
+                {% if book.cover_image %}
+                <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
+                {% else %}
+                <div class="series-book-card-placeholder">📚</div>
+                {% endif %}
+                {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
+            </div>
             <div class="series-book-card-info">
                 <strong>{% if book.series_number %}#{{ book.series_number|num }} {% endif %}{{ book.title }}</strong>
                 <small>{{ book.author_names or 'Unknown' }}</small>
