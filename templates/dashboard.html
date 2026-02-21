@@ -74,4 +74,25 @@
         <a href="{{ url_for('book_list') }}" role="button">Browse Books</a>
     </article>
 {% endif %}
+
+<h2>Recently Added</h2>
+{% if recently_added %}
+<div class="recently-added-scroll">
+    {% for book in recently_added %}
+    <a href="{{ url_for('book_detail', id=book.id) }}" class="recently-added-card">
+        {% if book.cover_image %}
+        <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
+        {% else %}
+        <div class="recently-added-placeholder">{{ book.title[0] }}</div>
+        {% endif %}
+        <div class="recently-added-info">
+            <strong>{{ book.title }}</strong>
+            {% if book.authors %}
+            <small>{% for author in book.authors %}{{ author.name }}{% if not loop.last %}, {% endif %}{% endfor %}</small>
+            {% endif %}
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
 {% endblock %}

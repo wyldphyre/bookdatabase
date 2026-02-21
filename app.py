@@ -12,7 +12,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.10.2'
+APP_VERSION = '0.10.3'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -122,10 +122,14 @@ def dashboard():
     ).filter_by(status='Reading').order_by(Read.start_date.desc()).all()
     total_books = Book.query.count()
     total_reads = Read.query.filter_by(status='Completed').count()
+    recently_added = Book.query.options(
+        subqueryload(Book.authors)
+    ).order_by(Book.date_added.desc()).limit(10).all()
     return render_template('dashboard.html',
                          active_reads=active_reads,
                          total_books=total_books,
-                         total_reads=total_reads)
+                         total_reads=total_reads,
+                         recently_added=recently_added)
 
 
 # Book routes

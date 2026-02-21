@@ -202,6 +202,85 @@ form fieldset {
     border-radius: var(--pico-border-radius);
 }
 
+/* Recently added horizontal scroll */
+.recently-added-scroll {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 0.75rem;
+    scroll-snap-type: x mandatory;
+}
+
+.recently-added-scroll::-webkit-scrollbar {
+    height: 6px;
+}
+
+.recently-added-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.recently-added-scroll::-webkit-scrollbar-thumb {
+    background: var(--pico-muted-border-color);
+    border-radius: 3px;
+}
+
+.recently-added-card {
+    flex: 0 0 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: inherit;
+    scroll-snap-align: start;
+}
+
+.recently-added-card:hover {
+    opacity: 0.85;
+}
+
+.recently-added-card img {
+    width: 120px;
+    height: 180px;
+    object-fit: cover;
+    border-radius: var(--pico-border-radius);
+}
+
+.recently-added-placeholder {
+    width: 120px;
+    height: 180px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2rem;
+    border-radius: var(--pico-border-radius);
+}
+
+.recently-added-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.recently-added-info strong {
+    font-size: 0.85rem;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.recently-added-info small {
+    font-size: 0.75rem;
+    color: var(--pico-muted-color);
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
 /* Stats */
 .stats {
     display: flex;
