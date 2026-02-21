@@ -175,31 +175,98 @@ form fieldset {
 }
 
 /* Active reads on dashboard */
-.active-read-card {
+.active-reads-scroll {
     display: flex;
     gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 0.75rem;
+    scroll-snap-type: x mandatory;
+}
+
+.active-reads-scroll::-webkit-scrollbar {
+    height: 6px;
+}
+
+.active-reads-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.active-reads-scroll::-webkit-scrollbar-thumb {
+    background: var(--pico-muted-border-color);
+    border-radius: 3px;
+}
+
+.active-read-card {
+    flex: 0 0 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
     background: var(--pico-card-background-color);
     padding: 1rem;
     border-radius: var(--pico-border-radius);
-    margin-bottom: 1rem;
+    scroll-snap-align: start;
+}
+
+.active-read-cover-link {
+    display: block;
+    text-decoration: none;
 }
 
 .active-read-card img {
-    width: 80px;
-    height: 120px;
+    width: 100%;
+    height: 240px;
     object-fit: cover;
     border-radius: var(--pico-border-radius);
 }
 
 .active-read-placeholder {
-    width: 80px;
-    height: 120px;
+    width: 100%;
+    height: 240px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
+    font-size: 2.5rem;
     border-radius: var(--pico-border-radius);
+}
+
+.active-read-info {
+    flex: 1;
+}
+
+.active-read-info h3 {
+    font-size: 0.95rem;
+    margin: 0 0 0.25rem 0;
+    line-height: 1.3;
+}
+
+.active-read-authors, .active-read-series, .active-read-meta {
+    font-size: 0.8rem;
+    margin: 0.2rem 0;
+    color: var(--pico-muted-color);
+}
+
+.active-read-series {
+    color: var(--pico-color);
+}
+
+.active-read-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.active-read-actions form {
+    flex: 1;
+    margin: 0;
+}
+
+.active-read-actions button {
+    width: 100%;
+    padding: 0.3rem 0.5rem !important;
+    font-size: 0.8rem;
+    margin: 0;
 }
 
 /* Recently added horizontal scroll */
@@ -1270,26 +1337,6 @@ nav .nav-toggle .nav-toggle-icon {
         font-size: 1.5rem;
     }
 
-    /* Active read cards stack */
-    .active-read-card {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
-
-    .active-read-card img {
-        width: 120px;
-        height: 180px;
-    }
-
-    .active-read-placeholder {
-        width: 120px;
-        height: 180px;
-    }
-
-    .active-read-card > div:last-child > div:last-child {
-        justify-content: center;
-    }
 
     /* Books toolbar stacks */
     .books-toolbar {
