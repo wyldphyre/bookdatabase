@@ -12,7 +12,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.10.7'
+APP_VERSION = '0.10.8'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -1447,7 +1447,9 @@ def statistics():
 
     # Financial stats
     total_spent = db.session.query(func.sum(Book.paid)).scalar() or 0
-    total_saved = db.session.query(func.sum(Book.discounts)).scalar() or 0
+    total_saved = db.session.query(
+        func.sum(Book.cost - Book.paid)
+    ).filter(Book.cost.isnot(None), Book.paid.isnot(None)).scalar() or 0
 
     # Tag statistics
     total_tags = Tag.query.count()
