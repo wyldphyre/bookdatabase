@@ -12,7 +12,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.10.8'
+APP_VERSION = '0.10.9'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -321,9 +321,20 @@ def scrape_amazon(url):
         if authors:
             data['authors'] = authors
 
-    # Description
-    desc_el = soup.select_one('#bookDescription_feature_div .a-expander-content, #productDescription')
+    # Description - try multiple selectors as Amazon's structure varies by book type
+    desc_el = soup.select_one(
+        '#bookDescription_feature_div .a-expander-content, '
+        '#bookDescription_feature_div .a-expander-partial-collapse-content, '
+        '#productDescription, '
+        '#bookDescription_feature_div noscript, '
+        '#bookDescription_feature_div'
+    )
     if desc_el:
+        # Remove "Read more" / "Read less" UI controls before extracting text
+        to_remove = [el for el in desc_el.find_all(True)
+                     if el.get_text(strip=True).lower() in ('read more', 'read less')]
+        for el in to_remove:
+            el.decompose()
         data['description'] = get_text_with_linebreaks(desc_el)
 
     # Cover image
@@ -595,10 +606,20 @@ def search_description():
     try:
         book_url = None
 
+        data = None
+        book_url = None
+
         if source == 'amazon':
             book_url = search_amazon_for_book(title, author)
             if book_url:
                 data = scrape_amazon(book_url)
+            # Fall back to Goodreads if Amazon couldn't find or extract the description
+            if not (data and data.get('description')):
+                gr_url = search_goodreads_for_book(title, author)
+                if gr_url:
+                    gr_data = scrape_goodreads(gr_url)
+                    if gr_data and gr_data.get('description'):
+                        return jsonify({'description': gr_data['description'], 'source_url': gr_url})
         elif source == 'goodreads':
             book_url = search_goodreads_for_book(title, author)
             if book_url:
@@ -607,7 +628,7 @@ def search_description():
             return jsonify({'error': 'Source must be amazon or goodreads'}), 400
 
         if not book_url:
-            return jsonify({'error': f'Could not find book on {source.title()}'}), 404
+            return jsonify({'error': f'Could not find book on {source.title()} or Goodreads'}), 404
 
         if data and data.get('description'):
             return jsonify({'description': data['description'], 'source_url': book_url})
