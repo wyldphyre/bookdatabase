@@ -41,7 +41,7 @@
             <button aria-label="Close" rel="prev" onclick="document.getElementById('import-modal').close()"></button>
             <h3 id="import-modal-title">Import Book</h3>
         </header>
-        <form id="import-form" method="get">
+        <form id="import-form" method="get" onsubmit="event.preventDefault(); submitImport();">
             <label>
                 Book URL
                 <input type="url" name="url" id="import-url" placeholder="Paste the URL here..." required>
