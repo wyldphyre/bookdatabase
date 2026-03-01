@@ -10,6 +10,7 @@
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 </head>
 <body>
+    <div id="page-progress"></div>
     <nav class="container-fluid">
         <ul>
             <li><a href="{{ url_for('dashboard') }}"><strong>Book Database</strong></a></li>
@@ -50,5 +51,46 @@
     <footer class="container">
         <small>Book Database</small>
     </footer>
+
+    <script>
+    (function() {
+        var bar = document.getElementById('page-progress');
+        var timer = null;
+
+        function start() {
+            clearTimeout(timer);
+            bar.style.transition = 'none';
+            bar.style.width = '0%';
+            bar.style.opacity = '1';
+            bar.offsetHeight; // force reflow
+            bar.style.transition = 'width 0.4s ease';
+            bar.style.width = '55%';
+            timer = setTimeout(function() {
+                bar.style.transition = 'width 4s ease';
+                bar.style.width = '85%';
+            }, 400);
+        }
+
+        document.addEventListener('click', function(e) {
+            var link = e.target.closest('a[href]');
+            if (!link) return;
+            var href = link.getAttribute('href');
+            if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+            if (link.target === '_blank') return;
+            if (link.hasAttribute('hx-get') || link.hasAttribute('hx-post') ||
+                link.hasAttribute('hx-put') || link.hasAttribute('hx-delete')) return;
+            if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+            start();
+        });
+
+        document.addEventListener('submit', function(e) {
+            var form = e.target;
+            if (form.hasAttribute('hx-get') || form.hasAttribute('hx-post') ||
+                form.hasAttribute('hx-put') || form.hasAttribute('hx-delete')) return;
+            if (e.defaultPrevented) return;
+            start();
+        });
+    })();
+    </script>
 </body>
 </html>

@@ -12,7 +12,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.10.10'
+APP_VERSION = '0.11.0'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -1472,6 +1472,17 @@ def statistics():
         func.sum(Book.cost - Book.paid)
     ).filter(Book.cost.isnot(None), Book.paid.isnot(None)).scalar() or 0
 
+    # Spending per year (books with a purchase date and paid amount)
+    spent_by_year_rows = db.session.query(
+        func.strftime('%Y', Book.date_purchased),
+        func.sum(Book.paid)
+    ).filter(
+        Book.paid.isnot(None),
+        Book.date_purchased.isnot(None)
+    ).group_by(func.strftime('%Y', Book.date_purchased))\
+     .order_by(func.strftime('%Y', Book.date_purchased)).all()
+    spent_by_year = {year: round(float(amount), 2) for year, amount in spent_by_year_rows if year}
+
     # Tag statistics
     total_tags = Tag.query.count()
 
@@ -1553,6 +1564,7 @@ def statistics():
                          avg_days=round(avg_days, 1),
                          total_spent=total_spent,
                          total_saved=total_saved,
+                         spent_by_year=spent_by_year,
                          top_tag_data=top_tag_data,
                          top_tag_breakdown=top_tag_breakdown,
                          most_read_books=most_read_books,

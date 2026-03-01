@@ -1,5 +1,18 @@
 /* Custom styles for Book Database */
 
+/* Page loading progress bar */
+#page-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 0%;
+    background: #667eea;
+    z-index: 10000;
+    opacity: 0;
+    pointer-events: none;
+}
+
 /* Compact form spacing */
 form label,
 form fieldset {
@@ -1032,7 +1045,7 @@ mark {
 .books-toolbar .per-page-label select {
     width: auto;
     margin: 0;
-    padding: 0.5rem 1rem !important;
+    padding: 0.5rem 2.25rem 0.5rem 0.75rem !important;
 }
 
 /* Filter tabs */

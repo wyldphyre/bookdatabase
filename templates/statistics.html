@@ -130,6 +130,13 @@
         <canvas id="tagChart"></canvas>
     </article>
     {% endif %}
+
+    {% if spent_by_year %}
+    <article class="chart-container">
+        <h3>Spending per Year</h3>
+        <canvas id="spendingChart"></canvas>
+    </article>
+    {% endif %}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -252,6 +259,44 @@ new Chart(completionCtx, {
     },
     options: pieOptions
 });
+
+{% if spent_by_year %}
+// Spending per year chart
+const spendingCtx = document.getElementById('spendingChart').getContext('2d');
+new Chart(spendingCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ spent_by_year.keys()|list|tojson }},
+        datasets: [{
+            label: 'Spent ($)',
+            data: {{ spent_by_year.values()|list|tojson }},
+            backgroundColor: '#50c878',
+            borderRadius: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return '$' + context.raw.toFixed(2);
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) { return '$' + value; }
+                }
+            }
+        }
+    }
+});
+{% endif %}
 
 {% if top_tag_data %}
 // Top tags pie chart
