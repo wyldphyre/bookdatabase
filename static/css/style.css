@@ -5,9 +5,10 @@
     position: fixed;
     top: 0;
     left: 0;
-    height: 3px;
+    height: 4px;
     width: 0%;
     background: #667eea;
+    box-shadow: 0 0 8px rgba(102, 126, 234, 0.7);
     z-index: 10000;
     opacity: 0;
     pointer-events: none;

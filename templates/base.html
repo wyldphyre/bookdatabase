@@ -90,6 +90,16 @@
             if (e.defaultPrevented) return;
             start();
         });
+
+        // Reset bar when page is restored from bfcache (browser back/forward)
+        window.addEventListener('pageshow', function(e) {
+            if (e.persisted) {
+                clearTimeout(timer);
+                bar.style.transition = 'none';
+                bar.style.opacity = '0';
+                bar.style.width = '0%';
+            }
+        });
     })();
     </script>
 </body>
