@@ -12,7 +12,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.11.2'
+APP_VERSION = '0.11.3'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -883,7 +883,7 @@ def author_edit(id):
 
     genders = AuthorGender.query.all()
     # Exclude self from alias options
-    authors = Author.query.filter(Author.id != id, Author.alias_of_id == None).order_by(Author.name).all()
+    authors = Author.query.filter(Author.id != id, Author.alias_of_id.is_(None)).order_by(Author.name).all()
     return render_template('authors/form.html', author=author, genders=genders, authors=authors)
 
 
