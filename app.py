@@ -139,11 +139,14 @@ def book_list():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
     filter_status = request.args.get('filter', 'all')
+    pages_filter = request.args.get('pages', '')
     # Constrain to valid options
     if per_page not in [10, 25, 50, 100]:
         per_page = 10
     if filter_status not in ['all', 'unread', 'read']:
         filter_status = 'all'
+    if pages_filter not in ['lt300', '300to499', '500plus', '']:
+        pages_filter = ''
 
     # Build query based on filter
     base = Book.query.options(subqueryload(Book.authors), subqueryload(Book.reads))
@@ -164,10 +167,17 @@ def book_list():
     else:
         query = base
 
+    if pages_filter == 'lt300':
+        query = query.filter(Book.page_count.isnot(None), Book.page_count < 300)
+    elif pages_filter == '300to499':
+        query = query.filter(Book.page_count.isnot(None), Book.page_count >= 300, Book.page_count < 500)
+    elif pages_filter == '500plus':
+        query = query.filter(Book.page_count.isnot(None), Book.page_count >= 500)
+
     books = query.order_by(Book.date_added.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
-    return render_template('books/list.html', books=books, per_page=per_page, filter_status=filter_status)
+    return render_template('books/list.html', books=books, per_page=per_page, filter_status=filter_status, pages_filter=pages_filter)
 
 
 @app.route('/books/<int:id>')
@@ -1531,6 +1541,14 @@ def statistics():
     # Breakdown for top tags (books/authors/series stacked)
     top_tag_breakdown = {name: tag_by_type[name] for name in top_tag_data}
 
+    # Page count distribution
+    page_count_data = {
+        '<300': Book.query.filter(Book.page_count.isnot(None), Book.page_count < 300).count(),
+        '300-499': Book.query.filter(Book.page_count.isnot(None), Book.page_count >= 300, Book.page_count < 500).count(),
+        '500+': Book.query.filter(Book.page_count.isnot(None), Book.page_count >= 500).count(),
+    }
+    page_count_data = {k: v for k, v in page_count_data.items() if v > 0}
+
     # Most read books (by number of completed reads)
     most_read_books = db.session.query(
         Book, func.count(Read.id).label('read_count')
@@ -1573,7 +1591,8 @@ def statistics():
                          top_tag_data=top_tag_data,
                          top_tag_breakdown=top_tag_breakdown,
                          most_read_books=most_read_books,
-                         most_read_authors=most_read_authors)
+                         most_read_authors=most_read_authors,
+                         page_count_data=page_count_data)
 
 
 # --- System Page & Scanners ---

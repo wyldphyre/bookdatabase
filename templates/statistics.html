@@ -137,6 +137,14 @@
         <canvas id="spendingChart"></canvas>
     </article>
     {% endif %}
+
+    {% if page_count_data %}
+    <article class="chart-container">
+        <h3>Page Number</h3>
+        <canvas id="pageCountChart"></canvas>
+        <p style="text-align:center; font-style:italic; font-size:0.85rem; margin-top:0.5rem;">Click on any chart segment to view the books</p>
+    </article>
+    {% endif %}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -296,6 +304,46 @@ new Chart(spendingCtx, {
         }
     }
 });
+{% endif %}
+
+{% if page_count_data %}
+// Page count distribution pie chart
+const pageCountCtx = document.getElementById('pageCountChart').getContext('2d');
+const pageCountKeys = {{ page_count_data.keys()|list|tojson }};
+const pageCountFilterMap = {'<300': 'lt300', '300-499': '300to499', '500+': '500plus'};
+const pageCountChart = new Chart(pageCountCtx, {
+    type: 'pie',
+    data: {
+        labels: pageCountKeys,
+        datasets: [{
+            data: {{ page_count_data.values()|list|tojson }},
+            backgroundColor: ['#764ba2', '#45b7d1', '#50c878']
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const pct = ((context.raw / total) * 100).toFixed(1);
+                        return context.label + ': ' + context.raw + ' (' + pct + '%)';
+                    }
+                }
+            }
+        },
+        onClick: function(evt, elements) {
+            if (elements.length > 0) {
+                const label = pageCountKeys[elements[0].index];
+                const filterVal = pageCountFilterMap[label];
+                if (filterVal) window.location.href = '{{ url_for("book_list") }}?pages=' + filterVal;
+            }
+        }
+    }
+});
+document.getElementById('pageCountChart').style.cursor = 'pointer';
 {% endif %}
 
 {% if top_tag_data %}

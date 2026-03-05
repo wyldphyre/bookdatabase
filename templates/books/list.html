@@ -6,7 +6,7 @@
 <header>
     <hgroup>
         <h1>{% if filter_status == 'unread' %}Unread {% elif filter_status == 'read' %}Read {% endif %}Books</h1>
-        <p>{{ books.total }} book{{ 's' if books.total != 1 else '' }}{% if filter_status != 'all' %} matching filter{% endif %}</p>
+        <p>{{ books.total }} book{{ 's' if books.total != 1 else '' }}{% if filter_status != 'all' or pages_filter %} matching filter{% endif %}{% if pages_filter %} &mdash; {{ {'lt300': '< 300 pages', '300to499': '300–499 pages', '500plus': '500+ pages'}[pages_filter] }} <a href="{{ url_for('book_list', per_page=per_page, filter=filter_status) }}">&times; clear</a>{% endif %}</p>
     </hgroup>
     <div class="books-toolbar">
         <div class="dropdown-button">
@@ -94,7 +94,10 @@ document.addEventListener('click', function(e) {
 function changePerPage(value) {
     localStorage.setItem('books_per_page', value);
     const filter = '{{ filter_status }}';
-    window.location.href = '{{ url_for("book_list") }}?per_page=' + value + '&filter=' + filter;
+    const pages = '{{ pages_filter }}';
+    let url = '{{ url_for("book_list") }}?per_page=' + value + '&filter=' + filter;
+    if (pages) url += '&pages=' + pages;
+    window.location.href = url;
 }
 
 // On page load, check if we should redirect to stored preference
@@ -103,10 +106,13 @@ function changePerPage(value) {
     const urlParams = new URLSearchParams(window.location.search);
     const currentPerPage = urlParams.get('per_page');
     const filter = urlParams.get('filter') || 'all';
+    const pages = urlParams.get('pages') || '';
 
     // If there's a stored preference and no per_page in URL, redirect
     if (storedPerPage && !currentPerPage && !urlParams.has('page')) {
-        window.location.href = '{{ url_for("book_list") }}?per_page=' + storedPerPage + '&filter=' + filter;
+        let url = '{{ url_for("book_list") }}?per_page=' + storedPerPage + '&filter=' + filter;
+        if (pages) url += '&pages=' + pages;
+        window.location.href = url;
     }
 })();
 </script>
@@ -143,7 +149,7 @@ function changePerPage(value) {
 {% if books.pages > 1 %}
 <nav class="pagination">
     {% if books.has_prev %}
-    <a href="{{ url_for('book_list', page=books.prev_num, per_page=per_page, filter=filter_status) }}">Previous</a>
+    <a href="{{ url_for('book_list', page=books.prev_num, per_page=per_page, filter=filter_status, pages=pages_filter or None) }}">Previous</a>
     {% endif %}
 
     {% for page in books.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
@@ -151,7 +157,7 @@ function changePerPage(value) {
             {% if page == books.page %}
             <span class="current">{{ page }}</span>
             {% else %}
-            <a href="{{ url_for('book_list', page=page, per_page=per_page, filter=filter_status) }}">{{ page }}</a>
+            <a href="{{ url_for('book_list', page=page, per_page=per_page, filter=filter_status, pages=pages_filter or None) }}">{{ page }}</a>
             {% endif %}
         {% else %}
         <span>...</span>
@@ -159,7 +165,7 @@ function changePerPage(value) {
     {% endfor %}
 
     {% if books.has_next %}
-    <a href="{{ url_for('book_list', page=books.next_num, per_page=per_page, filter=filter_status) }}">Next</a>
+    <a href="{{ url_for('book_list', page=books.next_num, per_page=per_page, filter=filter_status, pages=pages_filter or None) }}">Next</a>
     {% endif %}
 </nav>
 {% endif %}
