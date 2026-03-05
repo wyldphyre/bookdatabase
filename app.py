@@ -862,7 +862,12 @@ def author_detail(id):
     author = Author.query.options(
         subqueryload(Author.books).subqueryload(Book.reads)
     ).get_or_404(id)
-    return render_template('authors/detail.html', author=author)
+    sorted_books = sorted(author.books, key=lambda b: (
+        b.series.name.lower() if b.series else '\xff',
+        b.series_number or 0,
+        b.title.lower()
+    ))
+    return render_template('authors/detail.html', author=author, sorted_books=sorted_books)
 
 
 @app.route('/authors/new', methods=['GET', 'POST'])
