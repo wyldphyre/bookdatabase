@@ -1620,15 +1620,22 @@ series_scan = {
 }
 
 
+def _snapshot(scan):
+    """Return a shallow copy of a scan dict with results snapshotted to avoid race conditions."""
+    s = dict(scan)
+    s['results'] = list(scan['results'])
+    return s
+
+
 @app.route('/system')
 def system():
-    return render_template('system.html', scan=genre_scan, series_scan=series_scan, version=APP_VERSION)
+    return render_template('system.html', scan=_snapshot(genre_scan), series_scan=_snapshot(series_scan), version=APP_VERSION)
 
 
 @app.route('/system/scan-genres', methods=['POST'])
 def scan_genres_start():
     if genre_scan['status'] == 'running':
-        return render_template('system/_scan_progress.html', scan=genre_scan)
+        return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan))
 
     untagged_only = request.form.get('untagged_only') == 'on'
 
@@ -1647,12 +1654,12 @@ def scan_genres_start():
     thread = threading.Thread(target=run_genre_scan, args=(untagged_only,), daemon=True)
     thread.start()
 
-    return render_template('system/_scan_progress.html', scan=genre_scan)
+    return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan))
 
 
 @app.route('/system/scan-genres/progress')
 def scan_genres_progress():
-    return render_template('system/_scan_progress.html', scan=genre_scan)
+    return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan))
 
 
 @app.route('/system/scan-genres/pause', methods=['POST'])
@@ -1663,13 +1670,13 @@ def scan_genres_pause():
     elif genre_scan['status'] == 'paused':
         genre_scan['paused'] = False
         genre_scan['status'] = 'running'
-    return render_template('system/_scan_progress.html', scan=genre_scan)
+    return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan))
 
 
 @app.route('/system/scan-genres/stop', methods=['POST'])
 def scan_genres_stop():
     genre_scan['stop_requested'] = True
-    return render_template('system/_scan_progress.html', scan=genre_scan)
+    return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan))
 
 
 def run_genre_scan(untagged_only):
@@ -1771,7 +1778,7 @@ def run_genre_scan(untagged_only):
 @app.route('/system/scan-series', methods=['POST'])
 def scan_series_start():
     if series_scan['status'] == 'running':
-        return render_template('system/_series_scan_progress.html', scan=series_scan)
+        return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan))
 
     series_scan.update({
         'status': 'running',
@@ -1787,12 +1794,12 @@ def scan_series_start():
     thread = threading.Thread(target=run_series_scan, daemon=True)
     thread.start()
 
-    return render_template('system/_series_scan_progress.html', scan=series_scan)
+    return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan))
 
 
 @app.route('/system/scan-series/progress')
 def scan_series_progress():
-    return render_template('system/_series_scan_progress.html', scan=series_scan)
+    return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan))
 
 
 @app.route('/system/scan-series/pause', methods=['POST'])
@@ -1803,13 +1810,13 @@ def scan_series_pause():
     elif series_scan['status'] == 'paused':
         series_scan['paused'] = False
         series_scan['status'] = 'running'
-    return render_template('system/_series_scan_progress.html', scan=series_scan)
+    return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan))
 
 
 @app.route('/system/scan-series/stop', methods=['POST'])
 def scan_series_stop():
     series_scan['stop_requested'] = True
-    return render_template('system/_series_scan_progress.html', scan=series_scan)
+    return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan))
 
 
 def run_series_scan():
