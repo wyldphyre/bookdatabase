@@ -1209,6 +1209,16 @@ ul.tag-search-results {
     font-size: 0.85rem;
 }
 
+/* Rank indicator in stats tables */
+.rank-num {
+    display: inline-block;
+    min-width: 1.5rem;
+    margin-right: 0.4rem;
+    font-size: 0.75rem;
+    color: var(--pico-muted-color);
+    text-align: right;
+}
+
 /* Scan progress */
 .scan-stats {
     margin-bottom: 0.75rem;

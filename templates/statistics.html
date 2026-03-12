@@ -90,7 +90,7 @@
         <tbody>
             {% for author, read_count in most_read_authors %}
             <tr>
-                <td><a href="{{ url_for('author_detail', id=author.id) }}">{{ author.name }}</a></td>
+                <td><span class="rank-num">{{ loop.index }}</span><a href="{{ url_for('author_detail', id=author.id) }}">{{ author.name }}</a></td>
                 <td>{{ read_count }}</td>
             </tr>
             {% endfor %}
@@ -113,7 +113,7 @@
         <tbody>
             {% for author, book_count in most_read_authors_distinct %}
             <tr>
-                <td><a href="{{ url_for('author_detail', id=author.id) }}">{{ author.name }}</a></td>
+                <td><span class="rank-num">{{ loop.index }}</span><a href="{{ url_for('author_detail', id=author.id) }}">{{ author.name }}</a></td>
                 <td>{{ book_count }}</td>
             </tr>
             {% endfor %}
