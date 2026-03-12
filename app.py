@@ -1570,6 +1570,17 @@ def statistics():
      .order_by(func.count(Read.id).desc())\
      .limit(10).all()
 
+    # Most read authors (by distinct books read — multiple reads of same book count once)
+    most_read_authors_distinct = db.session.query(
+        Author, func.count(func.distinct(Book.id)).label('book_count')
+    ).join(book_authors, Author.id == book_authors.c.author_id)\
+     .join(Book, Book.id == book_authors.c.book_id)\
+     .join(Read, Read.book_id == Book.id)\
+     .filter(Read.status == 'Completed', Author.alias_of_id.is_(None))\
+     .group_by(Author.id)\
+     .order_by(func.count(func.distinct(Book.id)).desc())\
+     .limit(10).all()
+
     return render_template('statistics.html',
                          gender_data=gender_data,
                          format_data=format_data,
@@ -1592,6 +1603,7 @@ def statistics():
                          top_tag_breakdown=top_tag_breakdown,
                          most_read_books=most_read_books,
                          most_read_authors=most_read_authors,
+                         most_read_authors_distinct=most_read_authors_distinct,
                          page_count_data=page_count_data)
 
 

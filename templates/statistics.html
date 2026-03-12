@@ -79,6 +79,30 @@
 {% if most_read_authors %}
 <article>
     <h3>Most Read Authors</h3>
+    <p class="secondary">Counts every completed read, including re-reads of the same book.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Author</th>
+                <th>Total Reads</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for author, read_count in most_read_authors %}
+            <tr>
+                <td><a href="{{ url_for('author_detail', id=author.id) }}">{{ author.name }}</a></td>
+                <td>{{ read_count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</article>
+{% endif %}
+
+{% if most_read_authors_distinct %}
+<article>
+    <h3>Most Read Authors (Distinct Books)</h3>
+    <p class="secondary">Counts distinct books read; multiple reads of the same book count once.</p>
     <table>
         <thead>
             <tr>
@@ -87,10 +111,10 @@
             </tr>
         </thead>
         <tbody>
-            {% for author, read_count in most_read_authors %}
+            {% for author, book_count in most_read_authors_distinct %}
             <tr>
                 <td><a href="{{ url_for('author_detail', id=author.id) }}">{{ author.name }}</a></td>
-                <td>{{ read_count }}</td>
+                <td>{{ book_count }}</td>
             </tr>
             {% endfor %}
         </tbody>
