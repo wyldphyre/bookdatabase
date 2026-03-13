@@ -128,6 +128,13 @@
         <canvas id="monthlyChart"></canvas>
     </article>
 
+    {% if added_by_year %}
+    <article class="chart-container">
+        <h3>Books Added per Year</h3>
+        <canvas id="addedByYearChart"></canvas>
+    </article>
+    {% endif %}
+
     <article class="chart-container">
         <h3>Rating Distribution</h3>
         <canvas id="ratingChart"></canvas>
@@ -205,6 +212,35 @@ new Chart(monthlyCtx, {
         }
     }
 });
+
+{% if added_by_year %}
+// Books added per year chart
+const addedByYearCtx = document.getElementById('addedByYearChart').getContext('2d');
+new Chart(addedByYearCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ added_by_year.keys()|list|tojson }},
+        datasets: [{
+            label: 'Books Added',
+            data: {{ added_by_year.values()|list|tojson }},
+            backgroundColor: '#4ecdc4',
+            borderRadius: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+            }
+        }
+    }
+});
+{% endif %}
 
 // Rating distribution chart
 const ratingCtx = document.getElementById('ratingChart').getContext('2d');

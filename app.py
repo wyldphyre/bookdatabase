@@ -1487,6 +1487,14 @@ def statistics():
         func.sum(Book.cost - Book.paid)
     ).filter(Book.cost.isnot(None), Book.paid.isnot(None)).scalar() or 0
 
+    # Books added per year
+    added_by_year_rows = db.session.query(
+        func.strftime('%Y', Book.date_added),
+        func.count(Book.id)
+    ).group_by(func.strftime('%Y', Book.date_added))\
+     .order_by(func.strftime('%Y', Book.date_added)).all()
+    added_by_year = {year: count for year, count in added_by_year_rows if year}
+
     # Spending per year (books with a purchase date and paid amount)
     spent_by_year_rows = db.session.query(
         func.strftime('%Y', Book.date_purchased),
@@ -1601,6 +1609,7 @@ def statistics():
                          spent_by_year=spent_by_year,
                          top_tag_data=top_tag_data,
                          top_tag_breakdown=top_tag_breakdown,
+                         added_by_year=added_by_year,
                          most_read_books=most_read_books,
                          most_read_authors=most_read_authors,
                          most_read_authors_distinct=most_read_authors_distinct,
