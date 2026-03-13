@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import time
 import threading
 import requests as http_requests
@@ -12,7 +13,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.11.8'
+APP_VERSION = '0.11.9'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -1004,13 +1005,12 @@ def series_quick_add():
     db.session.commit()
 
     # Update the series datalist input and hidden field
-    from markupsafe import escape
     return f'''<script>
-        document.getElementById('series-input').value = '{escape(series.name)}';
-        document.getElementById('series-id').value = '{series.id}';
+        document.getElementById('series-input').value = {json.dumps(series.name)};
+        document.getElementById('series-id').value = {series.id};
         var opt = document.createElement('option');
-        opt.value = '{escape(series.name)}';
-        opt.dataset.id = '{series.id}';
+        opt.value = {json.dumps(series.name)};
+        opt.dataset.id = {series.id};
         document.getElementById('series-options').appendChild(opt);
     </script>'''
 

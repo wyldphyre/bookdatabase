@@ -24,7 +24,7 @@
         {% for author_name in prefill.authors %}
         <span class="author-suggestion" data-name="{{ author_name }}">
             {{ author_name }}
-            <button type="button" class="outline secondary suggestion-add-btn" onclick="addSuggestedAuthor(this, '{{ author_name|e }}')" title="Add author">+</button>
+            <button type="button" class="outline secondary suggestion-add-btn" data-author-name="{{ author_name }}" onclick="addSuggestedAuthor(this, this.dataset.authorName)" title="Add author">+</button>
         </span>
         {% endfor %}
     </article>
@@ -257,7 +257,7 @@
             <strong>Suggested series from import:</strong>
             <span class="series-suggestion" data-name="{{ prefill.series_name }}">
                 {{ prefill.series_name }}
-                <button type="button" class="outline secondary suggestion-add-btn" onclick="addSuggestedSeries(this, '{{ prefill.series_name|e }}')" title="Add series">+</button>
+                <button type="button" class="outline secondary suggestion-add-btn" data-series-name="{{ prefill.series_name }}" onclick="addSuggestedSeries(this, this.dataset.seriesName)" title="Add series">+</button>
             </span>
         </article>
         {% endif %}
