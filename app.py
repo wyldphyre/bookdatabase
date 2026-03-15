@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.11.10'
+APP_VERSION = '0.11.11'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -194,7 +194,7 @@ def book_new():
         return save_book(None)
 
     formats = BookFormat.query.all()
-    authors = Author.query.filter_by(alias_of_id=None).order_by(Author.name).all()
+    authors = Author.query.order_by(Author.name).all()
     series_list = Series.query.order_by(Series.name).all()
 
     # Check for pre-filled data from import
@@ -657,7 +657,7 @@ def book_edit(id):
         return save_book(book)
 
     formats = BookFormat.query.all()
-    authors = Author.query.filter_by(alias_of_id=None).order_by(Author.name).all()
+    authors = Author.query.order_by(Author.name).all()
     series_list = Series.query.order_by(Series.name).all()
     return render_template('books/form.html',
                          book=book,
