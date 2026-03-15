@@ -44,7 +44,7 @@
         <p>
             <strong>By:</strong>
             {% for author in book.authors %}
-            <a href="{{ url_for('author_detail', id=author.id) }}">{{ author.name }}</a>{% if not loop.last %}, {% endif %}
+            <a href="{{ url_for('author_detail', id=author.id) }}">{{ author.name }}</a>{% if author.alias_of %} (<a href="{{ url_for('author_detail', id=author.alias_of.id) }}">{{ author.alias_of.name }}</a>){% endif %}{% if not loop.last %}, {% endif %}
             {% endfor %}
         </p>
         {% endif %}
