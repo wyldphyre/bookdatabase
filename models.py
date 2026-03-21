@@ -98,10 +98,14 @@ class Book(db.Model):
     cover_image = db.Column(db.String(300))
     rating = db.Column(db.Float)
     comment = db.Column(db.Text)
+    parent_id = db.Column(db.Integer, db.ForeignKey('book.id'))
 
     authors = db.relationship('Author', secondary=book_authors, back_populates='books')
     tags = db.relationship('Tag', secondary=book_tags, back_populates='books')
     reads = db.relationship('Read', backref='book', lazy=True, order_by='Read.start_date.desc()')
+
+    # Self-referential relationship for bundle parent/children
+    parent = db.relationship('Book', remote_side='Book.id', foreign_keys=[parent_id], backref='bundle_children')
 
     @property
     def saved(self):

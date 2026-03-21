@@ -83,6 +83,7 @@
                             <div style="width: 50px; height: 75px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white;">📚</div>
                             {% endif %}
                             {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
+                            {% if book.parent_id %}<img src="{{ url_for('static', filename='img/bundle-overlay.svg') }}" class="bundle-overlay" alt="Bundle">{% endif %}
                         </div>
                     </td>
                     <td><a href="{{ url_for('book_detail', id=book.id) }}">{{ book.title }}</a></td>
@@ -110,6 +111,7 @@
                 <div class="series-book-card-placeholder">📚</div>
                 {% endif %}
                 {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
+                {% if book.parent_id %}<img src="{{ url_for('static', filename='img/bundle-overlay.svg') }}" class="bundle-overlay" alt="Bundle">{% endif %}
             </div>
             <div class="series-book-card-info">
                 <strong>{% if book.series_number %}#{{ book.series_number|num }} {% endif %}{{ book.title }}</strong>

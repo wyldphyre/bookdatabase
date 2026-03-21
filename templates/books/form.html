@@ -6,6 +6,11 @@
 <h1>{{ 'Edit' if book else 'Add New' }} Book</h1>
 
 <form method="post" enctype="multipart/form-data">
+    {% if prefill_parent is defined and prefill_parent %}
+    <p><mark>Adding to bundle: <a href="{{ url_for('book_detail', id=prefill_parent.id) }}">{{ prefill_parent.title }}</a></mark></p>
+    <input type="hidden" name="parent_id" value="{{ prefill_parent.id }}">
+    {% endif %}
+
     <div class="form-grid">
         <label>
             Title *
@@ -441,6 +446,93 @@
             <input type="text" name="bundled_books" value="{{ book.bundled_books or '' if book else '' }}">
         </label>
     </div>
+
+    {% if book and book.id and book.is_book_bundle %}
+    <fieldset>
+        <legend>Books in this Bundle</legend>
+
+        <div id="bundle-children-list" class="selected-tags">
+            {% for child in book.bundle_children %}
+            <span class="tag-chip" data-book-id="{{ child.id }}">
+                {{ child.title }}
+                <input type="hidden" name="bundle_children" value="{{ child.id }}">
+                <button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>
+            </span>
+            {% endfor %}
+        </div>
+
+        <div class="tag-picker">
+            <input type="text"
+                   id="bundle-child-search"
+                   placeholder="Search for existing book..."
+                   autocomplete="off"
+                   hx-get="{{ url_for('book_bundle_child_search') }}"
+                   hx-trigger="input changed delay:200ms, focus"
+                   hx-target="#bundle-child-results"
+                   hx-vals='js:{q: this.value, exclude: getBundleChildIds(), bundle_id: {{ book.id }}}'>
+            <div id="bundle-child-results" class="tag-search-results"></div>
+        </div>
+
+        <div style="margin-top: 0.5rem;">
+            <button type="button" class="outline secondary" style="width: auto;" onclick="toggleBundleUrlForm()">+ Add from URL</button>
+        </div>
+
+        <div id="bundle-url-form" hidden style="margin-top: 0.5rem;">
+            <div class="form-grid">
+                <label>
+                    Source
+                    <select id="bundle-import-source">
+                        <option value="goodreads">Goodreads</option>
+                        <option value="amazon">Amazon</option>
+                    </select>
+                </label>
+                <label>
+                    URL
+                    <input type="url" id="bundle-import-url" placeholder="https://...">
+                </label>
+            </div>
+            <button type="button" onclick="goBundleImport({{ book.id }})">Import Book</button>
+        </div>
+    </fieldset>
+
+    <script>
+    function getBundleChildIds() {
+        return Array.from(document.querySelectorAll('#bundle-children-list input[name=bundle_children]'))
+                   .map(i => i.value).join(',');
+    }
+    function addBundleChild(id, title) {
+        if (document.querySelector('#bundle-children-list [data-book-id="' + id + '"]')) return;
+        const chip = document.createElement('span');
+        chip.className = 'tag-chip';
+        chip.dataset.bookId = id;
+        chip.innerHTML = title +
+            '<input type="hidden" name="bundle_children" value="' + id + '">' +
+            '<button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>';
+        document.getElementById('bundle-children-list').appendChild(chip);
+        document.getElementById('bundle-child-search').value = '';
+        document.getElementById('bundle-child-results').innerHTML = '';
+    }
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.tag-picker')) {
+            const r = document.getElementById('bundle-child-results');
+            if (r) r.innerHTML = '';
+        }
+    });
+    function toggleBundleUrlForm() {
+        const f = document.getElementById('bundle-url-form');
+        f.hidden = !f.hidden;
+        if (!f.hidden) document.getElementById('bundle-import-url').focus();
+    }
+    function goBundleImport(bundleId) {
+        const source = document.getElementById('bundle-import-source').value;
+        const url = document.getElementById('bundle-import-url').value.trim();
+        if (!url) return;
+        window.location.href = '/books/import?source=' + encodeURIComponent(source) +
+            '&url=' + encodeURIComponent(url) +
+            '&parent_id=' + bundleId;
+    }
+    </script>
+    {% endif %}
 
     <label>
         Notes/Comments
