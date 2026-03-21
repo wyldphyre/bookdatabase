@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.11.21'
+APP_VERSION = '0.11.22'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -1495,9 +1495,19 @@ def recommendations():
         ~Book.id.in_(read_book_ids)
     ).order_by(func.random()).limit(5).all()
 
+    # --- Recent Additions: newest unread books ---
+    recent_additions = Book.query.options(
+        subqueryload(Book.authors),
+        joinedload(Book.series)
+    ).filter(
+        ~Book.id.in_(read_book_ids),
+        Book.date_added.isnot(None)
+    ).order_by(Book.date_added.desc()).limit(10).all()
+
     return render_template('recommendations.html',
                          continue_reading=continue_reading,
-                         from_the_pile=from_the_pile)
+                         from_the_pile=from_the_pile,
+                         recent_additions=recent_additions)
 
 
 @app.route('/statistics')
