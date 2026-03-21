@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.11.19'
+APP_VERSION = '0.11.20'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -427,7 +427,13 @@ def scrape_amazon(url):
     series_el = soup.select_one('#seriesBulletWidget_feature_div a')
     if series_el:
         series_text = series_el.get_text(strip=True)
-        data['series_name'] = series_text
+        # Handle "Book 1 of 16: The Good Guys" → series_name="The Good Guys", series_number=1
+        m = re.match(r'^Book\s+(\d+(?:\.\d+)?)\s+of\s+\d+\s*:\s*(.+)$', series_text, re.IGNORECASE)
+        if m:
+            data['series_number'] = float(m.group(1))
+            data['series_name'] = m.group(2).strip()
+        else:
+            data['series_name'] = series_text
 
     return data if data.get('title') else None
 
