@@ -115,6 +115,16 @@ class Book(db.Model):
         return cost - paid
 
     @property
+    def is_completed(self):
+        """True if this book (or all children of a bundle) has been completed."""
+        if self.bundle_children:
+            return len(self.bundle_children) > 0 and all(
+                any(r.status == 'Completed' for r in child.reads)
+                for child in self.bundle_children
+            )
+        return any(r.status == 'Completed' for r in self.reads)
+
+    @property
     def active_read(self):
         for read in self.reads:
             if read.status == 'Reading':
