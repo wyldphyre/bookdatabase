@@ -162,7 +162,7 @@
     </div>
 </div>
 
-{% if book.bundle_children %}
+{% if book.bundle_children or book.is_book_bundle %}
 <hr>
 
 <section>
@@ -192,8 +192,52 @@
             </div>
         </a>
         {% endfor %}
+        <button class="book-card bundle-add-card" onclick="document.getElementById('bundle-add-modal').showModal()" title="Add book to bundle">
+            <div class="bundle-add-icon">+</div>
+            <div class="book-card-content">
+                <div class="book-card-title">Add Book</div>
+            </div>
+        </button>
     </div>
 </section>
+
+<dialog id="bundle-add-modal">
+    <article>
+        <header>
+            <button aria-label="Close" rel="prev" onclick="document.getElementById('bundle-add-modal').close()"></button>
+            <h3>Add Book to Bundle</h3>
+        </header>
+        <div id="bundle-add-url-section">
+            <label>
+                Source
+                <select id="bundle-add-source" onchange="document.getElementById('bundle-add-url').focus()">
+                    <option value="amazon">Amazon</option>
+                    <option value="goodreads">GoodReads</option>
+                </select>
+            </label>
+            <label>
+                URL
+                <input type="url" id="bundle-add-url" placeholder="Paste the URL here...">
+            </label>
+            <button onclick="submitBundleImport({{ book.id }})">Import from URL</button>
+        </div>
+        <footer style="justify-content: flex-start;">
+            <a href="{{ url_for('book_new', parent_id=book.id) }}" role="button" class="outline">Add manually</a>
+        </footer>
+    </article>
+</dialog>
+
+<script>
+function submitBundleImport(bundleId) {
+    const url = document.getElementById('bundle-add-url').value.trim();
+    const source = document.getElementById('bundle-add-source').value;
+    if (!url) { document.getElementById('bundle-add-url').focus(); return; }
+    window.location.href = '{{ url_for("book_import") }}?source=' + source + '&url=' + encodeURIComponent(url) + '&parent_id=' + bundleId;
+}
+document.getElementById('bundle-add-url').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') submitBundleImport({{ book.id }});
+});
+</script>
 {% endif %}
 
 <hr>

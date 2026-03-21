@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.11.16'
+APP_VERSION = '0.11.17'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -202,8 +202,10 @@ def book_new():
     authors = Author.query.order_by(Author.name).all()
     series_list = Series.query.order_by(Series.name).all()
 
-    # Check for pre-filled data from import
+    # Check for pre-filled data from import, or parent_id query param
     prefill = session.pop('book_prefill', None)
+    if not prefill and request.args.get('parent_id'):
+        prefill = {'parent_id': request.args.get('parent_id', type=int)}
 
     # Resolve prefill tag IDs to Tag objects
     prefill_tags = []
