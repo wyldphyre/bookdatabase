@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.11.20'
+APP_VERSION = '0.11.21'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -264,8 +264,9 @@ def book_bundle_child_search():
     rows = []
     for b in results:
         author_str = f' — {b.authors[0].name}' if b.authors else ''
+        safe_title = b.title.replace('&', '&amp;').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
         rows.append(
-            f'<div class="tag-search-item" onclick="addBundleChild({b.id}, {json.dumps(b.title)})">'
+            f'<div class="tag-search-item" data-book-id="{b.id}" data-book-title="{safe_title}">'
             f'{b.title}{author_str}</div>'
         )
     return '\n'.join(rows)

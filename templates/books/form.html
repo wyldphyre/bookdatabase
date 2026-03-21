@@ -467,12 +467,13 @@
         <div class="tag-picker">
             <input type="text"
                    id="bundle-child-search"
+                   name="q"
                    placeholder="Search for existing book..."
                    autocomplete="off"
                    hx-get="{{ url_for('book_bundle_child_search') }}"
                    hx-trigger="input changed delay:200ms, focus"
                    hx-target="#bundle-child-results"
-                   hx-vals='js:{q: this.value, exclude: getBundleChildIds(), bundle_id: {{ book.id }}}'>
+                   hx-vals='js:{exclude: getBundleChildIds(), bundle_id: {{ book.id }}}'>
             <div id="bundle-child-results" class="tag-search-results"></div>
         </div>
 
@@ -516,6 +517,11 @@
         document.getElementById('bundle-child-results').innerHTML = '';
     }
     document.addEventListener('click', function(e) {
+        const item = e.target.closest('#bundle-child-results .tag-search-item');
+        if (item) {
+            addBundleChild(parseInt(item.dataset.bookId), item.dataset.bookTitle);
+            return;
+        }
         if (!e.target.closest('.tag-picker')) {
             const r = document.getElementById('bundle-child-results');
             if (r) r.innerHTML = '';
