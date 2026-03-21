@@ -5,7 +5,7 @@
 {% block content %}
 <header>
     <hgroup>
-        <h1>{% if filter_status == 'unread' %}Unread {% elif filter_status == 'read' %}Read {% endif %}Books</h1>
+        <h1>{% if filter_status == 'unread' %}Unread {% elif filter_status == 'read' %}Read {% elif filter_status == 'bundle' %}Bundle {% endif %}Books</h1>
         <p>{{ books.total }} book{{ 's' if books.total != 1 else '' }}{% if filter_status != 'all' or pages_filter %} matching filter{% endif %}{% if pages_filter %} &mdash; {{ {'lt300': '< 300 pages', '300to499': '300–499 pages', '500plus': '500+ pages'}[pages_filter] }} <a href="{{ url_for('book_list', per_page=per_page, filter=filter_status) }}">&times; clear</a>{% endif %}</p>
     </hgroup>
     <div class="books-toolbar">
@@ -21,6 +21,7 @@
             <a href="{{ url_for('book_list', per_page=per_page, filter='all') }}" class="filter-btn{% if filter_status == 'all' %} active{% endif %}">All</a>
             <a href="{{ url_for('book_list', per_page=per_page, filter='unread') }}" class="filter-btn{% if filter_status == 'unread' %} active{% endif %}">Unread</a>
             <a href="{{ url_for('book_list', per_page=per_page, filter='read') }}" class="filter-btn{% if filter_status == 'read' %} active{% endif %}">Read</a>
+            <a href="{{ url_for('book_list', per_page=per_page, filter='bundle') }}" class="filter-btn{% if filter_status == 'bundle' %} active{% endif %}">Bundles</a>
         </div>
         <label class="per-page-label">
             <span>Per page:</span>
@@ -129,6 +130,7 @@ function changePerPage(value) {
             <div class="placeholder-cover">📚</div>
             {% endif %}
             {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
+            {% if book.parent_id %}<img src="{{ url_for('static', filename='img/bundle-overlay.svg') }}" class="bundle-overlay" alt="Bundle">{% endif %}
         </div>
         <div class="book-card-content">
             <div class="book-card-title" title="{{ book.title }}">{{ book.title }}</div>
@@ -177,6 +179,9 @@ function changePerPage(value) {
     <a href="{{ url_for('book_list', per_page=per_page, filter='all') }}" role="button">View All Books</a>
     {% elif filter_status == 'read' %}
     <p>No read books found.</p>
+    <a href="{{ url_for('book_list', per_page=per_page, filter='all') }}" role="button">View All Books</a>
+    {% elif filter_status == 'bundle' %}
+    <p>No bundle books found.</p>
     <a href="{{ url_for('book_list', per_page=per_page, filter='all') }}" role="button">View All Books</a>
     {% else %}
     <p>No books in your library yet.</p>

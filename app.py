@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.11.11'
+APP_VERSION = '0.11.13'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -144,7 +144,7 @@ def book_list():
     # Constrain to valid options
     if per_page not in [10, 25, 50, 100]:
         per_page = 10
-    if filter_status not in ['all', 'unread', 'read']:
+    if filter_status not in ['all', 'unread', 'read', 'bundle']:
         filter_status = 'all'
     if pages_filter not in ['lt300', '300to499', '500plus', '']:
         pages_filter = ''
@@ -165,6 +165,8 @@ def book_list():
                 db.session.query(Read.book_id).filter(Read.status == 'Completed')
             )
         )
+    elif filter_status == 'bundle':
+        query = base.filter(Book.is_book_bundle == True)
     else:
         query = base
 
@@ -205,13 +207,63 @@ def book_new():
     if prefill and prefill.get('tag_ids'):
         prefill_tags = Tag.query.filter(Tag.id.in_(prefill['tag_ids'])).all()
 
+    # Resolve parent book for display if importing as bundle child
+    prefill_parent = None
+    if prefill and prefill.get('parent_id'):
+        prefill_parent = Book.query.get(prefill['parent_id'])
+
     return render_template('books/form.html',
                          book=None,
                          formats=formats,
                          authors=authors,
                          series_list=series_list,
                          prefill=prefill,
-                         prefill_tags=prefill_tags)
+                         prefill_tags=prefill_tags,
+                         prefill_parent=prefill_parent)
+
+
+@app.route('/books/bundle-child-quick-add', methods=['POST'])
+def book_bundle_child_quick_add():
+    title = request.form.get('title', '').strip()
+    format_id = request.form.get('format_id', type=int)
+    parent_id = request.form.get('parent_id', type=int)
+    if not title or not format_id or not parent_id:
+        return '', 400
+    child = Book(title=title, format_id=format_id, parent_id=parent_id)
+    db.session.add(child)
+    db.session.commit()
+    return (
+        f'<span class="tag-chip" data-book-id="{child.id}">'
+        f'{child.title}'
+        f'<input type="hidden" name="bundle_children" value="{child.id}">'
+        f'<button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>'
+        f'</span>'
+    )
+
+
+@app.route('/books/bundle-child-search')
+def book_bundle_child_search():
+    q = request.args.get('q', '').strip()
+    exclude_str = request.args.get('exclude', '')
+    exclude_ids = set(int(x) for x in exclude_str.split(',') if x.strip().isdigit())
+    bundle_id = request.args.get('bundle_id', type=int)
+    if bundle_id:
+        exclude_ids.add(bundle_id)
+
+    if not q:
+        return ''
+
+    books = Book.query.filter(Book.title.ilike(f'%{q}%')).order_by(Book.title).limit(20).all()
+    results = [b for b in books if b.id not in exclude_ids]
+
+    rows = []
+    for b in results:
+        author_str = f' — {b.authors[0].name}' if b.authors else ''
+        rows.append(
+            f'<div class="tag-search-item" onclick="addBundleChild({b.id}, {json.dumps(b.title)})">'
+            f'{b.title}{author_str}</div>'
+        )
+    return '\n'.join(rows)
 
 
 @app.route('/books/import')
@@ -219,6 +271,7 @@ def book_import():
     """Import book data from external URLs."""
     source = request.args.get('source', '')
     url = request.args.get('url', '')
+    parent_id = request.args.get('parent_id', type=int)
 
     if not source or not url:
         flash('Missing source or URL', 'error')
@@ -249,6 +302,8 @@ def book_import():
                     tag_ids.append(tag.id)
                 book_data['tag_ids'] = tag_ids
 
+            if parent_id:
+                book_data['parent_id'] = parent_id
             session['book_prefill'] = book_data
             flash('Book data imported. Please review and save.', 'success')
         else:
@@ -663,7 +718,8 @@ def book_edit(id):
                          book=book,
                          formats=formats,
                          authors=authors,
-                         series_list=series_list)
+                         series_list=series_list,
+                         bundle_id=book.id if book.is_book_bundle else None)
 
 
 def save_book(book):
@@ -699,6 +755,11 @@ def save_book(book):
     # Handle tags
     tag_ids = request.form.getlist('tags')
     book.tags = Tag.query.filter(Tag.id.in_(tag_ids)).all() if tag_ids else []
+
+    # Set parent_id if provided in form (e.g. from import flow)
+    form_parent_id = request.form.get('parent_id', type=int)
+    if form_parent_id is not None:
+        book.parent_id = form_parent_id
 
     # Handle cover image upload (file takes priority over URL)
     if 'cover_image' in request.files:
@@ -749,6 +810,24 @@ def save_book(book):
 
     if is_new:
         db.session.add(book)
+    db.session.flush()  # ensure book.id is available for new books
+
+    # Sync bundle children
+    if book.is_book_bundle:
+        submitted_ids = set(int(x) for x in request.form.getlist('bundle_children') if x)
+        for child in list(book.bundle_children):
+            if child.id not in submitted_ids:
+                child.parent_id = None
+        existing_ids = {c.id for c in book.bundle_children}
+        for child_id in submitted_ids - existing_ids:
+            child = Book.query.get(child_id)
+            if child:
+                child.parent_id = book.id
+    else:
+        # If no longer a bundle, detach all children
+        for child in list(book.bundle_children):
+            child.parent_id = None
+
     db.session.commit()
     flash('Book saved successfully', 'success')
     return redirect(url_for('book_detail', id=book.id))
@@ -763,6 +842,10 @@ def book_delete(id):
         cover_path = os.path.join(app.config['UPLOAD_FOLDER'], book.cover_image)
         if os.path.exists(cover_path):
             os.remove(cover_path)
+
+    # Detach bundle children before deletion
+    for child in list(book.bundle_children):
+        child.parent_id = None
 
     # Delete associated reads
     Read.query.filter_by(book_id=id).delete()

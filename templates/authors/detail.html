@@ -111,6 +111,7 @@
                 <div class="placeholder-cover">📚</div>
                 {% endif %}
                 {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
+                {% if book.parent_id %}<img src="{{ url_for('static', filename='img/bundle-overlay.svg') }}" class="bundle-overlay" alt="Bundle">{% endif %}
             </div>
             <div class="book-card-content">
                 <div class="book-card-title" title="{{ book.title }}">{{ book.title }}</div>

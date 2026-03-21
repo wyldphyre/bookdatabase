@@ -298,6 +298,15 @@ form fieldset {
     pointer-events: none;
 }
 
+.bundle-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 28px !important;
+    height: 28px !important;
+    pointer-events: none;
+}
+
 /* Recommendations grid */
 .rec-grid {
     display: grid;

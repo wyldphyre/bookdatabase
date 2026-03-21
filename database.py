@@ -1,10 +1,26 @@
 from models import db, BookFormat, AuthorGender
 
 
+def run_migrations():
+    """Apply schema migrations that db.create_all() won't handle on existing tables."""
+    conn = db.engine.raw_connection()
+    try:
+        cursor = conn.cursor()
+        # Add parent_id to book table if it doesn't exist
+        cursor.execute("PRAGMA table_info(book)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if 'parent_id' not in columns:
+            cursor.execute("ALTER TABLE book ADD COLUMN parent_id INTEGER REFERENCES book(id)")
+            conn.commit()
+    finally:
+        conn.close()
+
+
 def init_db(app):
     """Initialize the database and create tables."""
     with app.app_context():
         db.create_all()
+        run_migrations()
         seed_data()
 
 

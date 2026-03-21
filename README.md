@@ -7,6 +7,7 @@ A personal book database web application for tracking books, authors, series, an
 - **Book Management**: Add, edit, and delete books with cover images, ratings, and detailed metadata
 - **Author Management**: Track authors with links to their books and external profiles
 - **Series Management**: Organize books into series with proper ordering
+- **Bundle/Omnibus Support**: Link child books to a parent bundle, with combined reading history and visual indicators on book covers
 - **Reading Tracking**: Track your reading progress with start/finish dates and status
 - **Dashboard**: View currently reading books at a glance
 - **Search**: Find books, authors, and series quickly
