@@ -433,6 +433,8 @@
         </label>
     </div>
 
+    {% set has_parent = (prefill_parent is defined and prefill_parent) or (book and book.parent_id) %}
+    {% if not has_parent %}
     <div class="form-grid" style="align-items: center;">
         <fieldset>
             <label>
@@ -446,8 +448,9 @@
             <input type="text" name="bundled_books" value="{{ book.bundled_books or '' if book else '' }}">
         </label>
     </div>
+    {% endif %}
 
-    {% if book and book.id and book.is_book_bundle %}
+    {% if book and book.id and book.is_book_bundle and not has_parent %}
     <fieldset>
         <legend>Books in this Bundle</legend>
 

@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.11.17'
+APP_VERSION = '0.11.18'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -1262,6 +1262,23 @@ def series_detail(id):
     ).get_or_404(id)
     read_count = sum(1 for book in series.books if any(r.status == 'Completed' for r in book.reads))
     return render_template('series/detail.html', series=series, read_count=read_count)
+
+
+@app.route('/series/check-name')
+def series_check_name():
+    name = request.args.get('name', '').strip()
+    exclude_id = request.args.get('exclude_id', type=int)
+    if not name:
+        return ''
+    q = Series.query.filter(Series.name.ilike(name))
+    if exclude_id:
+        q = q.filter(Series.id != exclude_id)
+    existing = q.first()
+    if not existing:
+        return ''
+    return (f'<small style="color: var(--pico-del-color);">'
+            f'⚠ A series named <a href="{url_for("series_detail", id=existing.id)}" target="_blank">'
+            f'{existing.name}</a> already exists.</small>')
 
 
 @app.route('/series/new', methods=['GET', 'POST'])
