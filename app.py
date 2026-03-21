@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.11.12'
+APP_VERSION = '0.11.13'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -144,7 +144,7 @@ def book_list():
     # Constrain to valid options
     if per_page not in [10, 25, 50, 100]:
         per_page = 10
-    if filter_status not in ['all', 'unread', 'read']:
+    if filter_status not in ['all', 'unread', 'read', 'bundle']:
         filter_status = 'all'
     if pages_filter not in ['lt300', '300to499', '500plus', '']:
         pages_filter = ''
@@ -165,6 +165,8 @@ def book_list():
                 db.session.query(Read.book_id).filter(Read.status == 'Completed')
             )
         )
+    elif filter_status == 'bundle':
+        query = base.filter(Book.is_book_bundle == True)
     else:
         query = base
 
