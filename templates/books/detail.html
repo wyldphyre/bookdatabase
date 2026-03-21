@@ -192,12 +192,15 @@
             </div>
         </a>
         {% endfor %}
+        {% set expected = book.bundle_expected_count %}
+        {% if expected is none or book.bundle_children|length < expected %}
         <button class="book-card bundle-add-card" onclick="document.getElementById('bundle-add-modal').showModal()" title="Add book to bundle">
             <div class="bundle-add-icon">+</div>
             <div class="book-card-content">
                 <div class="book-card-title">Add Book</div>
             </div>
         </button>
+        {% endif %}
     </div>
 </section>
 

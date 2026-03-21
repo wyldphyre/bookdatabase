@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 
@@ -113,6 +114,28 @@ class Book(db.Model):
         discounts = self.discounts or 0
         paid = self.paid or 0
         return cost - paid
+
+    @property
+    def bundle_expected_count(self):
+        """Parse bundled_books range string (e.g. '1-3' or '1-3, 5-7') into expected child count.
+        Returns None if the field is absent or unparseable."""
+        if not self.bundled_books:
+            return None
+        total = 0
+        for part in self.bundled_books.split(','):
+            part = part.strip()
+            m = re.match(r'^(\d+)-(\d+)$', part)
+            if m:
+                lo, hi = int(m.group(1)), int(m.group(2))
+                if hi >= lo:
+                    total += hi - lo + 1
+                else:
+                    return None
+            elif re.match(r'^\d+$', part):
+                total += 1
+            else:
+                return None
+        return total if total > 0 else None
 
     @property
     def is_completed(self):
