@@ -264,11 +264,13 @@
                         </label>
                         <label>
                             Start Date
-                            <input type="date" name="start_date" value="{{ read.start_date.strftime('%Y-%m-%d') if read.start_date else '' }}">
+                            <input type="date" name="start_date" value="{{ read.start_date.strftime('%Y-%m-%d') if read.start_date else '' }}" oninput="warnBadDate(this)">
+                            <small class="date-warning" style="display:none; color: var(--pico-del-color);">⚠ Date looks wrong — check the year</small>
                         </label>
                         <label>
                             Finish Date
-                            <input type="date" name="finish_date" value="{{ read.finish_date.strftime('%Y-%m-%d') if read.finish_date else '' }}">
+                            <input type="date" name="finish_date" value="{{ read.finish_date.strftime('%Y-%m-%d') if read.finish_date else '' }}" oninput="warnBadDate(this)">
+                            <small class="date-warning" style="display:none; color: var(--pico-del-color);">⚠ Date looks wrong — check the year</small>
                         </label>
                         <button type="submit">Update Read</button>
                     </form>
@@ -299,15 +301,28 @@
                 </label>
                 <label>
                     Start Date
-                    <input type="date" name="start_date">
+                    <input type="date" name="start_date" oninput="warnBadDate(this)">
+                    <small class="date-warning" style="display:none; color: var(--pico-del-color);">⚠ Date looks wrong — check the year</small>
                 </label>
                 <label>
                     Finish Date
-                    <input type="date" name="finish_date">
+                    <input type="date" name="finish_date" oninput="warnBadDate(this)">
+                    <small class="date-warning" style="display:none; color: var(--pico-del-color);">⚠ Date looks wrong — check the year</small>
                 </label>
             </div>
             <button type="submit">Add Read</button>
         </form>
     </details>
 </section>
+
+<script>
+function warnBadDate(input) {
+    const warning = input.nextElementSibling;
+    if (!warning || !warning.classList.contains('date-warning')) return;
+    if (!input.value) { warning.style.display = 'none'; return; }
+    const year = new Date(input.value).getFullYear();
+    const now = new Date().getFullYear();
+    warning.style.display = (year < 1900 || year > now + 2) ? '' : 'none';
+}
+</script>
 {% endblock %}

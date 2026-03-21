@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.11.15'
+APP_VERSION = '0.11.16'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -89,7 +89,10 @@ def parse_date(date_str):
     if not date_str:
         return None
     try:
-        return datetime.strptime(date_str, '%Y-%m-%d')
+        dt = datetime.strptime(date_str, '%Y-%m-%d')
+        if dt.year < 1900 or dt.year > datetime.utcnow().year + 2:
+            return None
+        return dt
     except ValueError:
         return None
 
