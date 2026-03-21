@@ -226,7 +226,7 @@ form fieldset {
     text-decoration: none;
 }
 
-.active-read-card img {
+.active-read-card img:not(.bundle-overlay):not(.read-overlay) {
     width: 100%;
     height: 240px;
     object-fit: cover;

@@ -27,11 +27,14 @@
     {% for read in active_reads %}
     <div class="active-read-card">
         <a href="{{ url_for('book_detail', id=read.book.id) }}" class="active-read-cover-link">
-            {% if read.book.cover_image %}
-            <img src="{{ url_for('static', filename='uploads/' + read.book.cover_image) }}" alt="{{ read.book.title }}" loading="lazy">
-            {% else %}
-            <div class="active-read-placeholder">📚</div>
-            {% endif %}
+            <div class="cover-wrapper">
+                {% if read.book.cover_image %}
+                <img src="{{ url_for('static', filename='uploads/' + read.book.cover_image) }}" alt="{{ read.book.title }}" loading="lazy">
+                {% else %}
+                <div class="active-read-placeholder">📚</div>
+                {% endif %}
+                {% if read.book.parent_id %}<img src="{{ url_for('static', filename='img/bundle-overlay.svg') }}" class="bundle-overlay" alt="Bundle">{% endif %}
+            </div>
         </a>
         <div class="active-read-info">
             <h3><a href="{{ url_for('book_detail', id=read.book.id) }}">{{ read.book.title }}</a></h3>
@@ -87,6 +90,7 @@
             <div class="recently-added-placeholder">{{ book.title[0] }}</div>
             {% endif %}
             {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
+            {% if book.parent_id %}<img src="{{ url_for('static', filename='img/bundle-overlay.svg') }}" class="bundle-overlay" alt="Bundle">{% endif %}
         </div>
         <div class="recently-added-info">
             <strong>{{ book.title }}</strong>
