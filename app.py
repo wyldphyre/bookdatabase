@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.11.22'
+APP_VERSION = '0.11.23'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -843,6 +843,15 @@ def save_book(book):
     db.session.commit()
     flash('Book saved successfully', 'success')
     return redirect(url_for('book_detail', id=book.id))
+
+
+@app.route('/books/<int:id>/rate', methods=['POST'])
+def book_rate(id):
+    book = Book.query.get_or_404(id)
+    rating = validate_rating(parse_float(request.form.get('rating')))
+    book.rating = rating
+    db.session.commit()
+    return redirect(url_for('book_detail', id=id))
 
 
 @app.route('/books/<int:id>/delete', methods=['DELETE', 'POST'])
