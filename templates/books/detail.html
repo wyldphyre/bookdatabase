@@ -8,7 +8,7 @@
         {% set is_read = book.is_completed %}
         <div class="cover-wrapper">
             {% if book.cover_image %}
-            <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" class="book-cover">
+            <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" class="book-cover lightbox-trigger">
             {% else %}
             <div class="book-cover-placeholder">📚</div>
             {% endif %}

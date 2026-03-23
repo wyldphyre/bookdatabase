@@ -195,6 +195,33 @@ form fieldset {
     outline: none;
 }
 
+/* Cover lightbox */
+#cover-lightbox {
+    background: transparent;
+    border: none;
+    padding: 0;
+    max-width: 90vw;
+    max-height: 90vh;
+}
+
+#cover-lightbox::backdrop {
+    background: rgba(0, 0, 0, 0.85);
+    cursor: zoom-out;
+}
+
+#cover-lightbox img {
+    display: block;
+    max-width: 85vw;
+    max-height: 85vh;
+    object-fit: contain;
+    border-radius: var(--pico-border-radius);
+    cursor: zoom-out;
+}
+
+img.lightbox-trigger {
+    cursor: zoom-in;
+}
+
 /* Book detail */
 .book-detail {
     display: grid;

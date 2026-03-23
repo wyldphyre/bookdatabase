@@ -48,6 +48,10 @@
         {% block content %}{% endblock %}
     </main>
 
+    <dialog id="cover-lightbox" onclick="this.close()">
+        <img id="cover-lightbox-img" src="" alt="">
+    </dialog>
+
     <footer class="container">
         <small>Book Database</small>
     </footer>
@@ -89,6 +93,17 @@
                 form.hasAttribute('hx-put') || form.hasAttribute('hx-delete')) return;
             if (e.defaultPrevented) return;
             start();
+        });
+
+        // Cover image lightbox
+        document.addEventListener('click', function(e) {
+            var img = e.target.closest('img.lightbox-trigger');
+            if (!img) return;
+            e.preventDefault();
+            var lightbox = document.getElementById('cover-lightbox');
+            document.getElementById('cover-lightbox-img').src = img.src;
+            document.getElementById('cover-lightbox-img').alt = img.alt;
+            lightbox.showModal();
         });
 
         // Prevent scroll wheel from changing number input values
