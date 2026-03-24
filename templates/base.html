@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');</script>
     <title>{% block title %}Book Database{% endblock %}</title>
+    <meta name="theme-color" content="#0172ad" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#01aaff" media="(prefers-color-scheme: dark)">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
