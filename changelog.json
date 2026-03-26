@@ -1,0 +1,298 @@
+[
+  {
+    "version": "1.0",
+    "date": "2026-03-26",
+    "changes": [
+      "Add changelog to the System page, populated from the full project history"
+    ]
+  },
+  {
+    "version": "0.11.25",
+    "date": "2026-03-24",
+    "changes": [
+      "Browser tab and toolbar now reflect the app\u2019s primary colour via theme-color meta tags"
+    ]
+  },
+  {
+    "version": "0.11.24",
+    "date": "2026-03-23",
+    "changes": [
+      "Click any book cover to view it full-size in a lightbox overlay"
+    ]
+  },
+  {
+    "version": "0.11.23",
+    "date": "2026-03-22",
+    "changes": [
+      "Completed but unrated books now show an inline half-star rating widget on the detail page"
+    ]
+  },
+  {
+    "version": "0.11.22",
+    "date": "2026-03-21",
+    "changes": [
+      "Recommendations page now includes a Recent Additions section showing the 10 most recently added unread books"
+    ]
+  },
+  {
+    "version": "0.11.21",
+    "date": "2026-03-21",
+    "changes": [
+      "Fix bundle child book search: results were not appearing and clicking results did nothing"
+    ]
+  },
+  {
+    "version": "0.11.20",
+    "date": "2026-03-21",
+    "changes": [
+      "Fix Amazon series number extraction picking up the next-in-series value instead of the current book",
+      "Amazon import now parses series text (e.g. \u201cBook 5 of 16: Series Name\u201d) into series name and number separately"
+    ]
+  },
+  {
+    "version": "0.11.19",
+    "date": "2026-03-21",
+    "changes": [
+      "Bundle detail page hides the quick-add card once all expected child books are linked"
+    ]
+  },
+  {
+    "version": "0.11.18",
+    "date": "2026-03-21",
+    "changes": [
+      "Warn and prompt for confirmation when adding a series with a duplicate name",
+      "Bundle child books hide bundle-specific fields in their edit form"
+    ]
+  },
+  {
+    "version": "0.11.17",
+    "date": "2026-03-21",
+    "changes": [
+      "Bundle detail page now shows a quick-add card to link child books directly from the detail view"
+    ]
+  },
+  {
+    "version": "0.11.16",
+    "date": "2026-03-21",
+    "changes": [
+      "Read date inputs now warn if the year looks like a typo (before 1900 or more than 2 years in the future)"
+    ]
+  },
+  {
+    "version": "0.11.15",
+    "date": "2026-03-21",
+    "changes": [
+      "Bundle books are now shown as completed when all of their child books have been completed"
+    ]
+  },
+  {
+    "version": "0.11.14",
+    "date": "2026-03-21",
+    "changes": [
+      "Add explicit parent-child book relationships for bundles and omnibus editions",
+      "Child books show a corner overlay badge on book grid cards",
+      "Bundle edit page includes a searchable child-book picker",
+      "Add Bundles filter to the book list page"
+    ]
+  },
+  {
+    "version": "0.11.11",
+    "date": "2026-03-15",
+    "changes": [
+      "Alias author names now appear in the book form author autocomplete",
+      "Various UX improvements: series number label, form field ordering, and button styling"
+    ]
+  },
+  {
+    "version": "0.11.9",
+    "date": "2026-03-13",
+    "changes": [
+      "Fix apostrophe handling in series and author quick-add fields"
+    ]
+  },
+  {
+    "version": "0.11.8",
+    "date": "2026-03-13",
+    "changes": [
+      "Add Books Added per Year bar chart to the Statistics page"
+    ]
+  },
+  {
+    "version": "0.11.7",
+    "date": "2026-03-12",
+    "changes": [
+      "Add Most Read Authors (by distinct books) tables to the Statistics page with rank numbers"
+    ]
+  },
+  {
+    "version": "0.11.6",
+    "date": "2026-03-09",
+    "changes": [
+      "Fix internal server error and UndefinedError on the System page when a series scan is active or has just completed"
+    ]
+  },
+  {
+    "version": "0.11.5",
+    "date": "2026-03-05",
+    "changes": [
+      "Add Page Number distribution pie chart to Statistics with click-through filtering to the book list"
+    ]
+  },
+  {
+    "version": "0.11.4",
+    "date": "2026-03-05",
+    "changes": [
+      "Books on the author detail page are now sorted by series order"
+    ]
+  },
+  {
+    "version": "0.11.3",
+    "date": "2026-03-03",
+    "changes": [
+      "Add page-load progress bar at the top of the page",
+      "Add spending per year chart to Statistics",
+      "Fix progress bar persisting when using browser back/forward navigation",
+      "Fix Docker image size by excluding build artifacts"
+    ]
+  },
+  {
+    "version": "0.11.2",
+    "date": "2026-02-23",
+    "changes": [
+      "Pressing Enter in the import URL dialog now triggers the import",
+      "Improved Amazon description extraction with additional CSS selectors and a Goodreads fallback",
+      "Fix Total Saved stat to use cost minus paid rather than the discounts field"
+    ]
+  },
+  {
+    "version": "0.11.1",
+    "date": "2026-02-21",
+    "changes": [
+      "Add \u201cRead\u201d overlay badges to book grid cards across all pages",
+      "Fix book cover aspect ratio to reduce unwanted clipping",
+      "Add Recently Added section to the dashboard",
+      "Redesign Currently Reading section as a horizontal scroll card layout",
+      "Fix recommendations page layout with responsive book cover grid"
+    ]
+  },
+  {
+    "version": "0.11.0",
+    "date": "2026-02-18",
+    "changes": [
+      "Add dark mode toggle with localStorage persistence",
+      "Fix hamburger menu icon visibility in light mode",
+      "Add per-page selector to Series and Authors list pages",
+      "Add Complete filter to series list",
+      "Add series book count scanner to System page",
+      "Show read count and completion status on series detail page",
+      "Add No Links and Incomplete filters to series list page"
+    ]
+  },
+  {
+    "version": "0.10.0",
+    "date": "2026-02-15",
+    "changes": [
+      "Add Recommendations page with series continuations and random unread picks",
+      "Auto-focus the URL field when opening the import dialog",
+      "Add automated backup script with rolling daily/weekly/monthly retention"
+    ]
+  },
+  {
+    "version": "0.9.0",
+    "date": "2026-02-14",
+    "changes": [
+      "Add most-read books and authors sections to the Statistics page",
+      "Add mobile responsive layout with hamburger menu",
+      "Add Docker deployment with build and deploy scripts"
+    ]
+  },
+  {
+    "version": "0.8.0",
+    "date": "2026-02-12",
+    "changes": [
+      "Add quick-add buttons to import suggestions for authors and series",
+      "Add searchable datalist dropdowns for form fields",
+      "Add pagination to the authors list",
+      "Add lazy image loading throughout",
+      "Tune gunicorn configuration for SQLite workloads"
+    ]
+  },
+  {
+    "version": "0.7.0",
+    "date": "2026-02-10",
+    "changes": [
+      "Add statistics page with charts and summary metrics",
+      "Add percentage labels to pie and doughnut chart tooltips",
+      "Add total pages and series count to author detail page",
+      "Add Abandon button for active reads"
+    ]
+  },
+  {
+    "version": "0.6.0",
+    "date": "2026-02-09",
+    "changes": [
+      "Add System page with Goodreads genre scanner",
+      "Import genres as tags when importing a book from Goodreads",
+      "Add tag statistics chart",
+      "Add option to include tags in search results",
+      "Add tags for books, authors, and series",
+      "Add tag management utility to System page"
+    ]
+  },
+  {
+    "version": "0.5.0",
+    "date": "2026-02-08",
+    "changes": [
+      "Rearrange book detail page layout",
+      "Show author aliases prominently on author pages",
+      "Make editing forms more compact with side-by-side fields and collapsible sections",
+      "Format series numbers to hide trailing .0"
+    ]
+  },
+  {
+    "version": "0.4.0",
+    "date": "2026-02-07",
+    "changes": [
+      "Add automatic book description search from Amazon and Goodreads",
+      "Add Start Reading button to book detail page",
+      "Add read/unread filter to books list",
+      "Add configurable per-page dropdown to books list"
+    ]
+  },
+  {
+    "version": "0.3.0",
+    "date": "2026-02-05",
+    "changes": [
+      "Add series book count update via direct Goodreads/Amazon lookup",
+      "Add reading duration display to book detail page and dashboard",
+      "Add Mark Complete and Abandon buttons to dashboard active reads",
+      "Fix multi-author book import"
+    ]
+  },
+  {
+    "version": "0.2.0",
+    "date": "2026-02-04",
+    "changes": [
+      "Add book import from Amazon, Goodreads, and StoryGraph URLs",
+      "Add series search picker in book form",
+      "Add search functionality to series list",
+      "Improve series and authors list pages with grid layouts"
+    ]
+  },
+  {
+    "version": "0.1.0",
+    "date": "2026-02-02",
+    "changes": [
+      "Replace author multi-select with search-based tag picker",
+      "Migrate initial Notion book data",
+      "Dashboard improvements"
+    ]
+  },
+  {
+    "version": "0.0.1",
+    "date": "2026-02-01",
+    "changes": [
+      "Initial release: book, author, series, and read tracking with basic dashboard and search"
+    ]
+  }
+]

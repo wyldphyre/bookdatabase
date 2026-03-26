@@ -63,6 +63,22 @@
     </div>
 </article>
 
+{% if changelog %}
+<article>
+    <h3>Change Log</h3>
+    {% for entry in changelog %}
+    <details{% if loop.first %} open{% endif %}>
+        <summary><strong>v{{ entry.version }}</strong> &mdash; <span class="secondary">{{ entry.date }}</span></summary>
+        <ul>
+            {% for change in entry.changes %}
+            <li>{{ change }}</li>
+            {% endfor %}
+        </ul>
+    </details>
+    {% endfor %}
+</article>
+{% endif %}
+
 <script>
 function startRename(tagId) {
     document.getElementById('tag-name-' + tagId).hidden = true;

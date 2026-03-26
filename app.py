@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
 from database import init_db
 
-APP_VERSION = '0.11.25'
+APP_VERSION = '1.0'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -1781,7 +1781,13 @@ def _snapshot(scan):
 
 @app.route('/system')
 def system():
-    return render_template('system.html', scan=_snapshot(genre_scan), series_scan=_snapshot(series_scan), version=APP_VERSION)
+    changelog_path = os.path.join(app.root_path, 'changelog.json')
+    try:
+        with open(changelog_path) as f:
+            changelog = json.load(f)
+    except (OSError, ValueError):
+        changelog = []
+    return render_template('system.html', scan=_snapshot(genre_scan), series_scan=_snapshot(series_scan), version=APP_VERSION, changelog=changelog)
 
 
 @app.route('/system/scan-genres', methods=['POST'])
