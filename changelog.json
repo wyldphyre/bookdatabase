@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.0.1",
+    "date": "2026-03-26",
+    "changes": [
+      "Child books now hide Date Purchased, Cost, Discounts, and Paid fields in the edit form",
+      "Bundle books derive their display rating from the average of rated child books when no explicit rating is set"
+    ]
+  },
+  {
     "version": "1.0",
     "date": "2026-03-26",
     "changes": [

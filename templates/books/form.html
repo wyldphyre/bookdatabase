@@ -411,6 +411,8 @@
         </div>
     </details>
 
+    {% set has_parent = (prefill_parent is defined and prefill_parent) or (book and book.parent_id) %}
+    {% if not has_parent %}
     <div class="form-grid">
         <label>
             Date Purchased
@@ -432,8 +434,7 @@
             <input type="number" name="paid" value="{{ book.paid or '' if book else '' }}" step="0.01" min="0">
         </label>
     </div>
-
-    {% set has_parent = (prefill_parent is defined and prefill_parent) or (book and book.parent_id) %}
+    {% endif %}
     {% if not has_parent %}
     <div class="form-grid" style="align-items: center;">
         <fieldset>

@@ -148,6 +148,18 @@ class Book(db.Model):
         return any(r.status == 'Completed' for r in self.reads)
 
     @property
+    def display_rating(self):
+        """Return the rating to display: own rating if set, otherwise average of rated child books."""
+        if self.rating is not None:
+            return self.rating
+        if self.bundle_children:
+            rated = [c.rating for c in self.bundle_children if c.rating is not None]
+            if rated:
+                avg = sum(rated) / len(rated)
+                return round(avg * 4) / 4  # round to nearest 0.25
+        return None
+
+    @property
     def active_read(self):
         for read in self.reads:
             if read.status == 'Reading':

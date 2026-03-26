@@ -61,12 +61,13 @@
         </p>
         {% endif %}
 
-        {% if book.rating %}
+        {% set display_rating = book.display_rating %}
+        {% if display_rating %}
         <p class="rating">
             {% for i in range(5) %}
-                {% if book.rating >= i + 1 %}★{% elif book.rating >= i + 0.5 %}<span class="star-half">★</span>{% else %}☆{% endif %}
+                {% if display_rating >= i + 1 %}★{% elif display_rating >= i + 0.5 %}<span class="star-half">★</span>{% else %}☆{% endif %}
             {% endfor %}
-            ({{ book.rating }}/5)
+            ({{ display_rating }}/5){% if not book.rating and book.bundle_children %} <span class="secondary" style="font-size: 0.8em;">avg</span>{% endif %}
         </p>
         {% elif is_read %}
         <form method="post" action="{{ url_for('book_rate', id=book.id) }}" class="quick-rate-form">
@@ -192,10 +193,10 @@
             <div class="book-card-content">
                 <div class="book-card-title" title="{{ child.title }}">{{ child.title }}</div>
                 <div class="book-card-author" title="{{ child.author_names or 'Unknown Author' }}">{{ child.author_names or 'Unknown Author' }}</div>
-                {% if child.rating %}
+                {% if child.display_rating %}
                 <div class="rating">
                     {% for i in range(5) %}
-                        {% if child.rating >= i + 1 %}★{% elif child.rating >= i + 0.5 %}★{% else %}☆{% endif %}
+                        {% if child.display_rating >= i + 1 %}★{% elif child.display_rating >= i + 0.5 %}<span class="star-half">★</span>{% else %}☆{% endif %}
                     {% endfor %}
                 </div>
                 {% endif %}
