@@ -12,6 +12,26 @@ def run_migrations():
         if 'parent_id' not in columns:
             cursor.execute("ALTER TABLE book ADD COLUMN parent_id INTEGER REFERENCES book(id)")
             conn.commit()
+
+        # Consolidate verbose format names: "Kindle eBook" → "Kindle", "Kobo eBook" → "Kobo"
+        for old_name, new_name in [('Kindle eBook', 'Kindle'), ('Kobo eBook', 'Kobo')]:
+            cursor.execute("SELECT id FROM book_format WHERE name = ?", (old_name,))
+            old_row = cursor.fetchone()
+            if old_row:
+                old_id = old_row[0]
+                cursor.execute("SELECT id FROM book_format WHERE name = ?", (new_name,))
+                new_row = cursor.fetchone()
+                if new_row:
+                    new_id = new_row[0]
+                    cursor.execute("UPDATE book SET format_id = ? WHERE format_id = ?", (new_id, old_id))
+                    cursor.execute("DELETE FROM book_format WHERE id = ?", (old_id,))
+                else:
+                    cursor.execute("UPDATE book_format SET name = ? WHERE id = ?", (new_name, old_id))
+                conn.commit()
+
+        # Rename "Apple eBook" → "Apple"
+        cursor.execute("UPDATE book_format SET name = 'Apple' WHERE name = 'Apple eBook'")
+        conn.commit()
     finally:
         conn.close()
 

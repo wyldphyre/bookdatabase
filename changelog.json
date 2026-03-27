@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.2",
+    "date": "2026-03-28",
+    "changes": [
+      "Migrate verbose book formats: 'Kindle eBook' → 'Kindle', 'Kobo eBook' → 'Kobo', 'Apple eBook' → 'Apple'"
+    ]
+  },
+  {
     "version": "1.0.1",
     "date": "2026-03-26",
     "changes": [
