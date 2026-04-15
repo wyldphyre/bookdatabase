@@ -118,13 +118,8 @@
                 {% if book.series %}
                 <div class="book-card-author" title="{{ book.series.name }}{% if book.series_number %} #{{ book.series_number|num }}{% endif %}">{{ book.series.name }} {% if book.series_number %}#{{ book.series_number|num }}{% endif %}</div>
                 {% endif %}
-                {% set display_rating = book.display_rating %}
-                {% if display_rating %}
-                <div class="rating">
-                    {% for i in range(5) %}
-                        {% if display_rating >= i + 1 %}★{% elif display_rating >= i + 0.5 %}<span class="star-half">★</span>{% else %}☆{% endif %}
-                    {% endfor %}
-                </div>
+                {% if book.rating_label %}
+                <div class="rating">{{ book.rating_label }}</div>
                 {% endif %}
             </div>
         </a>

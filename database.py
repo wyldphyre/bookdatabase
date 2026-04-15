@@ -32,6 +32,15 @@ def run_migrations():
         # Rename "Apple eBook" → "Apple"
         cursor.execute("UPDATE book_format SET name = 'Apple' WHERE name = 'Apple eBook'")
         conn.commit()
+
+        # Migrate fractional ratings to integer 1-5 scale
+        cursor.execute("SELECT id, rating FROM book WHERE rating IS NOT NULL")
+        rows = cursor.fetchall()
+        for row_id, rating in rows:
+            new_rating = max(1, min(5, round(float(rating))))
+            if float(new_rating) != float(rating):
+                cursor.execute("UPDATE book SET rating = ? WHERE id = ?", (float(new_rating), row_id))
+        conn.commit()
     finally:
         conn.close()
 

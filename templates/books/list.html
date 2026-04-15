@@ -135,14 +135,8 @@ function changePerPage(value) {
         <div class="book-card-content">
             <div class="book-card-title" title="{{ book.title }}">{{ book.title }}</div>
             <div class="book-card-author" title="{{ book.author_names or 'Unknown Author' }}">{{ book.author_names or 'Unknown Author' }}</div>
-            {% set display_rating = book.display_rating %}
-            {% if display_rating %}
-            <div class="rating">
-                {% for i in range(5) %}
-                    {% if display_rating >= i + 1 %}★{% elif display_rating >= i + 0.5 %}<span class="star-half">★</span>{% else %}☆{% endif %}
-                {% endfor %}
-                ({{ display_rating }})
-            </div>
+            {% if book.rating_label %}
+            <div class="rating">{{ book.rating_label }}</div>
             {% endif %}
         </div>
     </a>

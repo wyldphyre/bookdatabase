@@ -89,8 +89,8 @@
                     <td><a href="{{ url_for('book_detail', id=book.id) }}">{{ book.title }}</a></td>
                     <td>{{ book.author_names or 'Unknown' }}</td>
                     <td>
-                        {% if book.display_rating %}
-                        <span class="rating">{{ book.display_rating }}/5</span>
+                        {% if book.rating_label %}
+                        <span class="rating">{{ book.rating_label }}</span>
                         {% else %}
                         -
                         {% endif %}
@@ -116,7 +116,7 @@
             <div class="series-book-card-info">
                 <strong>{% if book.series_number %}#{{ book.series_number|num }} {% endif %}{{ book.title }}</strong>
                 <small>{{ book.author_names or 'Unknown' }}</small>
-                {% if book.display_rating %}<span class="rating">{{ book.display_rating }}/5</span>{% endif %}
+                {% if book.rating_label %}<span class="rating">{{ book.rating_label }}</span>{% endif %}
             </div>
         </a>
         {% endfor %}

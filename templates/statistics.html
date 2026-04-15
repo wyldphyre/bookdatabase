@@ -34,10 +34,12 @@
         <div class="stat-value">{{ avg_days }}</div>
         <div class="stat-label">Avg Days to Finish</div>
     </div>
+    {% if most_common_rating %}
     <div class="stat">
-        <div class="stat-value">{{ avg_rating }}</div>
-        <div class="stat-label">Avg Rating</div>
+        <div class="stat-value">{{ most_common_rating }}</div>
+        <div class="stat-label">Most Common Rating</div>
     </div>
+    {% endif %}
     {% if total_spent > 0 %}
     <div class="stat">
         <div class="stat-value">${{ "%.2f"|format(total_spent) }}</div>

@@ -10,10 +10,10 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from werkzeug.utils import secure_filename
 from bs4 import BeautifulSoup
 from sqlalchemy.orm import joinedload, subqueryload
-from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags
+from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags, RATING_LABELS
 from database import init_db
 
-APP_VERSION = '1.0.2'
+APP_VERSION = '1.0.3'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -108,13 +108,13 @@ def parse_float(value):
 
 
 def validate_rating(rating):
-    """Validate rating is between 0-5 in 0.25 increments."""
+    """Validate rating is an integer between 1-5."""
     if rating is None:
         return None
-    if rating < 0 or rating > 5:
+    rating = round(rating)
+    if rating < 1 or rating > 5:
         return None
-    # Round to nearest 0.25
-    return round(rating * 4) / 4
+    return float(rating)
 
 
 # Dashboard
@@ -1552,7 +1552,7 @@ def statistics():
     ).filter(Book.rating.isnot(None))\
      .group_by(Book.rating)\
      .order_by(Book.rating).all()
-    rating_data = {str(rating): count for rating, count in rating_stats}
+    rating_data = {RATING_LABELS.get(int(rating), str(rating)): count for rating, count in rating_stats}
 
     # Books read per month (last 12 months)
     from datetime import datetime, timedelta
@@ -1593,7 +1593,10 @@ def statistics():
     total_series = Series.query.count()
     total_reads = Read.query.filter_by(status='Completed').count()
     books_with_rating = Book.query.filter(Book.rating.isnot(None)).count()
-    avg_rating = db.session.query(func.avg(Book.rating)).filter(Book.rating.isnot(None)).scalar() or 0
+    most_common_rating = None
+    if rating_stats:
+        most_common_entry = max(rating_stats, key=lambda x: x[1])
+        most_common_rating = RATING_LABELS.get(int(most_common_entry[0]))
 
     # Pages read
     pages_read = db.session.query(func.sum(Book.page_count)).join(Read).filter(
@@ -1732,7 +1735,7 @@ def statistics():
                          total_reads=total_reads,
                          total_tags=total_tags,
                          books_with_rating=books_with_rating,
-                         avg_rating=round(avg_rating, 2),
+                         most_common_rating=most_common_rating,
                          pages_read=pages_read,
                          avg_days=round(avg_days, 1),
                          total_spent=total_spent,

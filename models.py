@@ -4,6 +4,14 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
+RATING_LABELS = {
+    1: '🚫 Abandoned',
+    2: '☹️ Didn\'t like',
+    3: '😑 Ok',
+    4: '🙂 Liked',
+    5: '🤩 Really liked',
+}
+
 # Association table for Book-Author many-to-many relationship
 book_authors = db.Table('book_authors',
     db.Column('book_id', db.Integer, db.ForeignKey('book.id'), primary_key=True),
@@ -156,8 +164,16 @@ class Book(db.Model):
             rated = [c.rating for c in self.bundle_children if c.rating is not None]
             if rated:
                 avg = sum(rated) / len(rated)
-                return round(avg * 4) / 4  # round to nearest 0.25
+                return float(round(avg))  # round to nearest integer
         return None
+
+    @property
+    def rating_label(self):
+        """Return the emoji label for the display rating."""
+        r = self.display_rating
+        if r is None:
+            return None
+        return RATING_LABELS.get(int(round(r)))
 
     @property
     def active_read(self):
