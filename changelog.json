@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.5",
+    "date": "2026-04-24",
+    "changes": [
+      "Fix drag-to-reorder ghost positioning on scrolled pages and mobile"
+    ]
+  },
+  {
     "version": "1.0.4",
     "date": "2026-04-18",
     "changes": [

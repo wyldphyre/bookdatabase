@@ -9,7 +9,10 @@ A personal book database web application for tracking books, authors, series, an
 - **Series Management**: Organize books into series with proper ordering
 - **Bundle/Omnibus Support**: Link child books to a parent bundle, with combined reading history and visual indicators on book covers
 - **Reading Tracking**: Track your reading progress with start/finish dates and status
+- **Reading Queue**: Plan your next reads with a drag-to-reorder queue; supports external (non-library) entries
 - **Dashboard**: View currently reading books at a glance
+- **Recommendations**: Get suggestions for series continuations, recent additions, and random picks from your library
+- **Statistics**: Charts and summaries of your reading history
 - **Search**: Find books, authors, and series quickly
 
 ## Tech Stack
@@ -48,14 +51,21 @@ book-database/
 ├── database.py         # Database initialization and seed data
 ├── requirements.txt    # Python dependencies
 ├── README.md
+├── changelog.json      # Version history
 ├── static/
 │   ├── css/style.css   # Custom CSS overrides
 │   └── uploads/        # Book cover images
 └── templates/
     ├── base.html       # Base template with navigation
     ├── dashboard.html
+    ├── recommendations.html
+    ├── statistics.html
     ├── search.html
     ├── search_results.html
+    ├── queue.html
+    ├── queue/
+    │   ├── _button.html  # Add/remove queue button partial
+    │   └── _item.html    # Queue row partial
     ├── books/
     │   ├── list.html
     │   ├── detail.html
@@ -165,3 +175,5 @@ To run backups automatically at 2 AM daily:
 3. **Add Books**: Add books with author and series associations
 4. **Track Reading**: Start a read from the book detail page
 5. **Dashboard**: View your currently reading books
+6. **Reading Queue**: Add books to your queue from any book card or detail page; drag to reorder
+7. **Recommendations**: Get reading suggestions based on your library and reading history

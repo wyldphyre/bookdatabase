@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, ReadingQueue, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags, RATING_LABELS
 from database import init_db
 
-APP_VERSION = '1.0.4'
+APP_VERSION = '1.0.5'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')

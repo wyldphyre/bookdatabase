@@ -62,7 +62,7 @@
         g.classList.add('queue-ghost');
         g.style.width = rect.width + 'px';
         g.style.height = rect.height + 'px';
-        g.style.top = rect.top + window.scrollY + 'px';
+        g.style.top = rect.top + 'px';
         g.style.left = rect.left + 'px';
         document.body.appendChild(g);
         return g;
@@ -113,7 +113,7 @@
         if (!dragging || !ghost) return;
         e.preventDefault();
 
-        var ghostTop = e.clientY - offsetY + window.scrollY;
+        var ghostTop = e.clientY - offsetY;
         ghost.style.top = ghostTop + 'px';
 
         var pointerY = e.clientY;
