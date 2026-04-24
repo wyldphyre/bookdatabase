@@ -19,6 +19,13 @@
     ]
   },
   {
+    "version": "1.0.3",
+    "date": "2026-04-15",
+    "changes": [
+      "Replace numeric star rating with a 5-tier emoji system (🚫 Abandoned, ☹️ Didn't like, 😑 Ok, 🙂 Liked, 🤩 Really liked)"
+    ]
+  },
+  {
     "version": "1.0.2",
     "date": "2026-03-28",
     "changes": [
