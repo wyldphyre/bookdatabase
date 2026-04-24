@@ -1,14 +1,14 @@
 [
   {
     "version": "1.0.5",
-    "date": "2026-04-24",
+    "date": "2026-04-25",
     "changes": [
       "Fix drag-to-reorder ghost positioning on scrolled pages and mobile"
     ]
   },
   {
     "version": "1.0.4",
-    "date": "2026-04-18",
+    "date": "2026-04-24",
     "changes": [
       "Add reading queue: plan and reorder books to read next",
       "Queue supports both library books and external entries (title, author, URL)",
