@@ -3,6 +3,18 @@
 {% block title %}{{ book.title }} - Book Database{% endblock %}
 
 {% block content %}
+{% if suggest_queue_id %}
+<article class="flash flash-info queue-suggest-banner">
+    <span>This book matches an external queue entry.</span>
+    <div class="queue-suggest-actions">
+        <form method="post" action="{{ url_for('queue_link', item_id=suggest_queue_id) }}">
+            <input type="hidden" name="book_id" value="{{ book.id }}">
+            <button type="submit" class="outline">Link it</button>
+        </form>
+        <a href="{{ url_for('book_detail', id=book.id) }}" role="button" class="outline secondary">Dismiss</a>
+    </div>
+</article>
+{% endif %}
 <div class="book-detail">
     <div>
         {% set is_read = book.is_completed %}
@@ -158,6 +170,8 @@
 
         <div class="button-group">
             <a href="{{ url_for('book_edit', id=book.id) }}" role="button">Edit Book</a>
+            {% set in_queue = book.queue_items | length > 0 %}
+            {% include 'queue/_button.html' %}
             <button class="outline secondary"
                     hx-delete="{{ url_for('book_delete', id=book.id) }}"
                     hx-confirm="Are you sure you want to delete this book?"

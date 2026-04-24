@@ -194,3 +194,24 @@ class Read(db.Model):
     finish_date = db.Column(db.DateTime)
     status = db.Column(db.String(20), nullable=False, default='Reading')
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+
+class ReadingQueue(db.Model):
+    __tablename__ = 'reading_queue'
+    id = db.Column(db.Integer, primary_key=True)
+    position = db.Column(db.Integer, nullable=False)
+    book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=True)
+    external_title = db.Column(db.String(300), nullable=True)
+    external_author = db.Column(db.String(300), nullable=True)
+    external_url = db.Column(db.String(500), nullable=True)
+    added_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    book = db.relationship('Book', backref='queue_items')
+
+    @property
+    def display_title(self):
+        return self.book.title if self.book else self.external_title
+
+    @property
+    def display_author(self):
+        return self.book.author_names if self.book else self.external_author

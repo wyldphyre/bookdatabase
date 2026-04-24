@@ -10,10 +10,10 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from werkzeug.utils import secure_filename
 from bs4 import BeautifulSoup
 from sqlalchemy.orm import joinedload, subqueryload
-from models import db, Book, Author, Series, Read, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags, RATING_LABELS
+from models import db, Book, Author, Series, Read, ReadingQueue, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags, RATING_LABELS
 from database import init_db
 
-APP_VERSION = '1.0.3'
+APP_VERSION = '1.0.4'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -25,6 +25,12 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 db.init_app(app)
+
+
+@app.after_request
+def no_bfcache(response):
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 # Custom Jinja filter for sorting with None values
@@ -190,7 +196,8 @@ def book_list():
 def book_detail(id):
     from datetime import date
     book = Book.query.get_or_404(id)
-    return render_template('books/detail.html', book=book, today=date.today().isoformat())
+    suggest_queue_id = request.args.get('suggest_queue', type=int)
+    return render_template('books/detail.html', book=book, today=date.today().isoformat(), suggest_queue_id=suggest_queue_id)
 
 
 @app.route('/books/new', methods=['GET', 'POST'])
@@ -842,6 +849,16 @@ def save_book(book):
 
     db.session.commit()
     flash('Book saved successfully', 'success')
+
+    # For new books, check if any external queue entry matches this title
+    if is_new:
+        match = ReadingQueue.query.filter(
+            ReadingQueue.book_id.is_(None),
+            db.func.lower(ReadingQueue.external_title) == book.title.lower()
+        ).first()
+        if match:
+            return redirect(url_for('book_detail', id=book.id, suggest_queue=match.id))
+
     return redirect(url_for('book_detail', id=book.id))
 
 
@@ -897,6 +914,11 @@ def read_add(book_id):
         status=status
     )
     db.session.add(read)
+
+    # Remove from reading queue when a read is started
+    if status == 'Reading':
+        ReadingQueue.query.filter_by(book_id=book_id).delete()
+
     db.session.commit()
     flash('Read added successfully', 'success')
 
@@ -955,6 +977,102 @@ def read_abandon(id):
     db.session.commit()
     flash('Read marked as abandoned', 'success')
     return redirect(url_for('book_detail', id=read.book_id))
+
+
+# Queue routes
+
+@app.route('/queue')
+def queue_list():
+    items = ReadingQueue.query.order_by(ReadingQueue.position).all()
+    return render_template('queue.html', items=items)
+
+
+@app.route('/queue/add', methods=['POST'])
+def queue_add():
+    book_id = request.form.get('book_id', type=int)
+    if not book_id:
+        return 'Missing book_id', 400
+    book = Book.query.get_or_404(book_id)
+
+    # Don't add duplicates
+    existing = ReadingQueue.query.filter_by(book_id=book_id).first()
+    if not existing:
+        max_pos = db.session.query(db.func.max(ReadingQueue.position)).scalar() or 0
+        item = ReadingQueue(book_id=book_id, position=max_pos + 1)
+        db.session.add(item)
+        db.session.commit()
+
+    if request.headers.get('HX-Request'):
+        in_queue = ReadingQueue.query.filter_by(book_id=book_id).first() is not None
+        return render_template('queue/_button.html', book=book, in_queue=in_queue)
+    return redirect(request.referrer or url_for('queue_list'))
+
+
+@app.route('/queue/<int:item_id>/remove', methods=['POST', 'DELETE'])
+def queue_remove(item_id):
+    item = ReadingQueue.query.get_or_404(item_id)
+    book = item.book
+    book_id = item.book_id
+    db.session.delete(item)
+    db.session.commit()
+
+    if request.headers.get('HX-Request'):
+        # If removing from the queue page itself, return empty to delete the row
+        if request.headers.get('HX-Target', '').startswith('queue-item-'):
+            return ''
+        # If removing via button on another page, return the updated button
+        if book:
+            return render_template('queue/_button.html', book=book, in_queue=False)
+        return ''
+    return redirect(request.referrer or url_for('queue_list'))
+
+
+@app.route('/queue/add-external', methods=['POST'])
+def queue_add_external():
+    title = request.form.get('title', '').strip()
+    if not title:
+        return '<p class="error">Title is required</p>', 400
+
+    max_pos = db.session.query(db.func.max(ReadingQueue.position)).scalar() or 0
+    item = ReadingQueue(
+        position=max_pos + 1,
+        external_title=title,
+        external_author=request.form.get('author', '').strip() or None,
+        external_url=request.form.get('url', '').strip() or None,
+    )
+    db.session.add(item)
+    db.session.commit()
+
+    if request.headers.get('HX-Request'):
+        return render_template('queue/_item.html', item=item)
+    return redirect(url_for('queue_list'))
+
+
+@app.route('/queue/<int:item_id>/link', methods=['POST'])
+def queue_link(item_id):
+    item = ReadingQueue.query.get_or_404(item_id)
+    book_id = request.form.get('book_id', type=int) or request.args.get('book_id', type=int)
+    book = Book.query.get_or_404(book_id)
+    item.book_id = book.id
+    item.external_title = None
+    item.external_author = None
+    item.external_url = None
+    db.session.commit()
+    flash(f'Queue entry linked to "{book.title}"', 'success')
+    return redirect(url_for('book_detail', id=book_id))
+
+
+@app.route('/queue/reorder', methods=['POST'])
+def queue_reorder():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'no data'}), 400
+    for entry in data:
+        item = ReadingQueue.query.get(entry['id'])
+        if item:
+            item.position = entry['position']
+    db.session.commit()
+    return jsonify({'status': 'ok'})
 
 
 # Author routes

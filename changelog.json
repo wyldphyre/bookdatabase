@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.0.4",
+    "date": "2026-04-18",
+    "changes": [
+      "Add reading queue: plan and reorder books to read next",
+      "Queue supports both library books and external entries (title, author, URL)",
+      "Touch-friendly drag-to-reorder on queue page using Pointer Events API (no external library)",
+      "Add to queue from Books list, Book detail, and Recommendations pages",
+      "Starting a read automatically removes the book from the queue",
+      "Auto-link prompt when a new library book matches an existing external queue entry"
+    ]
+  },
+  {
     "version": "1.0.2",
     "date": "2026-03-28",
     "changes": [

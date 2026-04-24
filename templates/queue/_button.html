@@ -1,0 +1,19 @@
+{% if in_queue %}
+{% set qi = book.queue_items[0] if book.queue_items else None %}
+<button type="button"
+        class="queue-btn queue-btn--in secondary outline"
+        hx-post="{{ url_for('queue_remove', item_id=qi.id) if qi else '#' }}"
+        hx-target="this"
+        hx-swap="outerHTML"
+        onclick="event.stopPropagation()"
+        title="Remove from queue">&#10003; Queue</button>
+{% else %}
+<button type="button"
+        class="queue-btn outline"
+        hx-post="{{ url_for('queue_add') }}"
+        hx-vals='{"book_id": "{{ book.id }}"}'
+        hx-target="this"
+        hx-swap="outerHTML"
+        onclick="event.stopPropagation()"
+        title="Add to reading queue">+ Queue</button>
+{% endif %}

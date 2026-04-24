@@ -1,0 +1,34 @@
+<li class="queue-item" id="queue-item-{{ item.id }}" data-id="{{ item.id }}">
+    <span class="drag-handle" title="Drag to reorder">&#8801;</span>
+    <div class="queue-item-cover">
+        {% if item.book and item.book.cover_image %}
+        <img src="{{ url_for('static', filename='uploads/' + item.book.cover_image) }}" alt="{{ item.display_title }}" loading="lazy">
+        {% elif item.book %}
+        <div class="queue-cover-placeholder">{{ item.display_title[0] }}</div>
+        {% else %}
+        <div class="queue-cover-placeholder queue-cover-external">&#128279;</div>
+        {% endif %}
+    </div>
+    <div class="queue-item-info">
+        {% if item.book %}
+        <a href="{{ url_for('book_detail', id=item.book.id) }}"><strong>{{ item.display_title }}</strong></a>
+        {% else %}
+        <strong>{{ item.display_title }}</strong>
+        {% endif %}
+        {% if item.display_author %}
+        <small>{{ item.display_author }}</small>
+        {% endif %}
+        {% if item.book and item.book.series %}
+        <small class="secondary">{{ item.book.series.name }}{% if item.book.series_number %} #{{ item.book.series_number|num }}{% endif %}</small>
+        {% endif %}
+        {% if item.external_url %}
+        <small><a href="{{ item.external_url }}" target="_blank" rel="noopener">{{ item.external_url }}</a></small>
+        {% endif %}
+    </div>
+    <button class="queue-item-remove"
+            hx-post="{{ url_for('queue_remove', item_id=item.id) }}"
+            hx-target="#queue-item-{{ item.id }}"
+            hx-swap="outerHTML"
+            aria-label="Remove from queue"
+            title="Remove from queue">&times;</button>
+</li>

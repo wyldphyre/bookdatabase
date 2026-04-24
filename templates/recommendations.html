@@ -10,6 +10,7 @@
     {% if continue_reading %}
     <div class="rec-grid">
         {% for book, last_read, _ in continue_reading %}
+        <div class="rec-card-wrapper">
         <a href="{{ url_for('book_detail', id=book.id) }}" class="rec-card">
             {% if book.cover_image %}
             <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
@@ -32,6 +33,9 @@
                 {% endif %}
             </div>
         </a>
+        {% set in_queue = book.queue_items | length > 0 %}
+        {% include 'queue/_button.html' %}
+        </div>
         {% endfor %}
     </div>
     {% else %}
@@ -46,6 +50,7 @@
     {% if recent_additions %}
     <div class="rec-grid">
         {% for book in recent_additions %}
+        <div class="rec-card-wrapper">
         <a href="{{ url_for('book_detail', id=book.id) }}" class="rec-card">
             {% if book.cover_image %}
             <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
@@ -65,6 +70,9 @@
                 {% endif %}
             </div>
         </a>
+        {% set in_queue = book.queue_items | length > 0 %}
+        {% include 'queue/_button.html' %}
+        </div>
         {% endfor %}
     </div>
     {% else %}
@@ -79,6 +87,7 @@
     {% if from_the_pile %}
     <div class="rec-grid">
         {% for book in from_the_pile %}
+        <div class="rec-card-wrapper">
         <a href="{{ url_for('book_detail', id=book.id) }}" class="rec-card">
             {% if book.cover_image %}
             <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
@@ -98,6 +107,9 @@
                 {% endif %}
             </div>
         </a>
+        {% set in_queue = book.queue_items | length > 0 %}
+        {% include 'queue/_button.html' %}
+        </div>
         {% endfor %}
     </div>
     {% else %}

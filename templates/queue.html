@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Reading Queue - Book Database{% endblock %}
+
+{% block content %}
+<div class="queue-header">
+    <h1>Reading Queue</h1>
+    <details class="queue-add-external">
+        <summary>+ Add External Book</summary>
+        <form hx-post="{{ url_for('queue_add_external') }}"
+              hx-target="#queue-list"
+              hx-swap="beforeend"
+              hx-on::after-request="if(event.detail.successful){ this.reset(); this.closest('details').removeAttribute('open'); var e=document.querySelector('.queue-empty'); if(e) e.remove(); }">
+            <div class="form-grid">
+                <label>Title (required)
+                    <input type="text" name="title" required placeholder="Book title">
+                </label>
+                <label>Author
+                    <input type="text" name="author" placeholder="Author name">
+                </label>
+            </div>
+            <label>URL (optional)
+                <input type="url" name="url" placeholder="https://...">
+            </label>
+            <button type="submit">Add to Queue</button>
+        </form>
+    </details>
+</div>
+
+{% if items %}
+<ol id="queue-list" class="queue-list">
+    {% for item in items %}
+    {% include 'queue/_item.html' %}
+    {% endfor %}
+</ol>
+{% else %}
+<ol id="queue-list" class="queue-list"></ol>
+<article class="queue-empty">
+    <p>Your queue is empty. Add books from the <a href="{{ url_for('book_list') }}">Books</a>,
+    <a href="{{ url_for('recommendations') }}">Recommendations</a>, or book detail pages.</p>
+</article>
+{% endif %}
+
+<script>
+(function() {
+    var list = document.getElementById('queue-list');
+    if (!list) return;
+
+    var dragging = null;
+    var ghost = null;
+    var placeholder = null;
+    var startY = 0;
+    var offsetY = 0;
+
+    function getItems() {
+        return Array.from(list.querySelectorAll('.queue-item'));
+    }
+
+    function createGhost(el) {
+        var g = el.cloneNode(true);
+        var rect = el.getBoundingClientRect();
+        g.classList.add('queue-ghost');
+        g.style.width = rect.width + 'px';
+        g.style.height = rect.height + 'px';
+        g.style.top = rect.top + window.scrollY + 'px';
+        g.style.left = rect.left + 'px';
+        document.body.appendChild(g);
+        return g;
+    }
+
+    function createPlaceholder(el) {
+        var p = document.createElement('li');
+        p.className = 'queue-placeholder';
+        p.style.height = el.getBoundingClientRect().height + 'px';
+        return p;
+    }
+
+    function saveOrder() {
+        var items = getItems();
+        var order = items.map(function(el, i) {
+            return { id: parseInt(el.dataset.id), position: i + 1 };
+        });
+        fetch('{{ url_for("queue_reorder") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(order)
+        });
+    }
+
+    list.addEventListener('pointerdown', function(e) {
+        var handle = e.target.closest('.drag-handle');
+        if (!handle) return;
+
+        var item = e.target.closest('.queue-item');
+        if (!item) return;
+
+        e.preventDefault();
+        dragging = item;
+
+        var rect = item.getBoundingClientRect();
+        startY = e.clientY;
+        offsetY = e.clientY - rect.top;
+
+        ghost = createGhost(item);
+        placeholder = createPlaceholder(item);
+        item.parentNode.insertBefore(placeholder, item);
+        item.style.display = 'none';
+
+        list.setPointerCapture(e.pointerId);
+    });
+
+    list.addEventListener('pointermove', function(e) {
+        if (!dragging || !ghost) return;
+        e.preventDefault();
+
+        var ghostTop = e.clientY - offsetY + window.scrollY;
+        ghost.style.top = ghostTop + 'px';
+
+        var pointerY = e.clientY;
+        var items = getItems();
+        var inserted = false;
+        for (var i = 0; i < items.length; i++) {
+            var el = items[i];
+            var r = el.getBoundingClientRect();
+            var mid = r.top + r.height / 2;
+            if (pointerY < mid) {
+                list.insertBefore(placeholder, el);
+                inserted = true;
+                break;
+            }
+        }
+        if (!inserted) {
+            list.appendChild(placeholder);
+        }
+    });
+
+    list.addEventListener('pointerup', function(e) {
+        if (!dragging || !ghost) return;
+
+        ghost.remove();
+        ghost = null;
+        dragging.style.display = '';
+        placeholder.parentNode.insertBefore(dragging, placeholder);
+        placeholder.remove();
+        placeholder = null;
+        dragging = null;
+
+        saveOrder();
+    });
+
+    list.addEventListener('pointercancel', function(e) {
+        if (!dragging) return;
+        if (ghost) { ghost.remove(); ghost = null; }
+        if (placeholder) {
+            placeholder.parentNode.insertBefore(dragging, placeholder);
+            placeholder.remove();
+            placeholder = null;
+        }
+        dragging.style.display = '';
+        dragging = null;
+    });
+})();
+</script>
+{% endblock %}

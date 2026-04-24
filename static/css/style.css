@@ -47,10 +47,19 @@ form fieldset {
 }
 
 .book-card {
+    display: block;
     background: var(--pico-card-background-color);
     border-radius: var(--pico-border-radius);
     overflow: hidden;
     box-shadow: var(--pico-card-box-shadow);
+}
+
+.book-card-wrapper .book-card {
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+    flex: 1;
 }
 
 .book-card img {
@@ -1634,4 +1643,238 @@ nav .nav-toggle .nav-toggle-icon {
         gap: 0.75rem;
     }
 
+}
+
+/* ── Reading Queue ─────────────────────────────────────── */
+
+.queue-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.queue-header h1 {
+    margin: 0;
+}
+
+.queue-add-external {
+    margin-bottom: 0;
+}
+
+.queue-add-external summary {
+    display: inline-block;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.queue-add-external form {
+    margin-top: 0.75rem;
+    padding: 1rem;
+    background: var(--pico-card-background-color);
+    border-radius: var(--pico-border-radius);
+    border: 1px solid var(--pico-muted-border-color);
+}
+
+.queue-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.queue-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.5rem;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+    background: var(--pico-background-color);
+}
+
+.queue-item:last-child {
+    border-bottom: none;
+}
+
+.drag-handle {
+    cursor: grab;
+    color: var(--pico-muted-color);
+    font-size: 1.2rem;
+    padding: 0.25rem;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    flex-shrink: 0;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.queue-item-cover {
+    flex-shrink: 0;
+    width: 40px;
+    height: 60px;
+}
+
+.queue-item-cover img {
+    width: 40px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 3px;
+}
+
+.queue-cover-placeholder {
+    width: 40px;
+    height: 60px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1rem;
+    border-radius: 3px;
+}
+
+.queue-cover-external {
+    background: linear-gradient(135deg, #64748b 0%, #334155 100%);
+}
+
+.queue-item-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.queue-item-info strong {
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.queue-item-info small {
+    color: var(--pico-muted-color);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.queue-item-remove {
+    background: none !important;
+    border: none !important;
+    color: var(--pico-muted-color) !important;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.25rem 0.4rem;
+    flex-shrink: 0;
+    line-height: 1;
+    width: auto;
+    margin: 0;
+}
+
+.queue-item-remove:hover {
+    color: var(--pico-del-color) !important;
+}
+
+.queue-ghost {
+    position: fixed;
+    pointer-events: none;
+    opacity: 0.85;
+    background: var(--pico-card-background-color);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    border-radius: var(--pico-border-radius);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.5rem;
+    list-style: none;
+}
+
+.queue-placeholder {
+    background: var(--pico-primary-background);
+    border: 2px dashed var(--pico-primary);
+    border-radius: var(--pico-border-radius);
+    margin: 2px 0;
+    list-style: none;
+}
+
+.queue-empty {
+    text-align: center;
+    color: var(--pico-muted-color);
+}
+
+/* Queue button on cards */
+.queue-btn {
+    margin: 0 !important;
+    width: auto !important;
+}
+
+.queue-btn--in {
+    color: var(--pico-primary) !important;
+}
+
+/* Small sizing only on cards */
+.book-card-footer .queue-btn,
+.rec-card-wrapper .queue-btn {
+    font-size: 0.75rem !important;
+    padding: 0.2rem 0.5rem !important;
+    line-height: 1.4 !important;
+}
+
+/* Book list card wrapper */
+.book-card-wrapper {
+    background: var(--pico-card-background-color);
+    border-radius: var(--pico-border-radius);
+    box-shadow: var(--pico-card-box-shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.book-card-footer {
+    padding: 0.5rem 1rem;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: auto;
+}
+
+/* Rec card wrapper */
+.rec-card-wrapper {
+    position: relative;
+}
+
+.rec-card-wrapper .queue-btn {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    z-index: 1;
+}
+
+/* Queue suggest banner */
+.queue-suggest-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.queue-suggest-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.queue-suggest-actions button,
+.queue-suggest-actions a[role="button"] {
+    margin: 0;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.9rem;
 }
