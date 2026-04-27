@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.6",
+    "date": "2026-04-27",
+    "changes": [
+      "Fix queue button width on book detail page not matching Edit/Delete buttons on mobile"
+    ]
+  },
+  {
     "version": "1.0.5",
     "date": "2026-04-25",
     "changes": [
