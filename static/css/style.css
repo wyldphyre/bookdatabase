@@ -1762,17 +1762,11 @@ nav .nav-toggle .nav-toggle-icon {
 
 .queue-item-info strong {
     font-size: 0.9rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .queue-item-info small {
     color: var(--pico-muted-color);
     font-size: 0.8rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .queue-item-remove {

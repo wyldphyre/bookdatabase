@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.8",
+    "date": "2026-05-06",
+    "changes": [
+      "Fix queue item titles and author names overflowing the screen on mobile instead of wrapping"
+    ]
+  },
+  {
     "version": "1.0.7",
     "date": "2026-04-29",
     "changes": [
