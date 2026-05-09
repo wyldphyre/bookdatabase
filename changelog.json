@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.12",
+    "date": "2026-05-09",
+    "changes": [
+      "Footer now shows the app version and a link to the changelog on the System page"
+    ]
+  },
+  {
     "version": "1.0.11",
     "date": "2026-05-09",
     "changes": [
