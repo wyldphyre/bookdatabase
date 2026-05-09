@@ -1442,6 +1442,56 @@ ul.tag-search-results {
 }
 
 /* ============================
+   Nav "More" dropdown
+   ============================ */
+
+.nav-more {
+    position: relative;
+}
+
+.nav-more-toggle {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: inherit;
+    cursor: pointer;
+    font-size: inherit;
+    padding: 0.5rem 0.75rem;
+    margin: 0;
+    width: auto;
+    white-space: nowrap;
+    opacity: 0.8;
+}
+
+.nav-more-toggle:hover {
+    opacity: 1;
+}
+
+.nav-more-menu {
+    display: none;
+    min-width: 160px;
+    left: auto;
+    right: 0;
+}
+
+.nav-more-menu.show {
+    display: block;
+}
+
+.nav-more-menu li {
+    display: block;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-more-menu a {
+    display: block;
+    padding: 0.5rem 1rem;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ============================
    Mobile Responsive Styles
    ============================ */
 
@@ -1545,6 +1595,37 @@ nav .nav-toggle .nav-toggle-icon {
         width: 100%;
         text-align: center;
         padding: 0.25rem 0;
+    }
+
+    .nav-more-toggle {
+        display: none;
+    }
+
+    .nav-more-menu {
+        display: block !important;
+        position: static;
+        border: none;
+        box-shadow: none;
+        background: none;
+        padding: 0;
+        margin: 0;
+        min-width: 0;
+    }
+
+    .nav-more-menu li {
+        width: 100%;
+        text-align: center;
+        padding: 0.25rem 0;
+    }
+
+    .nav-more-menu a {
+        padding: 0;
+    }
+
+    .nav-more-menu a:hover {
+        background: none;
+        color: var(--pico-primary);
+        text-decoration: underline;
     }
 }
 

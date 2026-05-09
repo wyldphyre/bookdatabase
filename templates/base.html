@@ -26,14 +26,19 @@
         </button>
         <ul class="nav-links">
             <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-            <li><a href="{{ url_for('recommendations') }}">Recommendations</a></li>
             <li><a href="{{ url_for('queue_list') }}">Queue</a></li>
             <li><a href="{{ url_for('book_list') }}">Books</a></li>
-            <li><a href="{{ url_for('author_list') }}">Authors</a></li>
-            <li><a href="{{ url_for('series_list') }}">Series</a></li>
-            <li><a href="{{ url_for('statistics') }}">Statistics</a></li>
             <li><a href="{{ url_for('search') }}">Search</a></li>
-            <li><a href="{{ url_for('system') }}">System</a></li>
+            <li class="nav-more">
+                <button class="nav-more-toggle" aria-expanded="false" aria-haspopup="true">More ▾</button>
+                <ul class="dropdown-menu nav-more-menu">
+                    <li><a href="{{ url_for('recommendations') }}">Recommendations</a></li>
+                    <li><a href="{{ url_for('author_list') }}">Authors</a></li>
+                    <li><a href="{{ url_for('series_list') }}">Series</a></li>
+                    <li><a href="{{ url_for('statistics') }}">Statistics</a></li>
+                    <li><a href="{{ url_for('system') }}">System</a></li>
+                </ul>
+            </li>
         </ul>
     </nav>
 
@@ -108,6 +113,27 @@
             document.getElementById('cover-lightbox-img').alt = img.alt;
             lightbox.showModal();
         });
+
+        // "More" nav dropdown
+        var moreToggle = document.querySelector('.nav-more-toggle');
+        var moreMenu = document.querySelector('.nav-more-menu');
+        if (moreToggle && moreMenu) {
+            moreToggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var open = moreMenu.classList.toggle('show');
+                moreToggle.setAttribute('aria-expanded', open);
+            });
+            document.addEventListener('click', function() {
+                moreMenu.classList.remove('show');
+                moreToggle.setAttribute('aria-expanded', 'false');
+            });
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    moreMenu.classList.remove('show');
+                    moreToggle.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
 
         // Prevent scroll wheel from changing number input values
         document.addEventListener('wheel', function(e) {

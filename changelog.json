@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.0.10",
+    "date": "2026-05-09",
+    "changes": [
+      "Collapse secondary nav items (Recommendations, Authors, Series, Statistics, System) into a More dropdown on desktop",
+      "Mobile nav continues to show all items as a flat list via the hamburger menu"
+    ]
+  },
+  {
     "version": "1.0.9",
     "date": "2026-05-06",
     "changes": [
