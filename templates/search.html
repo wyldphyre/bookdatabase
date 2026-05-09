@@ -7,7 +7,7 @@
 
 <form action="{{ url_for('search') }}" method="get">
     <input type="search" name="q" placeholder="Search books, authors, or series..."
-           value="{{ query }}"
+           value="{{ query }}" autofocus
            hx-get="{{ url_for('search') }}"
            hx-trigger="keyup changed delay:300ms"
            hx-target="#search-results"

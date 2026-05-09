@@ -25,7 +25,7 @@
 <div style="margin-top: 1rem;"></div>
 
 <form action="{{ url_for('author_list') }}" method="get">
-    <input type="search" name="search" id="author-list-search" placeholder="Search authors..." value="{{ search }}"
+    <input type="search" name="search" id="author-list-search" placeholder="Search authors..." value="{{ search }}" autofocus
            hx-get="{{ url_for('author_list') }}"
            hx-trigger="keyup changed delay:300ms"
            hx-target="#author-results"

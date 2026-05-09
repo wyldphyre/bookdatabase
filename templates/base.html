@@ -114,6 +114,33 @@
             lightbox.showModal();
         });
 
+        // Move cursor to end of any autofocused input that has a pre-filled value
+        var autofocused = document.querySelector('input[autofocus]');
+        if (autofocused && autofocused.value) {
+            var len = autofocused.value.length;
+            autofocused.setSelectionRange(len, len);
+        }
+
+        // Escape in search fields: clear, keep focus, and trigger htmx refresh
+        var searchInput = document.querySelector('input[type="search"][autofocus]');
+        if (searchInput) {
+            var escapeClearPending = false;
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    this.value = '';
+                    escapeClearPending = true;
+                    this.dispatchEvent(new Event('keyup', { bubbles: true }));
+                }
+            });
+            document.addEventListener('htmx:afterSwap', function() {
+                if (escapeClearPending) {
+                    escapeClearPending = false;
+                    searchInput.focus();
+                }
+            });
+        }
+
         // "More" nav dropdown
         var moreToggle = document.querySelector('.nav-more-toggle');
         var moreMenu = document.querySelector('.nav-more-menu');

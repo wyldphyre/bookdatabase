@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.0.11",
+    "date": "2026-05-09",
+    "changes": [
+      "Auto-focus the search field on the Search, Authors, and Series pages",
+      "Cursor placed at end of pre-filled search text after page load",
+      "Pressing Escape in a search field clears the text, resets results, and keeps the field focused"
+    ]
+  },
+  {
     "version": "1.0.10",
     "date": "2026-05-09",
     "changes": [
