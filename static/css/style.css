@@ -428,6 +428,7 @@ img.lightbox-trigger {
     gap: 0.5rem;
     text-decoration: none;
     color: inherit;
+    flex: 1;
 }
 
 .rec-card:hover {
@@ -1933,14 +1934,13 @@ nav .nav-toggle .nav-toggle-icon {
 
 /* Rec card wrapper */
 .rec-card-wrapper {
-    position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
 .rec-card-wrapper .queue-btn {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    z-index: 1;
+    align-self: flex-end;
+    margin-top: 0.25rem;
 }
 
 /* Queue suggest banner */
