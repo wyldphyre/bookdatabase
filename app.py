@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, ReadingQueue, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags, RATING_LABELS
 from database import init_db
 
-APP_VERSION = '1.0.8'
+APP_VERSION = '1.0.9'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -1747,16 +1747,17 @@ def statistics():
      .order_by(func.strftime('%Y', Book.date_added)).all()
     added_by_year = {year: count for year, count in added_by_year_rows if year}
 
-    # Spending per year (books with a purchase date and paid amount)
-    spent_by_year_rows = db.session.query(
+    # Spending and savings per year
+    spend_save_rows = db.session.query(
         func.strftime('%Y', Book.date_purchased),
-        func.sum(Book.paid)
+        func.sum(Book.paid),
+        func.sum(Book.cost)
     ).filter(
-        Book.paid.isnot(None),
         Book.date_purchased.isnot(None)
     ).group_by(func.strftime('%Y', Book.date_purchased))\
      .order_by(func.strftime('%Y', Book.date_purchased)).all()
-    spent_by_year = {year: round(float(amount), 2) for year, amount in spent_by_year_rows if year}
+    spent_by_year = {year: round(float(paid), 2) for year, paid, cost in spend_save_rows if year and paid is not None}
+    saved_by_year = {year: round(float((cost or 0) - (paid or 0)), 2) for year, paid, cost in spend_save_rows if year and cost is not None}
 
     # Tag statistics
     total_tags = Tag.query.count()
@@ -1859,6 +1860,7 @@ def statistics():
                          total_spent=total_spent,
                          total_saved=total_saved,
                          spent_by_year=spent_by_year,
+                         saved_by_year=saved_by_year,
                          top_tag_data=top_tag_data,
                          top_tag_breakdown=top_tag_breakdown,
                          added_by_year=added_by_year,

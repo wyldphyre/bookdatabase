@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.9",
+    "date": "2026-05-06",
+    "changes": [
+      "Spending per Year chart now also shows Saved per Year as a grouped bar alongside Spent"
+    ]
+  },
+  {
     "version": "1.0.8",
     "date": "2026-05-06",
     "changes": [

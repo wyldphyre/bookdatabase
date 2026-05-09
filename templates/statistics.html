@@ -164,9 +164,9 @@
     </article>
     {% endif %}
 
-    {% if spent_by_year %}
+    {% if spent_by_year or saved_by_year %}
     <article class="chart-container">
-        <h3>Spending per Year</h3>
+        <h3>Spending &amp; Savings per Year</h3>
         <canvas id="spendingChart"></canvas>
     </article>
     {% endif %}
@@ -330,28 +330,39 @@ new Chart(completionCtx, {
     options: pieOptions
 });
 
-{% if spent_by_year %}
-// Spending per year chart
+{% if spent_by_year or saved_by_year %}
+// Spending & savings per year chart
+const spentData = {{ spent_by_year|tojson }};
+const savedData = {{ saved_by_year|tojson }};
+const spendingYears = [...new Set([...Object.keys(spentData), ...Object.keys(savedData)])].sort();
 const spendingCtx = document.getElementById('spendingChart').getContext('2d');
 new Chart(spendingCtx, {
     type: 'bar',
     data: {
-        labels: {{ spent_by_year.keys()|list|tojson }},
-        datasets: [{
-            label: 'Spent ($)',
-            data: {{ spent_by_year.values()|list|tojson }},
-            backgroundColor: '#50c878',
-            borderRadius: 4
-        }]
+        labels: spendingYears,
+        datasets: [
+            {
+                label: 'Spent ($)',
+                data: spendingYears.map(y => spentData[y] || 0),
+                backgroundColor: '#e07070',
+                borderRadius: 4
+            },
+            {
+                label: 'Saved ($)',
+                data: spendingYears.map(y => savedData[y] || 0),
+                backgroundColor: '#50c878',
+                borderRadius: 4
+            }
+        ]
     },
     options: {
         responsive: true,
         plugins: {
-            legend: { display: false },
+            legend: { display: true },
             tooltip: {
                 callbacks: {
                     label: function(context) {
-                        return '$' + context.raw.toFixed(2);
+                        return context.dataset.label + ': $' + context.raw.toFixed(2);
                     }
                 }
             }
