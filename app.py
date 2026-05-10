@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, ReadingQueue, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags, RATING_LABELS
 from database import init_db
 
-APP_VERSION = '1.0.13'
+APP_VERSION = '1.0.14'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -476,7 +476,13 @@ def scrape_goodreads(url):
             data['authors'] = authors
 
     # Description
-    desc_el = soup.select_one('div[data-testid="description"] .Formatted, span.Formatted')
+    desc_el = soup.select_one(
+        'div[data-testid="description"] .Formatted, '
+        'div[data-testid="description"], '
+        '.BookPageMetadataSection__description .Formatted, '
+        '.BookPageMetadataSection__description, '
+        'span.Formatted'
+    )
     if desc_el:
         data['description'] = get_text_with_linebreaks(desc_el)
 
@@ -620,8 +626,15 @@ def search_goodreads_for_book(title, author):
     # Patterns that indicate junk listings rather than the actual book
     skip_patterns = ['book only', 'study guide', 'summary', 'workbook', 'analysis', 'notebook']
 
-    search_query = f"{title} {author}".strip()
-    search_url = f"https://www.goodreads.com/search?q={quote_plus(search_query)}"
+    def author_matches(known, result):
+        """True if known and result authors share at least one significant word."""
+        normalize = lambda s: re.sub(r'[^a-z0-9 ]', '', s.lower())
+        known_tokens = {t for t in normalize(known).split() if len(t) > 2}
+        result_tokens = {t for t in normalize(result).split() if len(t) > 2}
+        return bool(known_tokens & result_tokens)
+
+    # Use title only — Goodreads returns 0 results when author is included in the query
+    search_url = f"https://www.goodreads.com/search?q={quote_plus(title)}"
 
     try:
         soup = fetch_page(search_url)
@@ -642,15 +655,23 @@ def search_goodreads_for_book(title, author):
             # Skip results with 0 ratings (usually spam/junk entries)
             rating_el = row.select_one('span.minirating')
             if rating_el:
-                rating_text = rating_el.get_text(strip=True)
-                if '0 ratings' in rating_text:
+                if '0 ratings' in rating_el.get_text(strip=True):
                     continue
 
             href = title_el.get('href', '')
-            if href:
-                if href.startswith('/'):
-                    return f"https://www.goodreads.com{href}"
-                return href
+            if not href:
+                continue
+
+            # If we know the author, verify it matches before accepting
+            if author:
+                author_el = row.select_one('a.authorName')
+                result_author = author_el.get_text(strip=True) if author_el else ''
+                if not author_matches(author, result_author):
+                    continue
+
+            if href.startswith('/'):
+                return f"https://www.goodreads.com{href}"
+            return href
     except Exception:
         pass
 
@@ -688,37 +709,28 @@ def search_description():
     """Search for a book by title/author and scrape its description."""
     title = request.args.get('title', '').strip()
     author = request.args.get('author', '').strip()
-    source = request.args.get('source', 'amazon').strip()
-
     if not title:
         return jsonify({'error': 'Book title is required'}), 400
 
     try:
-        book_url = None
-
         data = None
         book_url = None
 
-        if source == 'amazon':
-            book_url = search_amazon_for_book(title, author)
-            if book_url:
-                data = scrape_amazon(book_url)
-            # Fall back to Goodreads if Amazon couldn't find or extract the description
-            if not (data and data.get('description')):
-                gr_url = search_goodreads_for_book(title, author)
-                if gr_url:
-                    gr_data = scrape_goodreads(gr_url)
-                    if gr_data and gr_data.get('description'):
-                        return jsonify({'description': gr_data['description'], 'source_url': gr_url})
-        elif source == 'goodreads':
-            book_url = search_goodreads_for_book(title, author)
-            if book_url:
-                data = scrape_goodreads(book_url)
-        else:
-            return jsonify({'error': 'Source must be amazon or goodreads'}), 400
+        # Try Goodreads first — Amazon is frequently bot-blocked
+        book_url = search_goodreads_for_book(title, author)
+        if book_url:
+            data = scrape_goodreads(book_url)
+
+        # Fall back to Amazon if Goodreads didn't work
+        if not (data and data.get('description')):
+            amazon_url = search_amazon_for_book(title, author)
+            if amazon_url:
+                amazon_data = scrape_amazon(amazon_url)
+                if amazon_data and amazon_data.get('description'):
+                    return jsonify({'description': amazon_data['description'], 'source_url': amazon_url})
 
         if not book_url:
-            return jsonify({'error': f'Could not find book on {source.title()} or Goodreads'}), 404
+            return jsonify({'error': 'Could not find book on Goodreads or Amazon'}), 404
 
         if data and data.get('description'):
             return jsonify({'description': data['description'], 'source_url': book_url})

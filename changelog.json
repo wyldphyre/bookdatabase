@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.0.14",
+    "date": "2026-05-10",
+    "changes": [
+      "Fix Goodreads book search to use title only — including author name caused zero results",
+      "Verify author name against each Goodreads search result to avoid accepting wrong books with the same title",
+      "Update Goodreads description selectors to match current page layout",
+      "Search now tries Goodreads first and falls back to Amazon (Amazon is frequently bot-blocked)",
+      "Replace separate Amazon and Goodreads fetch buttons with a single Fetch Description button"
+    ]
+  },
+  {
     "version": "1.0.13",
     "date": "2026-05-09",
     "changes": [
