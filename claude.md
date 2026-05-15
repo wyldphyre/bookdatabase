@@ -87,7 +87,7 @@ Build a personal book database web application for tracking books, authors, seri
 - is_book_bundle (boolean, default: false)
 - bundled_books (string, optional, e.g., "1-3, 1-10")
 - cover_image (string/path, optional)
-- rating (float, 0-5 in 0.25 increments, optional)
+- rating (integer 1-5, optional): 1=🚫 Abandoned, 2=☹️ Didn't like, 3=😑 Ok, 4=🙂 Liked, 5=🤩 Really liked
 - comment (text, optional)
 ```
 
@@ -260,7 +260,7 @@ book-database/
 
 ### Data Validation
 - Ensure only one active read per book
-- Validate rating is between 0-5 in 0.25 increments
+- Validate rating is an integer between 1-5
 - Validate URLs are properly formatted (optional)
 - Validate cost/paid/discounts are valid currency values
 

@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.0.15",
+    "date": "2026-05-16",
+    "changes": [
+      "Fix thread-safety: added locks around all scan dict mutations in background threads and route handlers",
+      "Fix SSRF: cover image URLs are now validated to block private, loopback, and non-http/https targets",
+      "Warn at startup when SECRET_KEY env var is not set",
+      "Update CLAUDE.md rating spec to match current 1-5 emoji tier implementation"
+    ]
+  },
+  {
     "version": "1.0.14",
     "date": "2026-05-10",
     "changes": [

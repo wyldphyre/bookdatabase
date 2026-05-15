@@ -2,6 +2,9 @@ import os
 import re
 import json
 import time
+import socket
+import logging
+import ipaddress
 import threading
 import requests as http_requests
 from datetime import datetime
@@ -13,16 +16,35 @@ from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, ReadingQueue, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags, RATING_LABELS
 from database import init_db
 
-APP_VERSION = '1.0.14'
+APP_VERSION = '1.0.15'
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+_secret_key = os.environ.get('SECRET_KEY')
+if not _secret_key:
+    logging.warning('SECRET_KEY env var not set — using insecure development default. Set SECRET_KEY for production.')
+    _secret_key = 'dev-secret-key-change-in-production'
+app.config['SECRET_KEY'] = _secret_key
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///books.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(app.static_folder, 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+
+def _is_safe_cover_url(url):
+    """Return True only for public http/https URLs — blocks private/loopback targets."""
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ('http', 'https'):
+            return False
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+        addr = ipaddress.ip_address(socket.gethostbyname(hostname))
+        return not (addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved)
+    except Exception:
+        return False
 
 db.init_app(app)
 
@@ -810,6 +832,10 @@ def save_book(book):
 
     # Handle cover image URL (only if no file uploaded)
     cover_url = request.form.get('cover_image_url', '').strip()
+    if cover_url and not (request.files.get('cover_image') and request.files['cover_image'].filename):
+        if not _is_safe_cover_url(cover_url):
+            flash('Cover image URL must be a public http/https address.', 'warning')
+            cover_url = ''
     if cover_url and not (request.files.get('cover_image') and request.files['cover_image'].filename):
         try:
             response = http_requests.get(cover_url, timeout=10)
@@ -1899,6 +1925,7 @@ genre_scan = {
     'paused': False,
     'stop_requested': False,
 }
+genre_scan_lock = threading.Lock()
 
 series_scan = {
     'status': 'idle',
@@ -1910,12 +1937,14 @@ series_scan = {
     'paused': False,
     'stop_requested': False,
 }
+series_scan_lock = threading.Lock()
 
 
-def _snapshot(scan):
-    """Return a shallow copy of a scan dict with results snapshotted to avoid race conditions."""
-    s = dict(scan)
-    s['results'] = list(scan['results'])
+def _snapshot(scan, lock):
+    """Return a consistent copy of a scan dict under lock."""
+    with lock:
+        s = dict(scan)
+        s['results'] = list(scan['results'])
     return s
 
 
@@ -1927,54 +1956,56 @@ def system():
             changelog = json.load(f)
     except (OSError, ValueError):
         changelog = []
-    return render_template('system.html', scan=_snapshot(genre_scan), series_scan=_snapshot(series_scan), version=APP_VERSION, changelog=changelog)
+    return render_template('system.html', scan=_snapshot(genre_scan, genre_scan_lock), series_scan=_snapshot(series_scan, series_scan_lock), version=APP_VERSION, changelog=changelog)
 
 
 @app.route('/system/scan-genres', methods=['POST'])
 def scan_genres_start():
     if genre_scan['status'] == 'running':
-        return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan))
+        return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan, genre_scan_lock))
 
     untagged_only = request.form.get('untagged_only') == 'on'
 
-    # Reset state
-    genre_scan.update({
-        'status': 'running',
-        'progress': 0,
-        'total': 0,
-        'current_book': '',
-        'tags_added': 0,
-        'results': [],
-        'paused': False,
-        'stop_requested': False,
-    })
+    with genre_scan_lock:
+        genre_scan.update({
+            'status': 'running',
+            'progress': 0,
+            'total': 0,
+            'current_book': '',
+            'tags_added': 0,
+            'results': [],
+            'paused': False,
+            'stop_requested': False,
+        })
 
     thread = threading.Thread(target=run_genre_scan, args=(untagged_only,), daemon=True)
     thread.start()
 
-    return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan))
+    return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan, genre_scan_lock))
 
 
 @app.route('/system/scan-genres/progress')
 def scan_genres_progress():
-    return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan))
+    return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan, genre_scan_lock))
 
 
 @app.route('/system/scan-genres/pause', methods=['POST'])
 def scan_genres_pause():
-    if genre_scan['status'] == 'running':
-        genre_scan['paused'] = True
-        genre_scan['status'] = 'paused'
-    elif genre_scan['status'] == 'paused':
-        genre_scan['paused'] = False
-        genre_scan['status'] = 'running'
-    return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan))
+    with genre_scan_lock:
+        if genre_scan['status'] == 'running':
+            genre_scan['paused'] = True
+            genre_scan['status'] = 'paused'
+        elif genre_scan['status'] == 'paused':
+            genre_scan['paused'] = False
+            genre_scan['status'] = 'running'
+    return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan, genre_scan_lock))
 
 
 @app.route('/system/scan-genres/stop', methods=['POST'])
 def scan_genres_stop():
-    genre_scan['stop_requested'] = True
-    return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan))
+    with genre_scan_lock:
+        genre_scan['stop_requested'] = True
+    return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan, genre_scan_lock))
 
 
 def run_genre_scan(untagged_only):
@@ -1990,25 +2021,29 @@ def run_genre_scan(untagged_only):
             query = query.filter(~Book.tags.any())
 
         books = query.all()
-        genre_scan['total'] = len(books)
+        with genre_scan_lock:
+            genre_scan['total'] = len(books)
 
         for i, book in enumerate(books):
             # Check for stop
             if genre_scan['stop_requested']:
-                genre_scan['status'] = 'stopped'
-                genre_scan['current_book'] = ''
+                with genre_scan_lock:
+                    genre_scan['status'] = 'stopped'
+                    genre_scan['current_book'] = ''
                 return
 
             # Handle pause
             while genre_scan['paused']:
                 if genre_scan['stop_requested']:
-                    genre_scan['status'] = 'stopped'
-                    genre_scan['current_book'] = ''
+                    with genre_scan_lock:
+                        genre_scan['status'] = 'stopped'
+                        genre_scan['current_book'] = ''
                     return
                 time.sleep(0.5)
 
-            genre_scan['current_book'] = book.title
-            genre_scan['progress'] = i
+            with genre_scan_lock:
+                genre_scan['current_book'] = book.title
+                genre_scan['progress'] = i
 
             author_names = ', '.join(a.name for a in book.authors) if book.authors else ''
 
@@ -2016,20 +2051,22 @@ def run_genre_scan(untagged_only):
                 # Search Goodreads for this book
                 book_url = search_goodreads_for_book(book.title, author_names)
                 if not book_url:
-                    genre_scan['results'].append({
-                        'book': book.title,
-                        'status': 'not_found',
-                    })
+                    with genre_scan_lock:
+                        genre_scan['results'].append({
+                            'book': book.title,
+                            'status': 'not_found',
+                        })
                     time.sleep(1)
                     continue
 
                 # Scrape the Goodreads page for genres
                 book_data = scrape_goodreads(book_url)
                 if not book_data or not book_data.get('genres'):
-                    genre_scan['results'].append({
-                        'book': book.title,
-                        'status': 'no_genres',
-                    })
+                    with genre_scan_lock:
+                        genre_scan['results'].append({
+                            'book': book.title,
+                            'status': 'no_genres',
+                        })
                     time.sleep(1)
                     continue
 
@@ -2048,27 +2085,31 @@ def run_genre_scan(untagged_only):
 
                 if new_tags:
                     db.session.commit()
-                    genre_scan['tags_added'] += len(new_tags)
 
-                genre_scan['results'].append({
-                    'book': book.title,
-                    'status': 'found',
-                    'tags': new_tags if new_tags else book_data['genres'],
-                })
+                with genre_scan_lock:
+                    if new_tags:
+                        genre_scan['tags_added'] += len(new_tags)
+                    genre_scan['results'].append({
+                        'book': book.title,
+                        'status': 'found',
+                        'tags': new_tags if new_tags else book_data['genres'],
+                    })
 
             except Exception as e:
-                genre_scan['results'].append({
-                    'book': book.title,
-                    'status': 'error',
-                    'message': str(e),
-                })
+                with genre_scan_lock:
+                    genre_scan['results'].append({
+                        'book': book.title,
+                        'status': 'error',
+                        'message': str(e),
+                    })
 
             # Brief delay to avoid rate limiting
             time.sleep(2)
 
-        genre_scan['progress'] = genre_scan['total']
-        genre_scan['current_book'] = ''
-        genre_scan['status'] = 'complete'
+        with genre_scan_lock:
+            genre_scan['progress'] = genre_scan['total']
+            genre_scan['current_book'] = ''
+            genre_scan['status'] = 'complete'
 
 
 # --- Series Book Count Scanner ---
@@ -2076,45 +2117,48 @@ def run_genre_scan(untagged_only):
 @app.route('/system/scan-series', methods=['POST'])
 def scan_series_start():
     if series_scan['status'] == 'running':
-        return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan))
+        return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan, series_scan_lock))
 
-    series_scan.update({
-        'status': 'running',
-        'progress': 0,
-        'total': 0,
-        'current_series': '',
-        'updated': 0,
-        'results': [],
-        'paused': False,
-        'stop_requested': False,
-    })
+    with series_scan_lock:
+        series_scan.update({
+            'status': 'running',
+            'progress': 0,
+            'total': 0,
+            'current_series': '',
+            'updated': 0,
+            'results': [],
+            'paused': False,
+            'stop_requested': False,
+        })
 
     thread = threading.Thread(target=run_series_scan, daemon=True)
     thread.start()
 
-    return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan))
+    return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan, series_scan_lock))
 
 
 @app.route('/system/scan-series/progress')
 def scan_series_progress():
-    return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan))
+    return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan, series_scan_lock))
 
 
 @app.route('/system/scan-series/pause', methods=['POST'])
 def scan_series_pause():
-    if series_scan['status'] == 'running':
-        series_scan['paused'] = True
-        series_scan['status'] = 'paused'
-    elif series_scan['status'] == 'paused':
-        series_scan['paused'] = False
-        series_scan['status'] = 'running'
-    return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan))
+    with series_scan_lock:
+        if series_scan['status'] == 'running':
+            series_scan['paused'] = True
+            series_scan['status'] = 'paused'
+        elif series_scan['status'] == 'paused':
+            series_scan['paused'] = False
+            series_scan['status'] = 'running'
+    return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan, series_scan_lock))
 
 
 @app.route('/system/scan-series/stop', methods=['POST'])
 def scan_series_stop():
-    series_scan['stop_requested'] = True
-    return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan))
+    with series_scan_lock:
+        series_scan['stop_requested'] = True
+    return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan, series_scan_lock))
 
 
 def run_series_scan():
@@ -2125,23 +2169,27 @@ def run_series_scan():
             (Series.amazon_url.isnot(None) & (Series.amazon_url != ''))
         ).order_by(Series.name).all()
 
-        series_scan['total'] = len(all_series)
+        with series_scan_lock:
+            series_scan['total'] = len(all_series)
 
         for i, series in enumerate(all_series):
             if series_scan['stop_requested']:
-                series_scan['status'] = 'stopped'
-                series_scan['current_series'] = ''
+                with series_scan_lock:
+                    series_scan['status'] = 'stopped'
+                    series_scan['current_series'] = ''
                 return
 
             while series_scan['paused']:
                 if series_scan['stop_requested']:
-                    series_scan['status'] = 'stopped'
-                    series_scan['current_series'] = ''
+                    with series_scan_lock:
+                        series_scan['status'] = 'stopped'
+                        series_scan['current_series'] = ''
                     return
                 time.sleep(0.5)
 
-            series_scan['current_series'] = series.name
-            series_scan['progress'] = i
+            with series_scan_lock:
+                series_scan['current_series'] = series.name
+                series_scan['progress'] = i
 
             try:
                 count = None
@@ -2160,39 +2208,44 @@ def run_series_scan():
                     if old_count is None or count > old_count:
                         series.number_in_series = count
                         db.session.commit()
-                        series_scan['updated'] += 1
-                        series_scan['results'].append({
-                            'series': series.name,
-                            'status': 'updated',
-                            'old_count': old_count,
-                            'new_count': count,
-                            'source': source,
-                        })
+                        with series_scan_lock:
+                            series_scan['updated'] += 1
+                            series_scan['results'].append({
+                                'series': series.name,
+                                'status': 'updated',
+                                'old_count': old_count,
+                                'new_count': count,
+                                'source': source,
+                            })
                     else:
+                        with series_scan_lock:
+                            series_scan['results'].append({
+                                'series': series.name,
+                                'status': 'unchanged',
+                                'count': count,
+                                'source': source,
+                            })
+                else:
+                    with series_scan_lock:
                         series_scan['results'].append({
                             'series': series.name,
-                            'status': 'unchanged',
-                            'count': count,
-                            'source': source,
+                            'status': 'not_found',
                         })
-                else:
-                    series_scan['results'].append({
-                        'series': series.name,
-                        'status': 'not_found',
-                    })
 
             except Exception as e:
-                series_scan['results'].append({
-                    'series': series.name,
-                    'status': 'error',
-                    'message': str(e),
-                })
+                with series_scan_lock:
+                    series_scan['results'].append({
+                        'series': series.name,
+                        'status': 'error',
+                        'message': str(e),
+                    })
 
             time.sleep(2)
 
-        series_scan['progress'] = series_scan['total']
-        series_scan['current_series'] = ''
-        series_scan['status'] = 'complete'
+        with series_scan_lock:
+            series_scan['progress'] = series_scan['total']
+            series_scan['current_series'] = ''
+            series_scan['status'] = 'complete'
 
 
 init_db(app)
