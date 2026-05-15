@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.0.16",
+    "date": "2026-05-16",
+    "changes": [
+      "Replace deprecated Model.query.get() and get_or_404() with db.session.get() and db.get_or_404()",
+      "Pin exact dependency versions in requirements.txt",
+      "Harden series quick-add to return JSON instead of executable script tags",
+      "Use html.escape() in bundle child search to prevent XSS in generated markup",
+      "Optimise active_read property to skip a database query when reads are already loaded",
+      "Rewrite database migrations with schema version tracking so each migration only runs once",
+      "Replace Python-side series completion filtering with correlated SQL subqueries",
+      "Remove redundant local sqlalchemy imports shadowing module-level imports"
+    ]
+  },
+  {
     "version": "1.0.15",
     "date": "2026-05-16",
     "changes": [

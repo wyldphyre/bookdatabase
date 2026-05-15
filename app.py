@@ -1,5 +1,6 @@
 import os
 import re
+import html
 import json
 import time
 import socket
@@ -12,11 +13,12 @@ from urllib.parse import urlparse
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
 from bs4 import BeautifulSoup
+from sqlalchemy import func
 from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, ReadingQueue, BookFormat, AuthorGender, Tag, book_tags, author_tags, series_tags, RATING_LABELS
 from database import init_db
 
-APP_VERSION = '1.0.15'
+APP_VERSION = '1.0.16'
 
 app = Flask(__name__)
 _secret_key = os.environ.get('SECRET_KEY')
@@ -222,7 +224,7 @@ def book_list():
 @app.route('/books/<int:id>')
 def book_detail(id):
     from datetime import date
-    book = Book.query.get_or_404(id)
+    book = db.get_or_404(Book, id)
     suggest_queue_id = request.args.get('suggest_queue', type=int)
     return render_template('books/detail.html', book=book, today=date.today().isoformat(), suggest_queue_id=suggest_queue_id)
 
@@ -249,7 +251,7 @@ def book_new():
     # Resolve parent book for display if importing as bundle child
     prefill_parent = None
     if prefill and prefill.get('parent_id'):
-        prefill_parent = Book.query.get(prefill['parent_id'])
+        prefill_parent = db.session.get(Book, prefill['parent_id'])
 
     return render_template('books/form.html',
                          book=None,
@@ -297,11 +299,10 @@ def book_bundle_child_search():
 
     rows = []
     for b in results:
-        author_str = f' — {b.authors[0].name}' if b.authors else ''
-        safe_title = b.title.replace('&', '&amp;').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+        author_str = f' — {html.escape(b.authors[0].name)}' if b.authors else ''
         rows.append(
-            f'<div class="tag-search-item" data-book-id="{b.id}" data-book-title="{safe_title}">'
-            f'{b.title}{author_str}</div>'
+            f'<div class="tag-search-item" data-book-id="{b.id}" data-book-title="{html.escape(b.title, quote=True)}">'
+            f'{html.escape(b.title)}{author_str}</div>'
         )
     return '\n'.join(rows)
 
@@ -765,7 +766,7 @@ def search_description():
 
 @app.route('/books/<int:id>/edit', methods=['GET', 'POST'])
 def book_edit(id):
-    book = Book.query.get_or_404(id)
+    book = db.get_or_404(Book, id)
     if request.method == 'POST':
         return save_book(book)
 
@@ -882,7 +883,7 @@ def save_book(book):
                 child.parent_id = None
         existing_ids = {c.id for c in book.bundle_children}
         for child_id in submitted_ids - existing_ids:
-            child = Book.query.get(child_id)
+            child = db.session.get(Book, child_id)
             if child:
                 child.parent_id = book.id
     else:
@@ -907,7 +908,7 @@ def save_book(book):
 
 @app.route('/books/<int:id>/rate', methods=['POST'])
 def book_rate(id):
-    book = Book.query.get_or_404(id)
+    book = db.get_or_404(Book, id)
     rating = validate_rating(parse_float(request.form.get('rating')))
     book.rating = rating
     db.session.commit()
@@ -916,7 +917,7 @@ def book_rate(id):
 
 @app.route('/books/<int:id>/delete', methods=['DELETE', 'POST'])
 def book_delete(id):
-    book = Book.query.get_or_404(id)
+    book = db.get_or_404(Book, id)
 
     # Delete cover image file if it exists
     if book.cover_image:
@@ -942,7 +943,7 @@ def book_delete(id):
 # Read routes
 @app.route('/books/<int:book_id>/reads', methods=['POST'])
 def read_add(book_id):
-    book = Book.query.get_or_404(book_id)
+    book = db.get_or_404(Book, book_id)
 
     # Check for active read
     status = request.form.get('status', 'Reading')
@@ -972,7 +973,7 @@ def read_add(book_id):
 
 @app.route('/reads/<int:id>', methods=['POST'])
 def read_update(id):
-    read = Read.query.get_or_404(id)
+    read = db.get_or_404(Read, id)
 
     new_status = request.form.get('status', read.status)
     # Check for active read if changing to Reading
@@ -991,7 +992,7 @@ def read_update(id):
 
 @app.route('/reads/<int:id>/delete', methods=['DELETE', 'POST'])
 def read_delete(id):
-    read = Read.query.get_or_404(id)
+    read = db.get_or_404(Read, id)
     book_id = read.book_id
     db.session.delete(read)
     db.session.commit()
@@ -1004,7 +1005,7 @@ def read_delete(id):
 
 @app.route('/reads/<int:id>/complete', methods=['POST'])
 def read_complete(id):
-    read = Read.query.get_or_404(id)
+    read = db.get_or_404(Read, id)
     read.status = 'Completed'
     read.finish_date = datetime.now()
     db.session.commit()
@@ -1014,7 +1015,7 @@ def read_complete(id):
 
 @app.route('/reads/<int:id>/abandon', methods=['POST'])
 def read_abandon(id):
-    read = Read.query.get_or_404(id)
+    read = db.get_or_404(Read, id)
     read.status = 'Abandoned'
     read.finish_date = datetime.now()
     db.session.commit()
@@ -1035,7 +1036,7 @@ def queue_add():
     book_id = request.form.get('book_id', type=int)
     if not book_id:
         return 'Missing book_id', 400
-    book = Book.query.get_or_404(book_id)
+    book = db.get_or_404(Book, book_id)
 
     # Don't add duplicates
     existing = ReadingQueue.query.filter_by(book_id=book_id).first()
@@ -1053,7 +1054,7 @@ def queue_add():
 
 @app.route('/queue/<int:item_id>/remove', methods=['POST', 'DELETE'])
 def queue_remove(item_id):
-    item = ReadingQueue.query.get_or_404(item_id)
+    item = db.get_or_404(ReadingQueue, item_id)
     book = item.book
     book_id = item.book_id
     db.session.delete(item)
@@ -1093,9 +1094,9 @@ def queue_add_external():
 
 @app.route('/queue/<int:item_id>/link', methods=['POST'])
 def queue_link(item_id):
-    item = ReadingQueue.query.get_or_404(item_id)
+    item = db.get_or_404(ReadingQueue, item_id)
     book_id = request.form.get('book_id', type=int) or request.args.get('book_id', type=int)
-    book = Book.query.get_or_404(book_id)
+    book = db.get_or_404(Book, book_id)
     item.book_id = book.id
     item.external_title = None
     item.external_author = None
@@ -1111,7 +1112,7 @@ def queue_reorder():
     if not data:
         return jsonify({'error': 'no data'}), 400
     for entry in data:
-        item = ReadingQueue.query.get(entry['id'])
+        item = db.session.get(ReadingQueue, entry['id'])
         if item:
             item.position = entry['position']
     db.session.commit()
@@ -1158,7 +1159,7 @@ def author_new():
 
 @app.route('/authors/<int:id>/edit', methods=['GET', 'POST'])
 def author_edit(id):
-    author = Author.query.get_or_404(id)
+    author = db.get_or_404(Author, id)
     if request.method == 'POST':
         return save_author(author)
 
@@ -1269,15 +1270,7 @@ def series_quick_add():
     db.session.add(series)
     db.session.commit()
 
-    # Update the series datalist input and hidden field
-    return f'''<script>
-        document.getElementById('series-input').value = {json.dumps(series.name)};
-        document.getElementById('series-id').value = {series.id};
-        var opt = document.createElement('option');
-        opt.value = {json.dumps(series.name)};
-        opt.dataset.id = {series.id};
-        document.getElementById('series-options').appendChild(opt);
-    </script>'''
+    return jsonify({'id': series.id, 'name': series.name})
 
 
 @app.route('/tags/search')
@@ -1332,7 +1325,7 @@ def system_tag_search():
 
 @app.route('/system/tags/<int:id>/rename', methods=['POST'])
 def system_tag_rename(id):
-    tag = Tag.query.get_or_404(id)
+    tag = db.get_or_404(Tag, id)
     new_name = request.form.get('name', '').strip()
     if not new_name:
         return render_template('system/_tag_row.html', tag=tag, error='Name is required')
@@ -1346,7 +1339,7 @@ def system_tag_rename(id):
 
 @app.route('/system/tags/<int:id>/delete', methods=['DELETE', 'POST'])
 def system_tag_delete(id):
-    tag = Tag.query.get_or_404(id)
+    tag = db.get_or_404(Tag, id)
     tag.books = []
     tag.authors = []
     tag.series = []
@@ -1357,7 +1350,7 @@ def system_tag_delete(id):
 
 @app.route('/authors/<int:id>/delete', methods=['DELETE', 'POST'])
 def author_delete(id):
-    author = Author.query.get_or_404(id)
+    author = db.get_or_404(Author, id)
     # Remove author from books (but don't delete books)
     author.books = []
     # Update any aliases pointing to this author
@@ -1380,10 +1373,7 @@ def series_list():
     per_page = request.args.get('per_page', 25, type=int)
     if per_page not in [10, 25, 50, 100]:
         per_page = 25
-    if filter_type in ('incomplete', 'complete'):
-        query = Series.query.options(subqueryload(Series.books).subqueryload(Book.reads))
-    else:
-        query = Series.query.options(subqueryload(Series.books))
+    query = Series.query
     if search:
         query = query.filter(Series.name.ilike(f'%{search}%'))
     if filter_type == 'no_links':
@@ -1393,41 +1383,34 @@ def series_list():
             (Series.storygraph_url.is_(None) | (Series.storygraph_url == ''))
         )
     elif filter_type in ('incomplete', 'complete'):
-        # These filters require Python post-processing, so fetch all and paginate manually
-        pass
+        # Subquery: number of books owned per series
+        owned_sq = (
+            db.session.query(func.count(Book.id))
+            .filter(Book.series_id == Series.id)
+            .correlate(Series)
+            .scalar_subquery()
+        )
+        # Subquery: number of distinct books with at least one Completed read
+        read_sq = (
+            db.session.query(func.count(func.distinct(Book.id)))
+            .join(Read, (Read.book_id == Book.id) & (Read.status == 'Completed'))
+            .filter(Book.series_id == Series.id)
+            .correlate(Series)
+            .scalar_subquery()
+        )
+        if filter_type == 'incomplete':
+            query = query.filter(
+                (read_sq < owned_sq) |
+                (Series.number_in_series.isnot(None) & (owned_sq < Series.number_in_series))
+            )
+        else:  # complete
+            query = query.filter(
+                Series.number_in_series.isnot(None),
+                owned_sq >= Series.number_in_series,
+                read_sq >= owned_sq
+            )
 
-    if filter_type in ('incomplete', 'complete'):
-        # Fetch all series, filter in Python, then paginate manually
-        all_items = query.order_by(Series.name).all()
-        filtered_items = []
-        for series in all_items:
-            read_book_ids = set()
-            for book in series.books:
-                for read in book.reads:
-                    if read.status == 'Completed':
-                        read_book_ids.add(book.id)
-                        break
-            owned_count = len(series.books)
-            read_count = len(read_book_ids)
-            if filter_type == 'incomplete':
-                has_unread_books = read_count < owned_count
-                has_missing_books = series.number_in_series and owned_count < series.number_in_series
-                if has_unread_books or has_missing_books:
-                    filtered_items.append(series)
-            elif filter_type == 'complete':
-                if (series.number_in_series and owned_count >= series.number_in_series
-                        and read_count >= owned_count):
-                    filtered_items.append(series)
-        # Manual pagination
-        total = len(filtered_items)
-        start = (page - 1) * per_page
-        end = start + per_page
-        page_items = filtered_items[start:end]
-        all_series = query.order_by(Series.name).paginate(page=page, per_page=per_page, error_out=False)
-        all_series.items = page_items
-        all_series.total = total
-    else:
-        all_series = query.order_by(Series.name).paginate(page=page, per_page=per_page, error_out=False)
+    all_series = query.order_by(Series.name).paginate(page=page, per_page=per_page, error_out=False)
 
     return render_template('series/list.html', series_list=all_series, search=search, per_page=per_page, filter_type=filter_type)
 
@@ -1467,7 +1450,7 @@ def series_new():
 
 @app.route('/series/<int:id>/edit', methods=['GET', 'POST'])
 def series_edit(id):
-    series = Series.query.get_or_404(id)
+    series = db.get_or_404(Series, id)
     if request.method == 'POST':
         return save_series(series)
     return render_template('series/form.html', series=series)
@@ -1502,7 +1485,7 @@ def save_series(series):
 
 @app.route('/series/<int:id>/delete', methods=['DELETE', 'POST'])
 def series_delete(id):
-    series = Series.query.get_or_404(id)
+    series = db.get_or_404(Series, id)
     # Remove series from books (but don't delete books)
     Book.query.filter_by(series_id=id).update({'series_id': None, 'series_number': None})
     db.session.delete(series)
@@ -1516,7 +1499,7 @@ def series_delete(id):
 
 @app.route('/series/<int:id>/update-count', methods=['POST'])
 def series_update_count(id):
-    series = Series.query.get_or_404(id)
+    series = db.get_or_404(Series, id)
     count = None
 
     # Try Goodreads first, then Amazon
@@ -1600,7 +1583,6 @@ def search():
 
 @app.route('/recommendations')
 def recommendations():
-    from sqlalchemy import func
     from datetime import timedelta
 
     twelve_months_ago = datetime.now() - timedelta(days=365)
@@ -1682,7 +1664,6 @@ def recommendations():
 
 @app.route('/statistics')
 def statistics():
-    from sqlalchemy import func
     from collections import defaultdict
 
     # Author gender breakdown
@@ -2010,7 +1991,6 @@ def scan_genres_stop():
 
 def run_genre_scan(untagged_only):
     """Background thread that scans Goodreads for genres and imports as tags."""
-    from sqlalchemy.orm import joinedload
     with app.app_context():
         query = Book.query.options(
             joinedload(Book.authors),

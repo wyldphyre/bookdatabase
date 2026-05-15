@@ -177,6 +177,17 @@ class Book(db.Model):
 
     @property
     def active_read(self):
+        # If reads are already loaded in memory (eager-loaded), filter in Python
+        if 'reads' in self.__dict__:
+            for read in self.reads:
+                if read.status == 'Reading':
+                    return read
+            return None
+        # Otherwise do a targeted query to avoid loading the full reads collection
+        from sqlalchemy.orm import object_session
+        session = object_session(self)
+        if session is not None:
+            return session.query(Read).filter_by(book_id=self.id, status='Reading').first()
         for read in self.reads:
             if read.status == 'Reading':
                 return read

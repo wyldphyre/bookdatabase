@@ -1,46 +1,72 @@
 from models import db, BookFormat, AuthorGender
 
+CURRENT_SCHEMA_VERSION = 4
+
+
+def _get_schema_version(cursor):
+    cursor.execute(
+        "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)"
+    )
+    cursor.execute("SELECT version FROM schema_version")
+    row = cursor.fetchone()
+    return row[0] if row else 0
+
+
+def _set_schema_version(cursor, conn, version):
+    cursor.execute("DELETE FROM schema_version")
+    cursor.execute("INSERT INTO schema_version (version) VALUES (?)", (version,))
+    conn.commit()
+
 
 def run_migrations():
     """Apply schema migrations that db.create_all() won't handle on existing tables."""
     conn = db.engine.raw_connection()
     try:
         cursor = conn.cursor()
-        # Add parent_id to book table if it doesn't exist
-        cursor.execute("PRAGMA table_info(book)")
-        columns = [row[1] for row in cursor.fetchall()]
-        if 'parent_id' not in columns:
-            cursor.execute("ALTER TABLE book ADD COLUMN parent_id INTEGER REFERENCES book(id)")
+        version = _get_schema_version(cursor)
+
+        if version < 1:
+            # Add parent_id to book table
+            cursor.execute("PRAGMA table_info(book)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'parent_id' not in columns:
+                cursor.execute("ALTER TABLE book ADD COLUMN parent_id INTEGER REFERENCES book(id)")
             conn.commit()
 
-        # Consolidate verbose format names: "Kindle eBook" → "Kindle", "Kobo eBook" → "Kobo"
-        for old_name, new_name in [('Kindle eBook', 'Kindle'), ('Kobo eBook', 'Kobo')]:
-            cursor.execute("SELECT id FROM book_format WHERE name = ?", (old_name,))
-            old_row = cursor.fetchone()
-            if old_row:
-                old_id = old_row[0]
-                cursor.execute("SELECT id FROM book_format WHERE name = ?", (new_name,))
-                new_row = cursor.fetchone()
-                if new_row:
-                    new_id = new_row[0]
-                    cursor.execute("UPDATE book SET format_id = ? WHERE format_id = ?", (new_id, old_id))
-                    cursor.execute("DELETE FROM book_format WHERE id = ?", (old_id,))
-                else:
-                    cursor.execute("UPDATE book_format SET name = ? WHERE id = ?", (new_name, old_id))
+        if version < 2:
+            # Consolidate verbose format names: "Kindle eBook" → "Kindle", "Kobo eBook" → "Kobo"
+            for old_name, new_name in [('Kindle eBook', 'Kindle'), ('Kobo eBook', 'Kobo')]:
+                cursor.execute("SELECT id FROM book_format WHERE name = ?", (old_name,))
+                old_row = cursor.fetchone()
+                if old_row:
+                    old_id = old_row[0]
+                    cursor.execute("SELECT id FROM book_format WHERE name = ?", (new_name,))
+                    new_row = cursor.fetchone()
+                    if new_row:
+                        new_id = new_row[0]
+                        cursor.execute("UPDATE book SET format_id = ? WHERE format_id = ?", (new_id, old_id))
+                        cursor.execute("DELETE FROM book_format WHERE id = ?", (old_id,))
+                    else:
+                        cursor.execute("UPDATE book_format SET name = ? WHERE id = ?", (new_name, old_id))
                 conn.commit()
 
-        # Rename "Apple eBook" → "Apple"
-        cursor.execute("UPDATE book_format SET name = 'Apple' WHERE name = 'Apple eBook'")
-        conn.commit()
+        if version < 3:
+            # Rename "Apple eBook" → "Apple"
+            cursor.execute("UPDATE book_format SET name = 'Apple' WHERE name = 'Apple eBook'")
+            conn.commit()
 
-        # Migrate fractional ratings to integer 1-5 scale
-        cursor.execute("SELECT id, rating FROM book WHERE rating IS NOT NULL")
-        rows = cursor.fetchall()
-        for row_id, rating in rows:
-            new_rating = max(1, min(5, round(float(rating))))
-            if float(new_rating) != float(rating):
-                cursor.execute("UPDATE book SET rating = ? WHERE id = ?", (float(new_rating), row_id))
-        conn.commit()
+        if version < 4:
+            # Migrate fractional ratings to integer 1-5 scale
+            cursor.execute("SELECT id, rating FROM book WHERE rating IS NOT NULL")
+            rows = cursor.fetchall()
+            for row_id, rating in rows:
+                new_rating = max(1, min(5, round(float(rating))))
+                if float(new_rating) != float(rating):
+                    cursor.execute("UPDATE book SET rating = ? WHERE id = ?", (float(new_rating), row_id))
+            conn.commit()
+
+        if version < CURRENT_SCHEMA_VERSION:
+            _set_schema_version(cursor, conn, CURRENT_SCHEMA_VERSION)
     finally:
         conn.close()
 

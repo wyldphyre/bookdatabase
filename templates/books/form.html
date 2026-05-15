@@ -182,14 +182,8 @@
             formData.append('series_name', name);
             const response = await fetch('{{ url_for("series_quick_add") }}', { method: 'POST', body: formData });
             if (!response.ok) throw new Error('Failed to add series');
-            const html = await response.text();
-
-            // The response is a script tag that sets the input values
-            const temp = document.createElement('div');
-            temp.innerHTML = html;
-            const script = temp.querySelector('script');
-            if (script) eval(script.textContent);
-
+            const data = await response.json();
+            applySeriesQuickAdd(data.id, data.name);
             btn.parentElement.classList.add('suggestion-added');
             btn.remove();
         } catch (e) {
@@ -202,6 +196,31 @@
         const form = document.getElementById('quick-add-tag-form');
         form.hidden = !form.hidden;
         if (!form.hidden) document.getElementById('new-tag-name').focus();
+    }
+
+    function applySeriesQuickAdd(id, name) {
+        document.getElementById('series-input').value = name;
+        document.getElementById('series-id').value = id;
+        var opt = document.createElement('option');
+        opt.value = name;
+        opt.dataset.id = id;
+        document.getElementById('series-options').appendChild(opt);
+    }
+
+    async function quickAddSeries() {
+        const nameInput = document.getElementById('new-series-name');
+        const name = nameInput.value.trim();
+        if (!name) return;
+        try {
+            const formData = new FormData();
+            formData.append('series_name', name);
+            const response = await fetch('{{ url_for("series_quick_add") }}', { method: 'POST', body: formData });
+            if (!response.ok) return;
+            const data = await response.json();
+            applySeriesQuickAdd(data.id, data.name);
+            nameInput.value = '';
+            document.getElementById('quick-add-series').removeAttribute('open');
+        } catch (e) {}
     }
 
     function addTag(id, name) {
@@ -295,15 +314,9 @@
                     Series Name
                     <input type="text" name="series_name" id="new-series-name" placeholder="Enter series name...">
                 </label>
-                <button type="button" class="secondary"
-                        hx-post="{{ url_for('series_quick_add') }}"
-                        hx-include="#new-series-name"
-                        hx-target="#series-quick-add-result"
-                        hx-swap="innerHTML"
-                        hx-on::after-request="document.getElementById('quick-add-series').removeAttribute('open'); document.getElementById('new-series-name').value = '';">
+                <button type="button" class="secondary" onclick="quickAddSeries()">
                     Add Series
                 </button>
-                <div id="series-quick-add-result"></div>
             </div>
         </details>
 
