@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.18",
+    "date": "2026-05-16",
+    "changes": [
+      "Fix book detail page cover image being too large on mobile — now shows as a compact side-by-side layout"
+    ]
+  },
+  {
     "version": "1.0.17",
     "date": "2026-05-16",
     "changes": [

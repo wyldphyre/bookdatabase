@@ -212,7 +212,11 @@ img.lightbox-trigger {
 
 @media (max-width: 768px) {
     .book-detail {
-        grid-template-columns: 1fr;
+        grid-template-columns: 130px 1fr;
+        gap: 1rem;
+    }
+    .book-cover-placeholder {
+        height: 195px;
     }
 }
 
