@@ -80,6 +80,14 @@
 {% endif %}
 
 <script>
+document.getElementById('system-tag-search').addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        this.value = '';
+        this.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+});
+
 function startRename(tagId) {
     document.getElementById('tag-name-' + tagId).hidden = true;
     document.getElementById('tag-rename-form-' + tagId).hidden = false;

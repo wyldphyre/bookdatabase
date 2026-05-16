@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.17",
+    "date": "2026-05-16",
+    "changes": [
+      "Fix Escape key on System page tag search not clearing results"
+    ]
+  },
+  {
     "version": "1.0.16",
     "date": "2026-05-16",
     "changes": [
