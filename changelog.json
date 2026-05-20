@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.19",
+    "date": "2026-05-16",
+    "changes": [
+      "Fix oversized cover image on book detail page on mobile"
+    ]
+  },
+  {
     "version": "1.0.18",
     "date": "2026-05-16",
     "changes": [
