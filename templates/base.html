@@ -15,7 +15,7 @@
 
 <div id="page-progress"></div>
 
-{% set ep = request.endpoint or '' %}
+{% set ep = (request.endpoint or '').split('.')|last %}
 {% if ep in ['dashboard'] %}{% set active_nav = 'dashboard' %}
 {% elif ep in ['book_list','book_detail','book_new','book_edit','book_import','book_bundle_child_quick_add','book_bundle_child_search','scrape_description','search_description','book_rate','book_delete','read_add','read_update','read_delete','read_complete','read_abandon'] %}{% set active_nav = 'books' %}
 {% elif ep in ['search'] %}{% set active_nav = 'search' %}
