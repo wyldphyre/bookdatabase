@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.20",
+    "date": "2026-05-16",
+    "changes": [
+      "Change 'Books Added per Year' statistics chart to 'Books Purchased per Year' using the purchase date"
+    ]
+  },
+  {
     "version": "1.0.19",
     "date": "2026-05-16",
     "changes": [

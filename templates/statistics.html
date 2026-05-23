@@ -132,7 +132,7 @@
 
     {% if added_by_year %}
     <article class="chart-container">
-        <h3>Books Added per Year</h3>
+        <h3>Books Purchased per Year</h3>
         <canvas id="addedByYearChart"></canvas>
     </article>
     {% endif %}
@@ -216,14 +216,14 @@ new Chart(monthlyCtx, {
 });
 
 {% if added_by_year %}
-// Books added per year chart
+// Books purchased per year chart
 const addedByYearCtx = document.getElementById('addedByYearChart').getContext('2d');
 new Chart(addedByYearCtx, {
     type: 'bar',
     data: {
         labels: {{ added_by_year.keys()|list|tojson }},
         datasets: [{
-            label: 'Books Added',
+            label: 'Books Purchased',
             data: {{ added_by_year.values()|list|tojson }},
             backgroundColor: '#4ecdc4',
             borderRadius: 4
