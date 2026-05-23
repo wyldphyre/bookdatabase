@@ -12,36 +12,123 @@
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 </head>
 <body>
-    <div id="page-progress"></div>
-    <nav class="container-fluid">
-        <ul>
-            <li><a href="{{ url_for('dashboard') }}"><strong>Book Database</strong></a></li>
-        </ul>
-        <button class="nav-toggle" aria-label="Toggle navigation" onclick="document.querySelector('nav').classList.toggle('nav-open')">
-            <svg class="nav-toggle-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
+
+<div id="page-progress"></div>
+
+{% set ep = request.endpoint or '' %}
+{% if ep in ['dashboard'] %}{% set active_nav = 'dashboard' %}
+{% elif ep in ['book_list','book_detail','book_new','book_edit','book_import','book_bundle_child_quick_add','book_bundle_child_search','scrape_description','search_description','book_rate','book_delete','read_add','read_update','read_delete','read_complete','read_abandon'] %}{% set active_nav = 'books' %}
+{% elif ep in ['search'] %}{% set active_nav = 'search' %}
+{% elif ep in ['queue_list','queue_add','queue_remove','queue_add_external','queue_link','queue_reorder'] %}{% set active_nav = 'queue' %}
+{% elif ep in ['author_list','author_detail','author_new','author_edit','author_quick_add','author_search','author_delete'] %}{% set active_nav = 'authors' %}
+{% elif ep in ['series_list','series_detail','series_new','series_edit','series_delete','series_update_count','series_search','series_quick_add','series_check_name'] %}{% set active_nav = 'series' %}
+{% elif ep in ['recommendations'] %}{% set active_nav = 'recommendations' %}
+{% elif ep in ['statistics'] %}{% set active_nav = 'statistics' %}
+{% elif ep in ['system','system_tag_search','system_tag_rename','system_tag_delete','scan_genres_start','scan_genres_progress','scan_genres_pause','scan_genres_stop','scan_series_start','scan_series_progress','scan_series_pause','scan_series_stop'] %}{% set active_nav = 'system' %}
+{% else %}{% set active_nav = '' %}{% endif %}
+
+<!-- Mobile hamburger -->
+<button class="sidebar-mobile-toggle" id="sidebar-mobile-toggle" aria-label="Open navigation">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+</button>
+
+<div id="sidebar-overlay"></div>
+
+<aside id="sidebar">
+    <div class="sidebar-header">
+        <a href="{{ url_for('dashboard') }}" class="sidebar-brand" title="Book Database">
+            <span class="sidebar-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            </span>
+            <span class="sidebar-brand-text">Book Database</span>
+        </a>
+        <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" aria-label="Collapse sidebar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <ul class="nav-links">
-            <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-            <li><a href="{{ url_for('queue_list') }}">Queue</a></li>
-            <li><a href="{{ url_for('book_list') }}">Books</a></li>
-            <li><a href="{{ url_for('search') }}">Search</a></li>
-            <li class="nav-more">
-                <button class="nav-more-toggle" aria-expanded="false" aria-haspopup="true">More ▾</button>
-                <ul class="dropdown-menu nav-more-menu">
-                    <li><a href="{{ url_for('recommendations') }}">Recommendations</a></li>
-                    <li><a href="{{ url_for('author_list') }}">Authors</a></li>
-                    <li><a href="{{ url_for('series_list') }}">Series</a></li>
-                    <li><a href="{{ url_for('statistics') }}">Statistics</a></li>
-                    <li><a href="{{ url_for('system') }}">System</a></li>
-                </ul>
+    </div>
+
+    <nav class="sidebar-nav">
+        <ul>
+            <li>
+                <a href="{{ url_for('dashboard') }}" class="sidebar-link{% if active_nav == 'dashboard' %} active{% endif %}" title="Dashboard">
+                    <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+                    <span class="sidebar-label">Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('book_list') }}" class="sidebar-link{% if active_nav == 'books' %} active{% endif %}" title="Books">
+                    <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
+                    <span class="sidebar-label">Books</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('search') }}" class="sidebar-link{% if active_nav == 'search' %} active{% endif %}" title="Search">
+                    <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+                    <span class="sidebar-label">Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('queue_list') }}" class="sidebar-link{% if active_nav == 'queue' %} active{% endif %}" title="Queue">
+                    <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
+                    <span class="sidebar-label">Queue</span>
+                </a>
+            </li>
+        </ul>
+
+        <p class="sidebar-section-label">Library</p>
+        <ul>
+            <li>
+                <a href="{{ url_for('author_list') }}" class="sidebar-link{% if active_nav == 'authors' %} active{% endif %}" title="Authors">
+                    <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                    <span class="sidebar-label">Authors</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('series_list') }}" class="sidebar-link{% if active_nav == 'series' %} active{% endif %}" title="Series">
+                    <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span>
+                    <span class="sidebar-label">Series</span>
+                </a>
+            </li>
+        </ul>
+
+        <p class="sidebar-section-label">Discover</p>
+        <ul>
+            <li>
+                <a href="{{ url_for('recommendations') }}" class="sidebar-link{% if active_nav == 'recommendations' %} active{% endif %}" title="Recommendations">
+                    <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+                    <span class="sidebar-label">Recommendations</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('statistics') }}" class="sidebar-link{% if active_nav == 'statistics' %} active{% endif %}" title="Statistics">
+                    <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+                    <span class="sidebar-label">Statistics</span>
+                </a>
+            </li>
+        </ul>
+
+        <p class="sidebar-section-label">Admin</p>
+        <ul>
+            <li>
+                <a href="{{ url_for('system') }}" class="sidebar-link{% if active_nav == 'system' %} active{% endif %}" title="System">
+                    <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+                    <span class="sidebar-label">System</span>
+                </a>
             </li>
         </ul>
     </nav>
 
+    <div class="sidebar-footer">
+        <button class="sidebar-theme-btn" id="theme-toggle-btn" aria-label="Toggle theme" title="Toggle dark mode">
+            <span class="sidebar-icon" id="theme-icon"></span>
+            <span class="sidebar-label sidebar-theme-label" id="theme-label"></span>
+        </button>
+    </div>
+</aside>
+
+<div id="main-wrapper">
     <main class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -56,129 +143,173 @@
         {% block content %}{% endblock %}
     </main>
 
-    <dialog id="cover-lightbox" onclick="this.close()">
-        <img id="cover-lightbox-img" src="" alt="">
-    </dialog>
-
     <footer class="container">
         <small>Book Database v{{ app_version }} &mdash; <a href="{{ url_for('system') }}#changelog">Changelog</a></small>
     </footer>
+</div>
 
-    <script>
-    (function() {
-        var bar = document.getElementById('page-progress');
-        var timer = null;
+<dialog id="cover-lightbox" onclick="this.close()">
+    <img id="cover-lightbox-img" src="" alt="">
+</dialog>
 
-        function start() {
+<script>
+(function() {
+    var bar = document.getElementById('page-progress');
+    var timer = null;
+
+    function start() {
+        clearTimeout(timer);
+        bar.style.transition = 'none';
+        bar.style.width = '0%';
+        bar.style.opacity = '1';
+        bar.offsetHeight;
+        bar.style.transition = 'width 0.4s ease';
+        bar.style.width = '55%';
+        timer = setTimeout(function() {
+            bar.style.transition = 'width 4s ease';
+            bar.style.width = '85%';
+        }, 400);
+    }
+
+    document.addEventListener('click', function(e) {
+        var link = e.target.closest('a[href]');
+        if (!link) return;
+        var href = link.getAttribute('href');
+        if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+        if (link.target === '_blank') return;
+        if (link.hasAttribute('hx-get') || link.hasAttribute('hx-post') ||
+            link.hasAttribute('hx-put') || link.hasAttribute('hx-delete')) return;
+        if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+        start();
+    });
+
+    document.addEventListener('submit', function(e) {
+        var form = e.target;
+        if (form.hasAttribute('hx-get') || form.hasAttribute('hx-post') ||
+            form.hasAttribute('hx-put') || form.hasAttribute('hx-delete')) return;
+        if (e.defaultPrevented) return;
+        start();
+    });
+
+    // Cover image lightbox
+    document.addEventListener('click', function(e) {
+        var img = e.target.closest('img.lightbox-trigger');
+        if (!img) return;
+        e.preventDefault();
+        var lightbox = document.getElementById('cover-lightbox');
+        document.getElementById('cover-lightbox-img').src = img.src;
+        document.getElementById('cover-lightbox-img').alt = img.alt;
+        lightbox.showModal();
+    });
+
+    // Move cursor to end of any autofocused input that has a pre-filled value
+    var autofocused = document.querySelector('input[autofocus]');
+    if (autofocused && autofocused.value) {
+        var len = autofocused.value.length;
+        autofocused.setSelectionRange(len, len);
+    }
+
+    // Escape in search fields: clear, keep focus, and trigger htmx refresh
+    var searchInput = document.querySelector('input[type="search"][autofocus]');
+    if (searchInput) {
+        var escapeClearPending = false;
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                this.value = '';
+                escapeClearPending = true;
+                this.dispatchEvent(new Event('keyup', { bubbles: true }));
+            }
+        });
+        document.addEventListener('htmx:afterSwap', function() {
+            if (escapeClearPending) {
+                escapeClearPending = false;
+                searchInput.focus();
+            }
+        });
+    }
+
+    // Prevent scroll wheel from changing number input values
+    document.addEventListener('wheel', function(e) {
+        if (document.activeElement.type === 'number') {
+            document.activeElement.blur();
+        }
+    }, { passive: true });
+
+    // Reset bar when page is restored from bfcache
+    window.addEventListener('pageshow', function(e) {
+        if (e.persisted) {
             clearTimeout(timer);
             bar.style.transition = 'none';
+            bar.style.opacity = '0';
             bar.style.width = '0%';
-            bar.style.opacity = '1';
-            bar.offsetHeight; // force reflow
-            bar.style.transition = 'width 0.4s ease';
-            bar.style.width = '55%';
-            timer = setTimeout(function() {
-                bar.style.transition = 'width 4s ease';
-                bar.style.width = '85%';
-            }, 400);
         }
+    });
 
-        document.addEventListener('click', function(e) {
-            var link = e.target.closest('a[href]');
-            if (!link) return;
-            var href = link.getAttribute('href');
-            if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
-            if (link.target === '_blank') return;
-            if (link.hasAttribute('hx-get') || link.hasAttribute('hx-post') ||
-                link.hasAttribute('hx-put') || link.hasAttribute('hx-delete')) return;
-            if (e.ctrlKey || e.metaKey || e.shiftKey) return;
-            start();
-        });
+    // ── Sidebar ──────────────────────────────────────────────
 
-        document.addEventListener('submit', function(e) {
-            var form = e.target;
-            if (form.hasAttribute('hx-get') || form.hasAttribute('hx-post') ||
-                form.hasAttribute('hx-put') || form.hasAttribute('hx-delete')) return;
-            if (e.defaultPrevented) return;
-            start();
-        });
+    var sidebar    = document.getElementById('sidebar');
+    var mainWrap   = document.getElementById('main-wrapper');
+    var overlay    = document.getElementById('sidebar-overlay');
+    var collapseBtn = document.getElementById('sidebar-collapse-btn');
+    var mobileBtn  = document.getElementById('sidebar-mobile-toggle');
 
-        // Cover image lightbox
-        document.addEventListener('click', function(e) {
-            var img = e.target.closest('img.lightbox-trigger');
-            if (!img) return;
-            e.preventDefault();
-            var lightbox = document.getElementById('cover-lightbox');
-            document.getElementById('cover-lightbox-img').src = img.src;
-            document.getElementById('cover-lightbox-img').alt = img.alt;
-            lightbox.showModal();
-        });
+    function setSidebarCollapsed(collapsed) {
+        sidebar.classList.toggle('collapsed', collapsed);
+        mainWrap.classList.toggle('sidebar-collapsed', collapsed);
+        localStorage.setItem('sidebar-collapsed', collapsed);
+    }
 
-        // Move cursor to end of any autofocused input that has a pre-filled value
-        var autofocused = document.querySelector('input[autofocus]');
-        if (autofocused && autofocused.value) {
-            var len = autofocused.value.length;
-            autofocused.setSelectionRange(len, len);
+    if (localStorage.getItem('sidebar-collapsed') === 'true') {
+        sidebar.classList.add('collapsed');
+        mainWrap.classList.add('sidebar-collapsed');
+    }
+
+    collapseBtn.addEventListener('click', function() {
+        setSidebarCollapsed(!sidebar.classList.contains('collapsed'));
+    });
+
+    function openMobileSidebar() {
+        sidebar.classList.add('mobile-open');
+        overlay.classList.add('show');
+        mobileBtn.hidden = true;
+    }
+
+    function closeMobileSidebar() {
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('show');
+        mobileBtn.hidden = false;
+    }
+
+    mobileBtn.addEventListener('click', openMobileSidebar);
+    overlay.addEventListener('click', closeMobileSidebar);
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && overlay.classList.contains('show')) {
+            closeMobileSidebar();
         }
+    });
 
-        // Escape in search fields: clear, keep focus, and trigger htmx refresh
-        var searchInput = document.querySelector('input[type="search"][autofocus]');
-        if (searchInput) {
-            var escapeClearPending = false;
-            searchInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    e.preventDefault();
-                    this.value = '';
-                    escapeClearPending = true;
-                    this.dispatchEvent(new Event('keyup', { bubbles: true }));
-                }
-            });
-            document.addEventListener('htmx:afterSwap', function() {
-                if (escapeClearPending) {
-                    escapeClearPending = false;
-                    searchInput.focus();
-                }
-            });
-        }
+    // ── Theme toggle ─────────────────────────────────────────
 
-        // "More" nav dropdown
-        var moreToggle = document.querySelector('.nav-more-toggle');
-        var moreMenu = document.querySelector('.nav-more-menu');
-        if (moreToggle && moreMenu) {
-            moreToggle.addEventListener('click', function(e) {
-                e.stopPropagation();
-                var open = moreMenu.classList.toggle('show');
-                moreToggle.setAttribute('aria-expanded', open);
-            });
-            document.addEventListener('click', function() {
-                moreMenu.classList.remove('show');
-                moreToggle.setAttribute('aria-expanded', 'false');
-            });
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    moreMenu.classList.remove('show');
-                    moreToggle.setAttribute('aria-expanded', 'false');
-                }
-            });
-        }
+    var MOON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    var SUN_SVG  = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
 
-        // Prevent scroll wheel from changing number input values
-        document.addEventListener('wheel', function(e) {
-            if (document.activeElement.type === 'number') {
-                document.activeElement.blur();
-            }
-        }, { passive: true });
+    function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        document.getElementById('theme-icon').innerHTML  = theme === 'dark' ? SUN_SVG : MOON_SVG;
+        document.getElementById('theme-label').textContent = theme === 'dark' ? 'Light mode' : 'Dark mode';
+    }
 
-        // Reset bar when page is restored from bfcache (browser back/forward)
-        window.addEventListener('pageshow', function(e) {
-            if (e.persisted) {
-                clearTimeout(timer);
-                bar.style.transition = 'none';
-                bar.style.opacity = '0';
-                bar.style.width = '0%';
-            }
-        });
-    })();
-    </script>
+    document.getElementById('theme-toggle-btn').addEventListener('click', function() {
+        var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('theme', next);
+        applyTheme(next);
+    });
+
+    applyTheme(localStorage.getItem('theme') || 'light');
+
+})();
+</script>
 </body>
 </html>
