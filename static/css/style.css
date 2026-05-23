@@ -14,6 +14,329 @@
     pointer-events: none;
 }
 
+/* =====================================================================
+   SIDEBAR LAYOUT
+   ===================================================================== */
+
+:root {
+    --sidebar-width: 240px;
+    --sidebar-collapsed-width: 60px;
+    --sidebar-transition: 0.2s ease;
+    --sidebar-bg: #f4f4f5;
+    --sidebar-border: #e4e4e7;
+    --sidebar-hover-bg: rgba(0, 0, 0, 0.06);
+    --sidebar-active-bg: rgba(1, 114, 173, 0.1);
+    --sidebar-active-color: #0172ad;
+}
+
+[data-theme="dark"] {
+    --sidebar-bg: #18181b;
+    --sidebar-border: #27272a;
+    --sidebar-hover-bg: rgba(255, 255, 255, 0.08);
+    --sidebar-active-bg: rgba(1, 170, 255, 0.15);
+    --sidebar-active-color: #01aaff;
+}
+
+[data-theme="dark"] .sidebar-mobile-toggle {
+    color: #e5e7eb;
+}
+
+body {
+    display: flex;
+    min-height: 100vh;
+    padding: 0;
+    margin: 0;
+}
+
+/* ── Sidebar shell ── */
+#sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: width var(--sidebar-transition);
+    z-index: 900;
+    flex-shrink: 0;
+}
+
+#sidebar.collapsed {
+    width: var(--sidebar-collapsed-width);
+}
+
+/* ── Header ── */
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 0.75rem;
+    border-bottom: 1px solid var(--sidebar-border);
+    min-height: 58px;
+    flex-shrink: 0;
+    gap: 0.5rem;
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    color: var(--pico-color);
+    font-weight: 700;
+    font-size: 0.9rem;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.sidebar-brand:hover { text-decoration: none; color: var(--pico-color); }
+
+.sidebar-brand-text {
+    overflow: hidden;
+    white-space: nowrap;
+    transition: opacity var(--sidebar-transition), max-width var(--sidebar-transition);
+    max-width: 200px;
+}
+
+#sidebar.collapsed .sidebar-brand-text { opacity: 0; max-width: 0; }
+
+/* In collapsed mode: hide brand entirely and center the collapse button */
+#sidebar.collapsed .sidebar-brand { display: none; }
+#sidebar.collapsed .sidebar-header { justify-content: center; }
+
+.sidebar-collapse-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--pico-muted-color);
+    cursor: pointer;
+    padding: 0.3rem;
+    border-radius: 6px;
+    width: auto;
+    margin: 0;
+    transition: color 0.15s, background 0.15s, transform var(--sidebar-transition);
+    line-height: 1;
+}
+
+.sidebar-collapse-btn:hover {
+    color: var(--pico-color);
+    background: var(--pico-secondary-background);
+}
+
+#sidebar.collapsed .sidebar-collapse-btn { transform: rotate(180deg); }
+
+/* ── Nav ── */
+.sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0.5rem 0;
+}
+
+/* Override Pico nav/ul/li flex defaults inside sidebar */
+#sidebar nav { padding: 0; }
+#sidebar nav ul { display: block !important; list-style: none; padding: 0; margin: 0; }
+#sidebar nav li { display: block; }
+
+.sidebar-section-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--pico-muted-color);
+    padding: 0.85rem 0.75rem 0.2rem;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: opacity var(--sidebar-transition), max-height var(--sidebar-transition);
+    max-height: 40px;
+}
+
+#sidebar.collapsed .sidebar-section-label { opacity: 0; max-height: 0; padding-top: 0.4rem; padding-bottom: 0; }
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.45rem 0.6rem;
+    margin: 0.1rem 0.4rem;
+    border-radius: 7px;
+    color: var(--pico-color);
+    text-decoration: none;
+    font-size: 0.88rem;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+    box-sizing: border-box;
+    width: calc(100% - 0.8rem);
+}
+
+#sidebar.collapsed .sidebar-link {
+    justify-content: center;
+    gap: 0;
+    padding: 0.5rem;
+    margin: 0.15rem auto;
+    width: 40px;
+}
+
+/* Pico sets --pico-color: var(--pico-primary) on <a>, so var(--pico-color) resolves blue inside
+   any anchor. Use `inherit` to skip that and pick up the body text colour instead. */
+#sidebar .sidebar-link,
+#sidebar .sidebar-link:visited { color: inherit; }
+
+#sidebar .sidebar-link:hover { background: var(--sidebar-hover-bg); color: var(--sidebar-active-color); text-decoration: none; }
+#sidebar .sidebar-link:hover svg { stroke: var(--sidebar-active-color); }
+
+#sidebar .sidebar-link.active { color: var(--sidebar-active-color); }
+#sidebar .sidebar-link.active svg { stroke: var(--sidebar-active-color); }
+
+.sidebar-link.active {
+    background: var(--sidebar-active-bg);
+    color: var(--sidebar-active-color);
+    font-weight: 600;
+}
+
+.sidebar-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+}
+
+.sidebar-label {
+    overflow: hidden;
+    white-space: nowrap;
+    transition: opacity var(--sidebar-transition), max-width var(--sidebar-transition);
+    max-width: 200px;
+}
+
+#sidebar.collapsed .sidebar-label { opacity: 0; max-width: 0; }
+
+/* ── Footer ── */
+.sidebar-footer {
+    border-top: 1px solid var(--sidebar-border);
+    padding: 0.6rem 0.4rem;
+    flex-shrink: 0;
+}
+
+.sidebar-theme-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    margin: 0.1rem 0;
+    border-radius: 7px;
+    background: none;
+    border: none;
+    color: var(--pico-muted-color);
+    cursor: pointer;
+    font-size: 0.88rem;
+    white-space: nowrap;
+    text-align: left;
+    transition: background 0.15s, color 0.15s;
+}
+
+#sidebar.collapsed .sidebar-footer { padding: 0.6rem 0; display: flex; justify-content: center; }
+#sidebar.collapsed .sidebar-theme-btn { width: 40px; padding: 0.5rem; margin: 0.15rem auto; justify-content: center; gap: 0; }
+
+.sidebar-theme-btn:hover { background: var(--pico-secondary-background); color: var(--pico-color); }
+
+.sidebar-theme-label {
+    overflow: hidden;
+    white-space: nowrap;
+    transition: opacity var(--sidebar-transition), max-width var(--sidebar-transition);
+    max-width: 200px;
+}
+
+#sidebar.collapsed .sidebar-theme-label { opacity: 0; max-width: 0; }
+
+/* ── Main content wrapper ── */
+#main-wrapper {
+    margin-left: var(--sidebar-width);
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    transition: margin-left var(--sidebar-transition);
+}
+
+#main-wrapper.sidebar-collapsed { margin-left: var(--sidebar-collapsed-width); }
+
+/* ── Mobile overlay ── */
+#sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 899;
+}
+
+#sidebar-overlay.show { display: block; }
+
+/* ── Mobile hamburger ── */
+.sidebar-mobile-toggle {
+    display: none;
+    position: fixed;
+    top: 0.6rem;
+    left: 0.6rem;
+    z-index: 901;
+    background: var(--sidebar-bg);
+    border: 1px solid var(--sidebar-border);
+    border-radius: 8px;
+    padding: 0.4rem;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    color: #374151;
+    line-height: 1;
+}
+
+/* ── Mobile breakpoint ── */
+@media (max-width: 768px) {
+    #sidebar {
+        left: calc(-1 * var(--sidebar-width));
+        width: var(--sidebar-width) !important;
+        transition: left var(--sidebar-transition);
+    }
+
+    #sidebar.mobile-open { left: 0; }
+
+    #main-wrapper,
+    #main-wrapper.sidebar-collapsed { margin-left: 0; }
+
+    .sidebar-mobile-toggle { display: flex; }
+    .sidebar-collapse-btn { display: none; }
+
+    /* Ensure labels/sections always visible when sidebar slides in on mobile */
+    #sidebar.collapsed .sidebar-brand-text,
+    #sidebar.collapsed .sidebar-label,
+    #sidebar.collapsed .sidebar-section-label,
+    #sidebar.collapsed .sidebar-theme-label {
+        opacity: 1;
+        max-width: 200px;
+        max-height: 40px;
+    }
+
+    #sidebar.collapsed .sidebar-section-label { padding: 0.85rem 0.75rem 0.2rem; }
+
+    /* Main content needs top padding on mobile to clear hamburger button */
+    #main-wrapper > main { padding-top: 3.5rem; }
+}
+
+/* =====================================================================
+   END SIDEBAR LAYOUT
+   ===================================================================== */
+
 /* Compact form spacing */
 form label,
 form fieldset {

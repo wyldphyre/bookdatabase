@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.0.23",
+    "date": "2026-05-23",
+    "changes": [
+      "Fix sidebar active link highlighting not working on any page"
+    ]
+  },
+  {
+    "version": "1.0.22",
+    "date": "2026-05-23",
+    "changes": [
+      "Replace top navigation bar with a collapsible sidebar — collapses to icon-only mode on desktop, slides in via hamburger on mobile",
+      "Sidebar state (collapsed/expanded) persisted in localStorage",
+      "Active navigation item highlighted in sidebar",
+      "Dark mode toggle moved to sidebar footer",
+      "Fix hamburger icon line colour not visible in light mode"
+    ]
+  },
+  {
     "version": "1.0.21",
     "date": "2026-05-16",
     "changes": [
