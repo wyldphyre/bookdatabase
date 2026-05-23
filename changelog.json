@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.25",
+    "date": "2026-05-23",
+    "changes": [
+      "Fix sidebar flash of expanded state on page load when sidebar is collapsed"
+    ]
+  },
+  {
     "version": "1.0.24",
     "date": "2026-05-23",
     "changes": [

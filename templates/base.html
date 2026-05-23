@@ -140,6 +140,12 @@
         </button>
     </div>
 </aside>
+<script>
+if (localStorage.getItem('sidebar-collapsed') === 'true') {
+    document.getElementById('sidebar').classList.add('collapsed');
+    document.documentElement.classList.add('sidebar-was-collapsed');
+}
+</script>
 
 <div id="main-wrapper">
     <main class="container">
@@ -280,9 +286,9 @@
         localStorage.setItem('sidebar-collapsed', collapsed);
     }
 
-    if (localStorage.getItem('sidebar-collapsed') === 'true') {
-        sidebar.classList.add('collapsed');
+    if (document.documentElement.classList.contains('sidebar-was-collapsed')) {
         mainWrap.classList.add('sidebar-collapsed');
+        document.documentElement.classList.remove('sidebar-was-collapsed');
     }
 
     collapseBtn.addEventListener('click', function() {
