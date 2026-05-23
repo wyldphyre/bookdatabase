@@ -137,6 +137,13 @@
     </article>
     {% endif %}
 
+    {% if read_by_year %}
+    <article class="chart-container">
+        <h3>Books Read per Year</h3>
+        <canvas id="readByYearChart"></canvas>
+    </article>
+    {% endif %}
+
     <article class="chart-container">
         <h3>Rating Distribution</h3>
         <canvas id="ratingChart"></canvas>
@@ -226,6 +233,35 @@ new Chart(addedByYearCtx, {
             label: 'Books Purchased',
             data: {{ added_by_year.values()|list|tojson }},
             backgroundColor: '#4ecdc4',
+            borderRadius: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+            }
+        }
+    }
+});
+{% endif %}
+
+{% if read_by_year %}
+// Books read per year chart
+const readByYearCtx = document.getElementById('readByYearChart').getContext('2d');
+new Chart(readByYearCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ read_by_year.keys()|list|tojson }},
+        datasets: [{
+            label: 'Books Read',
+            data: {{ read_by_year.values()|list|tojson }},
+            backgroundColor: '#a78bfa',
             borderRadius: 4
         }]
     },
