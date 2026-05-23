@@ -2,20 +2,19 @@
 
 {% block title %}{{ series.name }} - Book Database{% endblock %}
 
+{% block page_heading %}{{ series.name }}{% endblock %}
+
 {% block content %}
-<hgroup>
-    <h1>{{ series.name }}</h1>
-    {% set owned = series.books|length %}
-    {% if series.number_in_series %}
-    <p>{{ owned }} of {{ series.number_in_series }} books in library — {{ read_count }} read
-        {% if read_count >= owned and owned >= series.number_in_series %} <mark>Series Complete</mark>{% endif %}
-    </p>
-    {% elif owned > 0 %}
-    <p>{{ owned }} book{{ 's' if owned != 1 else '' }} in library — {{ read_count }} read
-        {% if read_count >= owned %} <mark>All Read</mark>{% endif %}
-    </p>
-    {% endif %}
-</hgroup>
+{% set owned = series.books|length %}
+{% if series.number_in_series %}
+<p class="secondary">{{ owned }} of {{ series.number_in_series }} books in library — {{ read_count }} read
+    {% if read_count >= owned and owned >= series.number_in_series %} <mark>Series Complete</mark>{% endif %}
+</p>
+{% elif owned > 0 %}
+<p class="secondary">{{ owned }} book{{ 's' if owned != 1 else '' }} in library — {{ read_count }} read
+    {% if read_count >= owned %} <mark>All Read</mark>{% endif %}
+</p>
+{% endif %}
 
 {% if series.tags %}
 <p class="detail-tags">

@@ -2,8 +2,9 @@
 
 {% block title %}{{ 'Edit' if author else 'Add' }} Author - Book Database{% endblock %}
 
+{% block page_heading %}{{ 'Edit' if author else 'Add New' }} Author{% endblock %}
+
 {% block content %}
-<h1>{{ 'Edit' if author else 'Add New' }} Author</h1>
 
 <form method="post">
     <label>

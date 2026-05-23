@@ -2,6 +2,8 @@
 
 {% block title %}{{ book.title }} - Book Database{% endblock %}
 
+{% block page_heading %}{{ book.title }}{% endblock %}
+
 {% block content %}
 {% if suggest_queue_id %}
 <article class="flash flash-info queue-suggest-banner">
@@ -50,12 +52,9 @@
     </div>
 
     <div>
-        <hgroup>
-            <h1>{{ book.title }}</h1>
-            {% if book.subtitle %}
-            <p>{{ book.subtitle }}</p>
-            {% endif %}
-        </hgroup>
+        {% if book.subtitle %}
+        <p class="secondary">{{ book.subtitle }}</p>
+        {% endif %}
 
         {% if book.parent %}
         <p><mark>Part of bundle: <a href="{{ url_for('book_detail', id=book.parent.id) }}">{{ book.parent.title }}</a></mark></p>

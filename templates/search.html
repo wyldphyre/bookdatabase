@@ -2,8 +2,9 @@
 
 {% block title %}Search - Book Database{% endblock %}
 
+{% block page_heading %}Search{% endblock %}
+
 {% block content %}
-<h1>Search</h1>
 
 <form action="{{ url_for('search') }}" method="get">
     <input type="search" name="q" placeholder="Search books, authors, or series..."

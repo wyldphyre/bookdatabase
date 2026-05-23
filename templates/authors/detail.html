@@ -2,13 +2,12 @@
 
 {% block title %}{{ author.name }} - Book Database{% endblock %}
 
+{% block page_heading %}{{ author.name }}{% endblock %}
+
 {% block content %}
-<hgroup>
-    <h1>{{ author.name }}</h1>
-    {% if author.pronouns %}
-    <p>{{ author.pronouns }}</p>
-    {% endif %}
-</hgroup>
+{% if author.pronouns %}
+<p class="secondary">{{ author.pronouns }}</p>
+{% endif %}
 
 {% if author.alias_of %}
 <p><mark>Alias of <a href="{{ url_for('author_detail', id=author.alias_of.id) }}">{{ author.alias_of.name }}</a></mark></p>

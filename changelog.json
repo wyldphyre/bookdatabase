@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.0.24",
+    "date": "2026-05-23",
+    "changes": [
+      "Add icon and styled heading to each page header, matching the active sidebar navigation item",
+      "Page heading text and icon now use the sidebar active colour"
+    ]
+  },
+  {
     "version": "1.0.23",
     "date": "2026-05-23",
     "changes": [

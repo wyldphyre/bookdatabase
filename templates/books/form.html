@@ -2,8 +2,9 @@
 
 {% block title %}{{ 'Edit' if book else 'Add' }} Book - Book Database{% endblock %}
 
+{% block page_heading %}{{ 'Edit' if book else 'Add New' }} Book{% endblock %}
+
 {% block content %}
-<h1>{{ 'Edit' if book else 'Add New' }} Book</h1>
 
 <form method="post" enctype="multipart/form-data">
     {% if prefill_parent is defined and prefill_parent %}

@@ -2,9 +2,10 @@
 
 {% block title %}Reading Queue - Book Database{% endblock %}
 
+{% block page_heading %}Reading Queue{% endblock %}
+
 {% block content %}
 <div class="queue-header">
-    <h1>Reading Queue</h1>
     <details class="queue-add-external">
         <summary>+ Add External Book</summary>
         <form hx-post="{{ url_for('queue_add_external') }}"

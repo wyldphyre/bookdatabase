@@ -2,8 +2,9 @@
 
 {% block title %}{{ 'Edit' if series else 'Add' }} Series - Book Database{% endblock %}
 
+{% block page_heading %}{{ 'Edit' if series else 'Add New' }} Series{% endblock %}
+
 {% block content %}
-<h1>{{ 'Edit' if series else 'Add New' }} Series</h1>
 
 <form method="post" onsubmit="return confirmDuplicate()">
     <label>

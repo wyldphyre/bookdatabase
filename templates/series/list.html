@@ -2,12 +2,11 @@
 
 {% block title %}Series - Book Database{% endblock %}
 
+{% block page_heading %}Series{% endblock %}
+
 {% block content %}
 <header>
-    <hgroup>
-        <h1>Series</h1>
-        <p>{{ series_list.total }} series{% if search %} matching "{{ search }}"{% endif %}{% if filter_type != 'all' %} (filtered){% endif %}</p>
-    </hgroup>
+    <p class="secondary">{{ series_list.total }} series{% if search %} matching "{{ search }}"{% endif %}{% if filter_type != 'all' %} (filtered){% endif %}</p>
     <div class="books-toolbar">
         <a href="{{ url_for('series_new') }}" role="button">Add New Series</a>
         <div class="filter-tabs">
