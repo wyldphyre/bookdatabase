@@ -270,7 +270,8 @@ body {
     transition: margin-left var(--sidebar-transition);
 }
 
-#main-wrapper.sidebar-collapsed { margin-left: var(--sidebar-collapsed-width); }
+#main-wrapper.sidebar-collapsed,
+html.sidebar-was-collapsed #main-wrapper { margin-left: var(--sidebar-collapsed-width); }
 
 /* ── Mobile overlay ── */
 #sidebar-overlay {

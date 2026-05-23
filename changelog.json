@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.26",
+    "date": "2026-05-23",
+    "changes": [
+      "Fix content area width jumping on page load when sidebar is collapsed"
+    ]
+  },
+  {
     "version": "1.0.25",
     "date": "2026-05-23",
     "changes": [
