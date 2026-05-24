@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.0.27",
+    "date": "2026-05-24",
+    "changes": [
+      "Add Average Book Cost and Median Book Cost to the Statistics summary",
+      "Fix statistics summary stat values being clipped or wrapping on wider number values"
+    ]
+  },
+  {
     "version": "1.0.26",
     "date": "2026-05-23",
     "changes": [

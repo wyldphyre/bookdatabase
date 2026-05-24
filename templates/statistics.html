@@ -53,6 +53,18 @@
         <div class="stat-label">Total Saved</div>
     </div>
     {% endif %}
+    {% if avg_book_cost %}
+    <div class="stat">
+        <div class="stat-value">${{ "%.2f"|format(avg_book_cost) }}</div>
+        <div class="stat-label">Avg Book Cost</div>
+    </div>
+    {% endif %}
+    {% if median_book_cost %}
+    <div class="stat">
+        <div class="stat-value">${{ "%.2f"|format(median_book_cost) }}</div>
+        <div class="stat-label">Median Book Cost</div>
+    </div>
+    {% endif %}
 </div>
 
 {% if most_read_books %}

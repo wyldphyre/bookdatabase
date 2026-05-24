@@ -1440,12 +1440,16 @@ ul.series-search-results {
 }
 
 .stats-summary .stat {
-    flex: 1;
-    min-width: 120px;
+    flex: 1 1 auto;
+    min-width: 140px;
     background: var(--pico-card-background-color);
     padding: 1rem;
     border-radius: var(--pico-border-radius);
     text-align: center;
+}
+
+.stats-summary .stat-value {
+    white-space: nowrap;
 }
 
 .charts-grid {

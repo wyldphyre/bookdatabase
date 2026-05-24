@@ -246,6 +246,16 @@ def statistics():
         func.sum(Book.cost - Book.paid)
     ).filter(Book.cost.isnot(None), Book.paid.isnot(None)).scalar() or 0
 
+    costs = sorted([
+        r[0] for r in db.session.query(Book.cost).filter(Book.cost.isnot(None), Book.cost > 0).all()
+    ])
+    if costs:
+        avg_book_cost = sum(costs) / len(costs)
+        mid = len(costs) // 2
+        median_book_cost = costs[mid] if len(costs) % 2 else (costs[mid - 1] + costs[mid]) / 2
+    else:
+        avg_book_cost = median_book_cost = None
+
     # Books read per year (completed reads with a finish date)
     read_by_year_rows = db.session.query(
         func.strftime('%Y', Read.finish_date),
@@ -375,6 +385,8 @@ def statistics():
                          avg_days=round(avg_days, 1),
                          total_spent=total_spent,
                          total_saved=total_saved,
+                         avg_book_cost=avg_book_cost,
+                         median_book_cost=median_book_cost,
                          spent_by_year=spent_by_year,
                          saved_by_year=saved_by_year,
                          top_tag_data=top_tag_data,
