@@ -198,7 +198,53 @@
         <p style="text-align:center; font-style:italic; font-size:0.85rem; margin-top:0.5rem;">Click on any chart segment to view the books</p>
     </article>
     {% endif %}
+
+    {% if format_spend %}
+    <article class="chart-container chart-container--wide">
+        <h3>Spending by Format per Year</h3>
+        <canvas id="formatSpendChart"></canvas>
+    </article>
+    {% endif %}
 </div>
+
+{% if format_spend %}
+<article>
+    <h3>Spending by Format — Summary</h3>
+    <div style="overflow-x: auto;">
+    <table class="format-spend-table">
+        <thead>
+            <tr>
+                <th>Format</th>
+                {% for year in format_years %}<th style="text-align:right">{{ year }}</th>{% endfor %}
+                <th style="text-align:right">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for fmt, data in format_spend.items() %}
+            <tr>
+                <td>{{ fmt }}</td>
+                {% for year in format_years %}
+                <td style="text-align:right">{% if data.get(year) %}${{ "%.2f"|format(data[year]) }}{% else %}&mdash;{% endif %}</td>
+                {% endfor %}
+                <td style="text-align:right"><strong>${{ "%.2f"|format(format_totals[fmt]) }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td><strong>Total</strong></td>
+                {% for year in format_years %}
+                {% set year_total = namespace(v=0) %}
+                {% for fmt, data in format_spend.items() %}{% set year_total.v = year_total.v + data.get(year, 0) %}{% endfor %}
+                <td style="text-align:right"><strong>${{ "%.2f"|format(year_total.v) }}</strong></td>
+                {% endfor %}
+                <td style="text-align:right"><strong>${{ "%.2f"|format(format_totals.values()|sum) }}</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+    </div>
+</article>
+{% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -485,6 +531,53 @@ new Chart(tagCtx, {
         }]
     },
     options: pieOptions
+});
+{% endif %}
+
+{% if format_spend %}
+// Spending by format per year — stacked bar chart
+const formatSpendCtx = document.getElementById('formatSpendChart').getContext('2d');
+const formatSpendYears = {{ format_years|tojson }};
+const formatSpendData = {{ format_spend|tojson }};
+const formatColors = [
+    '#667eea', '#f5a623', '#50c878', '#ff6b6b', '#4ecdc4',
+    '#764ba2', '#45b7d1', '#96ceb4', '#fd79a8', '#e17055'
+];
+const formatNames = Object.keys(formatSpendData);
+new Chart(formatSpendCtx, {
+    type: 'bar',
+    data: {
+        labels: formatSpendYears,
+        datasets: formatNames.map(function(fmt, i) {
+            return {
+                label: fmt,
+                data: formatSpendYears.map(function(y) { return formatSpendData[fmt][y] || 0; }),
+                backgroundColor: formatColors[i % formatColors.length],
+                borderRadius: 3
+            };
+        })
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.dataset.label + ': $' + context.raw.toFixed(2);
+                    }
+                }
+            }
+        },
+        scales: {
+            x: { stacked: true },
+            y: {
+                stacked: true,
+                beginAtZero: true,
+                ticks: { callback: function(v) { return '$' + v; } }
+            }
+        }
+    }
 });
 {% endif %}
 </script>

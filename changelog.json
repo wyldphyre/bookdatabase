@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.0.28",
+    "date": "2026-05-27",
+    "changes": [
+      "Add Spending by Format per Year stacked bar chart to Statistics page",
+      "Add Spending by Format summary table with per-year columns and totals",
+      "Table scrolls horizontally with the Format column pinned to the left"
+    ]
+  },
+  {
     "version": "1.0.27",
     "date": "2026-05-24",
     "changes": [

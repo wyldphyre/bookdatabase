@@ -286,6 +286,30 @@ def statistics():
     spent_by_year = {year: round(float(paid), 2) for year, paid, cost in spend_save_rows if year and paid is not None}
     saved_by_year = {year: round(float((cost or 0) - (paid or 0)), 2) for year, paid, cost in spend_save_rows if year and cost is not None}
 
+    # Spending by format per year
+    format_spend_rows = db.session.query(
+        BookFormat.name,
+        func.strftime('%Y', Book.date_purchased),
+        func.sum(Book.paid)
+    ).join(Book, Book.format_id == BookFormat.id)\
+     .filter(Book.date_purchased.isnot(None), Book.paid.isnot(None), Book.paid > 0)\
+     .group_by(BookFormat.name, func.strftime('%Y', Book.date_purchased))\
+     .order_by(func.strftime('%Y', Book.date_purchased)).all()
+
+    # Build {format: {year: amount}} and collect all years and formats with spend
+    format_spend = {}
+    format_years = set()
+    for fmt, year, paid in format_spend_rows:
+        if year and paid:
+            format_spend.setdefault(fmt, {})[year] = round(float(paid), 2)
+            format_years.add(year)
+    format_years = sorted(format_years)
+    # Only include formats that have at least some spend
+    format_spend = {fmt: data for fmt, data in sorted(format_spend.items())}
+
+    # Summary totals per format
+    format_totals = {fmt: round(sum(data.values()), 2) for fmt, data in format_spend.items()}
+
     # Tag statistics
     total_tags = Tag.query.count()
 
@@ -389,6 +413,9 @@ def statistics():
                          median_book_cost=median_book_cost,
                          spent_by_year=spent_by_year,
                          saved_by_year=saved_by_year,
+                         format_spend=format_spend,
+                         format_years=format_years,
+                         format_totals=format_totals,
                          top_tag_data=top_tag_data,
                          top_tag_breakdown=top_tag_breakdown,
                          added_by_year=added_by_year,
