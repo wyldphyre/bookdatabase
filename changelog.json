@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.29",
+    "date": "2026-06-01",
+    "changes": [
+      "Add book format tag to each reading queue item, displayed inline with the title"
+    ]
+  },
+  {
     "version": "1.0.28",
     "date": "2026-05-27",
     "changes": [

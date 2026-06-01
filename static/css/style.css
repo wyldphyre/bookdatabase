@@ -2230,6 +2230,13 @@ nav .nav-toggle .nav-toggle-icon {
     gap: 0.1rem;
 }
 
+.queue-item-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+}
+
 .queue-item-info strong {
     font-size: 0.9rem;
 }
@@ -2237,6 +2244,19 @@ nav .nav-toggle .nav-toggle-icon {
 .queue-item-info small {
     color: var(--pico-muted-color);
     font-size: 0.8rem;
+}
+
+.format-tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: 0.2em 0.55em;
+    border-radius: 999px;
+    background: var(--pico-secondary-background);
+    color: var(--pico-secondary-inverse);
+    border: 1px solid var(--pico-secondary-border);
+    letter-spacing: 0.02em;
 }
 
 .queue-item-remove {

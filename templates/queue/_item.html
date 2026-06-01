@@ -10,11 +10,16 @@
         {% endif %}
     </div>
     <div class="queue-item-info">
-        {% if item.book %}
-        <a href="{{ url_for('book_detail', id=item.book.id) }}"><strong>{{ item.display_title }}</strong></a>
-        {% else %}
-        <strong>{{ item.display_title }}</strong>
-        {% endif %}
+        <div class="queue-item-title">
+            {% if item.book %}
+            <a href="{{ url_for('book_detail', id=item.book.id) }}"><strong>{{ item.display_title }}</strong></a>
+            {% else %}
+            <strong>{{ item.display_title }}</strong>
+            {% endif %}
+            {% if item.book and item.book.format %}
+            <span class="format-tag">{{ item.book.format.name }}</span>
+            {% endif %}
+        </div>
         {% if item.display_author %}
         <small>{{ item.display_author }}</small>
         {% endif %}
