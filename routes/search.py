@@ -310,6 +310,29 @@ def statistics():
     # Summary totals per format
     format_totals = {fmt: round(sum(data.values()), 2) for fmt, data in format_spend.items()}
 
+    # Discount amounts by format (Kobo/Kindle) per year
+    discount_rows = db.session.query(
+        BookFormat.name,
+        func.strftime('%Y', Book.date_purchased),
+        func.sum(Book.discounts)
+    ).join(Book, Book.format_id == BookFormat.id)\
+     .filter(
+         Book.date_purchased.isnot(None),
+         Book.discounts.isnot(None),
+         Book.discounts > 0,
+         BookFormat.name.in_(['Kobo', 'Kindle'])
+     )\
+     .group_by(BookFormat.name, func.strftime('%Y', Book.date_purchased))\
+     .order_by(func.strftime('%Y', Book.date_purchased)).all()
+
+    discount_by_format = {}
+    discount_years = set()
+    for fmt, year, amount in discount_rows:
+        if year and amount:
+            discount_by_format.setdefault(fmt, {})[year] = round(float(amount), 2)
+            discount_years.add(year)
+    discount_years = sorted(discount_years)
+
     # Tag statistics
     total_tags = Tag.query.count()
 
@@ -416,6 +439,8 @@ def statistics():
                          format_spend=format_spend,
                          format_years=format_years,
                          format_totals=format_totals,
+                         discount_by_format=discount_by_format,
+                         discount_years=discount_years,
                          top_tag_data=top_tag_data,
                          top_tag_breakdown=top_tag_breakdown,
                          added_by_year=added_by_year,

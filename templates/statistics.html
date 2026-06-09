@@ -205,6 +205,13 @@
         <canvas id="formatSpendChart"></canvas>
     </article>
     {% endif %}
+
+    {% if discount_by_format %}
+    <article class="chart-container chart-container--wide">
+        <h3>Discounts by Format per Year</h3>
+        <canvas id="discountByFormatChart"></canvas>
+    </article>
+    {% endif %}
 </div>
 
 {% if format_spend %}
@@ -531,6 +538,48 @@ new Chart(tagCtx, {
         }]
     },
     options: pieOptions
+});
+{% endif %}
+
+{% if discount_by_format %}
+// Discounts by format per year — grouped bar chart
+const discountByFormatCtx = document.getElementById('discountByFormatChart').getContext('2d');
+const discountYears = {{ discount_years|tojson }};
+const discountData = {{ discount_by_format|tojson }};
+const discountFormatColors = { 'Kindle': '#f5a623', 'Kobo': '#45b7d1' };
+const discountFormats = Object.keys(discountData);
+new Chart(discountByFormatCtx, {
+    type: 'bar',
+    data: {
+        labels: discountYears,
+        datasets: discountFormats.map(function(fmt) {
+            return {
+                label: fmt,
+                data: discountYears.map(function(y) { return discountData[fmt][y] || 0; }),
+                backgroundColor: discountFormatColors[fmt] || '#96ceb4',
+                borderRadius: 4
+            };
+        })
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.dataset.label + ': $' + context.raw.toFixed(2);
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { callback: function(v) { return '$' + v; } }
+            }
+        }
+    }
 });
 {% endif %}
 

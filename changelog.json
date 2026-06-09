@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.30",
+    "date": "2026-06-09",
+    "changes": [
+      "Add Discounts by Format per Year chart to Statistics page showing Kindle and Kobo discounts"
+    ]
+  },
+  {
     "version": "1.0.29",
     "date": "2026-06-01",
     "changes": [
