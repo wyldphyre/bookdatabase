@@ -1,10 +1,10 @@
 import os
 import logging
-from flask import Flask
+from flask import Flask, request
 from models import db
 from database import init_db
 
-APP_VERSION = '1.0.31'
+APP_VERSION = '1.0.32'
 
 
 def create_app():
@@ -20,6 +20,7 @@ def create_app():
     app.config['UPLOAD_FOLDER'] = os.path.join(app.static_folder, 'uploads')
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
     app.config['APP_VERSION'] = APP_VERSION
+    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 7 * 24 * 60 * 60  # 1 week, for static assets
 
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
@@ -68,7 +69,10 @@ def create_app():
     # After-request hook
     @app.after_request
     def no_bfcache(response):
-        response.headers['Cache-Control'] = 'no-store'
+        # Don't disable caching for static assets (cover images, css, js) -
+        # only dynamic pages need to be excluded from bfcache/disk cache.
+        if not request.path.startswith('/static/'):
+            response.headers['Cache-Control'] = 'no-store'
         return response
 
     # Template filters

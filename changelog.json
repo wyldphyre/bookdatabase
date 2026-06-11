@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.32",
+    "date": "2026-06-11",
+    "changes": [
+      "Allow browser caching of cover images and other static assets, fixing images visibly reloading on every page view"
+    ]
+  },
+  {
     "version": "1.0.31",
     "date": "2026-06-11",
     "changes": [
