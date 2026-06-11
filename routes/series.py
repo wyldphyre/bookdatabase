@@ -1,3 +1,4 @@
+import html
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from sqlalchemy import func
 from sqlalchemy.orm import subqueryload
@@ -80,7 +81,7 @@ def series_check_name():
         return ''
     return (f'<small style="color: var(--pico-del-color);">'
             f'⚠ A series named <a href="{url_for("series_detail", id=existing.id)}" target="_blank">'
-            f'{existing.name}</a> already exists.</small>')
+            f'{html.escape(existing.name)}</a> already exists.</small>')
 
 
 @series_bp.route('/series/new', methods=['GET', 'POST'], endpoint='series_new')

@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.31",
+    "date": "2026-06-11",
+    "changes": [
+      "Fix XSS vulnerabilities in tag/author/series/bundle-child pickers and series name check"
+    ]
+  },
+  {
     "version": "1.0.30",
     "date": "2026-06-09",
     "changes": [

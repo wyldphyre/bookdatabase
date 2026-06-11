@@ -100,11 +100,11 @@
         const chip = document.createElement('span');
         chip.className = 'tag-chip';
         chip.dataset.tagId = id;
-        chip.innerHTML = `
-            ${name}
+        chip.appendChild(document.createTextNode(name));
+        chip.insertAdjacentHTML('beforeend', `
             <input type="hidden" name="tags" value="${id}">
             <button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>
-        `;
+        `);
 
         document.getElementById('selected-tags').appendChild(chip);
         document.getElementById('tag-search').value = '';

@@ -135,7 +135,7 @@ def book_bundle_child_quick_add():
     db.session.commit()
     return (
         f'<span class="tag-chip" data-book-id="{child.id}">'
-        f'{child.title}'
+        f'{html.escape(child.title)}'
         f'<input type="hidden" name="bundle_children" value="{child.id}">'
         f'<button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>'
         f'</span>'

@@ -2,9 +2,9 @@
 <ul class="series-search-results">
     {% for series in series_list %}
     <li class="series-search-item"
-        onclick="selectSeries({{ series.id }}, '{{ series.name|e }}')"
+        onclick='selectSeries({{ series.id }}, {{ series.name|tojson }})'
         tabindex="0"
-        onkeydown="if(event.key==='Enter') selectSeries({{ series.id }}, '{{ series.name|e }}')">
+        onkeydown='if(event.key==="Enter") selectSeries({{ series.id }}, {{ series.name|tojson }})'>
         {{ series.name }}
     </li>
     {% endfor %}

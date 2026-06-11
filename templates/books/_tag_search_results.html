@@ -2,9 +2,9 @@
 <ul class="tag-search-results">
     {% for tag in tags %}
     <li class="tag-search-item"
-        onclick="addTag({{ tag.id }}, '{{ tag.name|e }}')"
+        onclick='addTag({{ tag.id }}, {{ tag.name|tojson }})'
         tabindex="0"
-        onkeydown="if(event.key==='Enter') addTag({{ tag.id }}, '{{ tag.name|e }}')">
+        onkeydown='if(event.key==="Enter") addTag({{ tag.id }}, {{ tag.name|tojson }})'>
         {{ tag.name }}
     </li>
     {% endfor %}
