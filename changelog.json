@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.33",
+    "date": "2026-06-16",
+    "changes": [
+      "Improve Recommendations page load time by batching per-series queries"
+    ]
+  },
+  {
     "version": "1.0.32",
     "date": "2026-06-11",
     "changes": [

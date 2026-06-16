@@ -84,44 +84,61 @@ def recommendations():
     ).group_by(Book.series_id).all()
 
     continue_reading = []
-    for series_id, max_read_num, last_finished in recent_series_reads:
-        # Find all completed/reading book numbers in this series
-        read_numbers = db.session.query(Book.series_number).join(
-            Read, Read.book_id == Book.id
-        ).filter(
-            Book.series_id == series_id,
-            Read.status.in_(['Completed', 'Reading'])
-        ).all()
-        read_nums = {r[0] for r in read_numbers if r[0] is not None}
+    if recent_series_reads:
+        series_ids = [r[0] for r in recent_series_reads]
 
-        # Find the next unread book in the series (lowest series_number not yet read)
-        next_book = Book.query.options(
-            subqueryload(Book.authors),
-            joinedload(Book.series)
-        ).filter(
-            Book.series_id == series_id,
-            Book.series_number.isnot(None),
-            ~Book.series_number.in_(read_nums) if read_nums else True
-        ).order_by(Book.series_number).first()
+        # Batch: all read/reading series numbers across every relevant series (1 query)
+        read_nums_by_series = {}
+        for sid, snum in db.session.query(Book.series_id, Book.series_number)\
+                .join(Read, Read.book_id == Book.id)\
+                .filter(
+                    Book.series_id.in_(series_ids),
+                    Read.status.in_(['Completed', 'Reading']),
+                    Book.series_number.isnot(None)
+                ).all():
+            read_nums_by_series.setdefault(sid, set()).add(snum)
 
-        if next_book:
-            # Get the last book read in this series for context
-            last_read_book = db.session.query(Book).join(
-                Read, Read.book_id == Book.id
+        # Batch: last book read per series (1 query via max finish_date subquery)
+        last_finish_sq = db.session.query(
+            Book.series_id,
+            func.max(Read.finish_date).label('max_finish')
+        ).join(Read, Read.book_id == Book.id)\
+         .filter(Book.series_id.in_(series_ids), Read.status == 'Completed')\
+         .group_by(Book.series_id).subquery()
+
+        last_book_by_series = {}
+        for b in db.session.query(Book)\
+                .join(last_finish_sq, Book.series_id == last_finish_sq.c.series_id)\
+                .join(Read, (Read.book_id == Book.id)
+                      & (Read.finish_date == last_finish_sq.c.max_finish)
+                      & (Read.status == 'Completed'))\
+                .all():
+            last_book_by_series[b.series_id] = b
+
+        for series_id, _max_read_num, last_finished in recent_series_reads:
+            read_nums = read_nums_by_series.get(series_id, set())
+
+            # Find the next unread book in the series (lowest series_number not yet read)
+            next_book = Book.query.options(
+                subqueryload(Book.authors),
+                joinedload(Book.series)
             ).filter(
                 Book.series_id == series_id,
-                Read.status == 'Completed'
-            ).order_by(Read.finish_date.desc()).first()
-            continue_reading.append((next_book, last_read_book, last_finished))
+                Book.series_number.isnot(None),
+                ~Book.series_number.in_(read_nums) if read_nums else True
+            ).order_by(Book.series_number).first()
+
+            if next_book:
+                continue_reading.append((next_book, last_book_by_series.get(series_id), last_finished))
 
     # Sort by most recently read series first
     continue_reading.sort(key=lambda x: x[2] or datetime.min, reverse=True)
 
     # --- From the Pile: random unread books ---
-    # Books with no Completed or Reading reads
-    read_book_ids = db.session.query(Read.book_id).filter(
+    # Materialise read/active book IDs once and reuse for both unread queries
+    read_book_ids = {r[0] for r in db.session.query(Read.book_id).filter(
         Read.status.in_(['Completed', 'Reading'])
-    ).distinct()
+    ).distinct().all()}
 
     from_the_pile = Book.query.options(
         subqueryload(Book.authors),
