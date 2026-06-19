@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.36",
+    "date": "2026-06-19",
+    "changes": [
+      "Add Move dropdown to queue items for quickly repositioning to First, Previous, Next, or Last"
+    ]
+  },
+  {
     "version": "1.0.35",
     "date": "2026-06-19",
     "changes": [

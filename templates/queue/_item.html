@@ -30,6 +30,15 @@
         <small><a href="{{ item.external_url }}" target="_blank" rel="noopener">{{ item.external_url }}</a></small>
         {% endif %}
     </div>
+    <div class="queue-move-dropdown" style="position: relative; flex-shrink: 0;">
+        <button class="queue-move-btn" onclick="toggleQueueMoveMenu(this)" aria-label="Move" title="Move">↕</button>
+        <ul class="queue-move-menu dropdown-menu">
+            <li><a href="#" onclick="moveQueueItemToTop(this); return false;">First</a></li>
+            <li><a href="#" onclick="moveQueueItemUp(this); return false;">Previous</a></li>
+            <li><a href="#" onclick="moveQueueItemDown(this); return false;">Next</a></li>
+            <li><a href="#" onclick="moveQueueItemToBottom(this); return false;">Last</a></li>
+        </ul>
+    </div>
     <button class="queue-item-remove"
             hx-post="{{ url_for('queue_remove', item_id=item.id) }}"
             hx-target="#queue-item-{{ item.id }}"

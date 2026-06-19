@@ -2259,6 +2259,30 @@ nav .nav-toggle .nav-toggle-icon {
     letter-spacing: 0.02em;
 }
 
+.queue-move-btn {
+    background: none !important;
+    border: none !important;
+    color: var(--pico-muted-color) !important;
+    cursor: pointer;
+    padding: 0.25rem 0.4rem !important;
+    line-height: 1 !important;
+    width: auto !important;
+    margin: 0 !important;
+    font-size: 1rem;
+    box-shadow: none !important;
+}
+
+.queue-move-btn:hover {
+    color: var(--pico-primary) !important;
+    background: none !important;
+}
+
+.queue-move-menu {
+    right: auto;
+    left: 0;
+    min-width: 120px;
+}
+
 .queue-item-remove {
     background: none !important;
     border: none !important;
