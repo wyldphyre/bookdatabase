@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.38",
+    "date": "2026-06-20",
+    "changes": [
+      "Fix queue Move dropdown clipping off right edge of viewport"
+    ]
+  },
+  {
     "version": "1.0.37",
     "date": "2026-06-20",
     "changes": [

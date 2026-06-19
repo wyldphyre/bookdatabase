@@ -2278,8 +2278,8 @@ nav .nav-toggle .nav-toggle-icon {
 }
 
 .queue-move-menu {
-    right: auto;
-    left: 0;
+    right: 0;
+    left: auto;
     min-width: 120px;
 }
 
