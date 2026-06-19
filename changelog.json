@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.34",
+    "date": "2026-06-19",
+    "changes": [
+      "Search results now include books by matching authors in the Books section"
+    ]
+  },
+  {
     "version": "1.0.33",
     "date": "2026-06-16",
     "changes": [

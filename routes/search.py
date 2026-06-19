@@ -16,11 +16,12 @@ def search():
     series_results = []
 
     if query:
-        # Search books
+        # Search books — also match books whose author name matches the query
         book_filters = [
             Book.title.ilike(f'%{query}%'),
             Book.subtitle.ilike(f'%{query}%'),
-            Book.description.ilike(f'%{query}%')
+            Book.description.ilike(f'%{query}%'),
+            Book.authors.any(Author.name.ilike(f'%{query}%')),
         ]
         if include_tags:
             book_filters.append(

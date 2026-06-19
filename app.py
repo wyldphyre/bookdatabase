@@ -4,7 +4,7 @@ from flask import Flask, request
 from models import db
 from database import init_db
 
-APP_VERSION = '1.0.33'
+APP_VERSION = '1.0.34'
 
 
 def create_app():
