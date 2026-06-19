@@ -2307,11 +2307,22 @@ nav .nav-toggle .nav-toggle-icon {
 /* Queue button on cards */
 .queue-btn {
     margin: 0 !important;
-    width: auto;
+    width: auto !important;
 }
 
 .queue-btn--in {
     color: var(--pico-primary) !important;
+}
+
+.queue-dropdown {
+    margin-bottom: 0;
+}
+
+.queue-dropdown .dropdown-toggle {
+    border-left-color: var(--pico-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Small sizing only on cards */

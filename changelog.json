@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.35",
+    "date": "2026-06-19",
+    "changes": [
+      "Add 'at top' option to queue button on book detail page via split dropdown"
+    ]
+  },
+  {
     "version": "1.0.34",
     "date": "2026-06-19",
     "changes": [

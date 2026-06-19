@@ -20,8 +20,14 @@ def queue_add():
     # Don't add duplicates
     existing = ReadingQueue.query.filter_by(book_id=book_id).first()
     if not existing:
-        max_pos = db.session.query(db.func.max(ReadingQueue.position)).scalar() or 0
-        item = ReadingQueue(book_id=book_id, position=max_pos + 1)
+        add_to_top = request.form.get('add_to_top') == '1'
+        if add_to_top:
+            min_pos = db.session.query(db.func.min(ReadingQueue.position)).scalar() or 1
+            position = min_pos - 1
+        else:
+            max_pos = db.session.query(db.func.max(ReadingQueue.position)).scalar() or 0
+            position = max_pos + 1
+        item = ReadingQueue(book_id=book_id, position=position)
         db.session.add(item)
         db.session.commit()
 
