@@ -143,15 +143,18 @@ def series_delete(id):
 @series_bp.route('/series/<int:id>/update-count', methods=['POST'], endpoint='series_update_count')
 def series_update_count(id):
     series = db.get_or_404(Series, id)
-    count = None
-
-    # Try Goodreads first, then Amazon
+    counts = []
     if series.goodreads_url:
-        count = scrape_goodreads_series(series.goodreads_url)
-    if count is None and series.amazon_url:
-        count = scrape_amazon_series(series.amazon_url)
+        gr = scrape_goodreads_series(series.goodreads_url)
+        if gr is not None:
+            counts.append(gr)
+    if series.amazon_url:
+        az = scrape_amazon_series(series.amazon_url)
+        if az is not None:
+            counts.append(az)
 
-    if count is not None:
+    if counts:
+        count = max(counts)
         if series.number_in_series != count:
             series.number_in_series = count
             db.session.commit()

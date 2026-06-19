@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.37",
+    "date": "2026-06-20",
+    "changes": [
+      "Series update count now checks both Goodreads and Amazon and uses the higher value"
+    ]
+  },
+  {
     "version": "1.0.36",
     "date": "2026-06-19",
     "changes": [
