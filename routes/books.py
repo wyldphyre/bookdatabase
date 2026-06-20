@@ -319,6 +319,7 @@ def save_book(book):
     book.bundled_books = request.form.get('bundled_books', '').strip() or None
     book.rating = validate_rating(parse_float(request.form.get('rating')))
     book.comment = request.form.get('comment', '').strip() or None
+    book.goodreads_url = request.form.get('goodreads_url', '').strip() or None
     book.date_purchased = parse_date(request.form.get('date_purchased'))
 
     # Handle authors
@@ -452,6 +453,43 @@ def book_delete(id):
     if request.headers.get('HX-Request'):
         return '', 200, {'HX-Redirect': url_for('book_list')}
     return redirect(url_for('book_list'))
+
+
+@books_bp.route('/books/<int:id>/update-tags', methods=['POST'], endpoint='book_update_tags')
+def book_update_tags(id):
+    book = db.get_or_404(Book, id)
+
+    if not book.goodreads_url:
+        flash('This book has no Goodreads URL', 'error')
+        return redirect(url_for('book_detail', id=id))
+
+    data = scrape_goodreads(book.goodreads_url)
+    if not data or not data.get('genres'):
+        flash('Could not fetch tags from Goodreads', 'error')
+        return redirect(url_for('book_detail', id=id))
+
+    existing_tag_names = {t.name.lower() for t in book.tags}
+    added = []
+    for genre_name in data['genres']:
+        if genre_name.lower() in existing_tag_names:
+            continue
+        tag = Tag.query.filter(Tag.name.ilike(genre_name)).first()
+        if not tag:
+            tag = Tag(name=genre_name)
+            db.session.add(tag)
+            db.session.flush()
+        book.tags.append(tag)
+        existing_tag_names.add(genre_name.lower())
+        added.append(genre_name)
+
+    db.session.commit()
+
+    if added:
+        flash(f'Added {len(added)} tag(s): {", ".join(added)}', 'success')
+    else:
+        flash('No new tags found', 'success')
+
+    return redirect(url_for('book_detail', id=id))
 
 
 @books_bp.route('/books/<int:book_id>/reads', methods=['POST'], endpoint='read_add')

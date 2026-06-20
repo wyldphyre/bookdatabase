@@ -1,6 +1,6 @@
 from models import db, BookFormat, AuthorGender
 
-CURRENT_SCHEMA_VERSION = 4
+CURRENT_SCHEMA_VERSION = 5
 
 
 def _get_schema_version(cursor):
@@ -63,6 +63,13 @@ def run_migrations():
                 new_rating = max(1, min(5, round(float(rating))))
                 if float(new_rating) != float(rating):
                     cursor.execute("UPDATE book SET rating = ? WHERE id = ?", (float(new_rating), row_id))
+            conn.commit()
+
+        if version < 5:
+            cursor.execute("PRAGMA table_info(book)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'goodreads_url' not in columns:
+                cursor.execute("ALTER TABLE book ADD COLUMN goodreads_url VARCHAR(500)")
             conn.commit()
 
         if version < CURRENT_SCHEMA_VERSION:

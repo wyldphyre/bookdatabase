@@ -92,13 +92,29 @@
         </form>
         {% endif %}
 
-        {% if book.tags %}
-        <p class="detail-tags">
-            {% for tag in book.tags %}
-            <mark class="tag-label">{{ tag.name }}</mark>
-            {% endfor %}
-        </p>
-        {% endif %}
+        <div style="display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap;">
+            {% if book.tags %}
+            <p class="detail-tags" style="margin: 0;">
+                {% for tag in book.tags %}
+                <mark class="tag-label">{{ tag.name }}</mark>
+                {% endfor %}
+            </p>
+            {% endif %}
+            <div class="tag-options-dropdown" style="position: relative; display: inline-block;">
+                <button type="button" class="outline secondary" style="padding: 0.25rem 0.5rem !important; font-size: 0.85rem; line-height: 1 !important; width: auto !important;" onclick="this.nextElementSibling.classList.toggle('show')" aria-label="Tag options">&#8230;</button>
+                <ul class="dropdown-menu" style="white-space: nowrap; min-width: 0;">
+                    {% if book.goodreads_url %}
+                    <li>
+                        <form method="post" action="{{ url_for('book_update_tags', id=book.id) }}" style="margin: 0;">
+                            <button type="submit" style="background: none; border: none !important; padding: 0.5rem 1rem !important; width: 100% !important; text-align: left; cursor: pointer; color: inherit; box-shadow: none !important;">Fetch tags from Goodreads</button>
+                        </form>
+                    </li>
+                    {% else %}
+                    <li><span style="color: var(--pico-muted-color);" title="Add a Goodreads URL to this book to enable this feature">Fetch tags from Goodreads</span></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
 
         {% if book.description %}
         <article>
@@ -435,6 +451,9 @@ function queueAddToTop() {
 document.addEventListener('click', function(e) {
     if (!e.target.closest('.queue-dropdown')) {
         document.querySelectorAll('.queue-dropdown .dropdown-menu.show').forEach(m => m.classList.remove('show'));
+    }
+    if (!e.target.closest('.tag-options-dropdown')) {
+        document.querySelectorAll('.tag-options-dropdown .dropdown-menu.show').forEach(m => m.classList.remove('show'));
     }
 });
 </script>

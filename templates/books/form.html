@@ -559,6 +559,11 @@
     {% endif %}
 
     <label>
+        Goodreads URL
+        <input type="url" name="goodreads_url" value="{{ prefill.goodreads_url if prefill and prefill.goodreads_url else (book.goodreads_url or '' if book else '') }}" placeholder="https://www.goodreads.com/book/show/...">
+    </label>
+
+    <label>
         Notes/Comments
         <textarea name="comment" rows="3">{{ book.comment or '' if book else '' }}</textarea>
     </label>

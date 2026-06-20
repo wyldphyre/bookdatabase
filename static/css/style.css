@@ -1390,9 +1390,9 @@ ul.series-search-results {
     text-decoration: none;
 }
 
-.dropdown-menu a:hover {
-    background: var(--pico-primary-background);
-    color: var(--pico-primary-inverse);
+.dropdown-menu a:hover,
+.dropdown-menu button:hover {
+    background: rgba(128, 128, 128, 0.15) !important;
 }
 
 /* Prefill notices for imported books */

@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.0.39",
+    "date": "2026-06-20",
+    "changes": [
+      "Add Goodreads URL field to books",
+      "Add '...' menu on book detail tags to fetch missing tags from Goodreads"
+    ]
+  },
+  {
     "version": "1.0.38",
     "date": "2026-06-20",
     "changes": [
