@@ -558,10 +558,17 @@
     </script>
     {% endif %}
 
-    <label>
-        Goodreads URL
-        <input type="url" name="goodreads_url" value="{{ prefill.goodreads_url if prefill and prefill.goodreads_url else (book.goodreads_url or '' if book else '') }}" placeholder="https://www.goodreads.com/book/show/...">
-    </label>
+    <div class="form-grid">
+        <label>
+            Goodreads URL
+            <input type="url" name="goodreads_url" value="{{ prefill.goodreads_url if prefill and prefill.goodreads_url else (book.goodreads_url or '' if book else '') }}" placeholder="https://www.goodreads.com/book/show/...">
+        </label>
+
+        <label>
+            Amazon URL
+            <input type="url" name="amazon_url" value="{{ prefill.amazon_url if prefill and prefill.amazon_url else (book.amazon_url or '' if book else '') }}" placeholder="https://www.amazon.com/dp/...">
+        </label>
+    </div>
 
     <label>
         Notes/Comments

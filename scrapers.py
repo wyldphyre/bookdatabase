@@ -121,6 +121,8 @@ def scrape_amazon(url):
         else:
             data['series_name'] = series_text
 
+    data['amazon_url'] = url
+
     return data if data.get('title') else None
 
 

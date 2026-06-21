@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.0.42",
+    "date": "2026-06-21",
+    "changes": [
+      "Add Amazon URL field to books, auto-populated on import alongside Goodreads URL",
+      "Automatically strip tracking/search cruft from Goodreads, Amazon, and StoryGraph URLs when saved"
+    ]
+  },
+  {
     "version": "1.0.41",
     "date": "2026-06-21",
     "changes": [

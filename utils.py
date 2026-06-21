@@ -45,6 +45,38 @@ def validate_rating(rating):
     return float(rating)
 
 
+def clean_external_url(url):
+    """Strip tracking/search cruft from Goodreads, Amazon, and StoryGraph URLs.
+
+    Amazon links are canonicalized to a bare https://domain/dp/ASIN form.
+    Goodreads/StoryGraph links keep their path (it's a meaningful id, not
+    tracking) but lose the query string and fragment.
+    Unrecognized domains are returned unchanged.
+    """
+    if not url:
+        return url
+    url = url.strip()
+    if not url:
+        return url
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return url
+
+    host = (parsed.hostname or '').lower()
+
+    if 'amazon.' in host:
+        match = re.search(r'/(?:dp|gp/product)/([A-Za-z0-9]{10})', parsed.path)
+        if match:
+            return f'{parsed.scheme}://{parsed.netloc}/dp/{match.group(1).upper()}'
+        return parsed._replace(query='', fragment='').geturl()
+
+    if 'goodreads.com' in host or 'thestorygraph.com' in host:
+        return parsed._replace(query='', fragment='').geturl()
+
+    return url
+
+
 def _is_safe_cover_url(url):
     """Return True only for public http/https URLs — blocks private/loopback targets."""
     try:

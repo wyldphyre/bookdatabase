@@ -8,7 +8,7 @@ from flask import Blueprint, current_app, render_template, request, redirect, ur
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, ReadingQueue, BookFormat, Tag, RATING_LABELS
-from utils import allowed_file, parse_date, parse_float, validate_rating, _is_safe_cover_url
+from utils import allowed_file, parse_date, parse_float, validate_rating, _is_safe_cover_url, clean_external_url
 from scrapers import scrape_amazon, scrape_goodreads, search_amazon_for_book, search_goodreads_for_book
 
 books_bp = Blueprint('books', __name__)
@@ -171,7 +171,7 @@ def book_bundle_child_search():
 def book_import():
     """Import book data from external URLs."""
     source = request.args.get('source', '')
-    url = request.args.get('url', '')
+    url = clean_external_url(request.args.get('url', '').strip())
     parent_id = request.args.get('parent_id', type=int)
 
     if not source or not url:
@@ -319,7 +319,8 @@ def save_book(book):
     book.bundled_books = request.form.get('bundled_books', '').strip() or None
     book.rating = validate_rating(parse_float(request.form.get('rating')))
     book.comment = request.form.get('comment', '').strip() or None
-    book.goodreads_url = request.form.get('goodreads_url', '').strip() or None
+    book.goodreads_url = clean_external_url(request.form.get('goodreads_url', '').strip()) or None
+    book.amazon_url = clean_external_url(request.form.get('amazon_url', '').strip()) or None
     book.date_purchased = parse_date(request.form.get('date_purchased'))
 
     # Handle authors

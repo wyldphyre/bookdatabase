@@ -4,6 +4,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import subqueryload
 from models import db, Book, Series, Read, Tag
 from scrapers import scrape_goodreads_series, scrape_amazon_series
+from utils import clean_external_url
 
 series_bp = Blueprint('series', __name__)
 
@@ -111,9 +112,9 @@ def save_series(series):
         return redirect(request.url)
 
     series.number_in_series = request.form.get('number_in_series', type=int) or None
-    series.goodreads_url = request.form.get('goodreads_url', '').strip() or None
-    series.amazon_url = request.form.get('amazon_url', '').strip() or None
-    series.storygraph_url = request.form.get('storygraph_url', '').strip() or None
+    series.goodreads_url = clean_external_url(request.form.get('goodreads_url', '').strip()) or None
+    series.amazon_url = clean_external_url(request.form.get('amazon_url', '').strip()) or None
+    series.storygraph_url = clean_external_url(request.form.get('storygraph_url', '').strip()) or None
 
     # Handle tags
     tag_ids = request.form.getlist('tags')

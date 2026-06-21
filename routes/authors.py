@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from sqlalchemy.orm import subqueryload
 from models import db, Book, Author, AuthorGender, Tag
+from utils import clean_external_url
 
 authors_bp = Blueprint('authors', __name__)
 
@@ -67,9 +68,9 @@ def save_author(author):
 
     author.pronouns = request.form.get('pronouns', '').strip() or None
     author.gender_id = request.form.get('gender_id', type=int) or None
-    author.goodreads_url = request.form.get('goodreads_url', '').strip() or None
-    author.amazon_url = request.form.get('amazon_url', '').strip() or None
-    author.storygraph_url = request.form.get('storygraph_url', '').strip() or None
+    author.goodreads_url = clean_external_url(request.form.get('goodreads_url', '').strip()) or None
+    author.amazon_url = clean_external_url(request.form.get('amazon_url', '').strip()) or None
+    author.storygraph_url = clean_external_url(request.form.get('storygraph_url', '').strip()) or None
     author.website = request.form.get('website', '').strip() or None
     author.alias_of_id = request.form.get('alias_of_id', type=int) or None
 

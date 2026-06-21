@@ -108,6 +108,7 @@ class Book(db.Model):
     rating = db.Column(db.Float)
     comment = db.Column(db.Text)
     goodreads_url = db.Column(db.String(500))
+    amazon_url = db.Column(db.String(500))
     parent_id = db.Column(db.Integer, db.ForeignKey('book.id'))
 
     authors = db.relationship('Author', secondary=book_authors, back_populates='books')
