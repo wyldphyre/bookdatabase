@@ -2101,6 +2101,15 @@ nav .nav-toggle .nav-toggle-icon {
         text-align: center;
     }
 
+    .button-group .dropdown-button {
+        width: 100%;
+    }
+
+    .button-group .dropdown-button .dropdown-main {
+        flex: 1;
+        width: auto !important;
+    }
+
     /* Read entry stacks */
     .read-entry {
         flex-direction: column;

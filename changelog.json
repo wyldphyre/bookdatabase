@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.40",
+    "date": "2026-06-21",
+    "changes": [
+      "Fix queue split button width not matching other buttons on mobile-width book detail page"
+    ]
+  },
+  {
     "version": "1.0.39",
     "date": "2026-06-20",
     "changes": [
