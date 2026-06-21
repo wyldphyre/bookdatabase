@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.43",
+    "date": "2026-06-21",
+    "changes": [
+      "Auto-select Kindle format when importing a book from an Amazon Kindle URL"
+    ]
+  },
+  {
     "version": "1.0.42",
     "date": "2026-06-21",
     "changes": [

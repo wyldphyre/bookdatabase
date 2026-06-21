@@ -123,6 +123,17 @@ def scrape_amazon(url):
 
     data['amazon_url'] = url
 
+    # Detect Kindle format from the selected format swatch or ebook-specific page layout
+    format_els = soup.select(
+        '#variation_format_name .selection, '
+        '#tmmSwatches .a-button-selected .slot-title, '
+        '#tmmSwatches .a-button-selected'
+    )
+    if any('kindle' in el.get_text(strip=True).lower() for el in format_els):
+        data['detected_format'] = 'Kindle'
+    elif soup.select_one('#ebooksProductTitle'):
+        data['detected_format'] = 'Kindle'
+
     return data if data.get('title') else None
 
 

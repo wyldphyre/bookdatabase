@@ -258,7 +258,7 @@
                 <option value="">Select format...</option>
                 {% for format in formats %}
                 <option value="{{ format.id }}"
-                        {% if book and book.format_id == format.id %}selected{% endif %}>
+                        {% if (book and book.format_id == format.id) or (not book and prefill and prefill.format_id == format.id) %}selected{% endif %}>
                     {{ format.name }}
                 </option>
                 {% endfor %}

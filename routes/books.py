@@ -203,6 +203,13 @@ def book_import():
                     tag_ids.append(tag.id)
                 book_data['tag_ids'] = tag_ids
 
+            # Map detected format (e.g. Kindle) to a format_id
+            detected_format = book_data.pop('detected_format', None)
+            if detected_format:
+                format_match = BookFormat.query.filter(BookFormat.name.ilike(detected_format)).first()
+                if format_match:
+                    book_data['format_id'] = format_match.id
+
             if parent_id:
                 book_data['parent_id'] = parent_id
             session['book_prefill'] = book_data
