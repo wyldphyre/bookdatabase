@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.41",
+    "date": "2026-06-21",
+    "changes": [
+      "Add cache-busting version query to style.css so CSS updates aren't served stale from browser cache"
+    ]
+  },
+  {
     "version": "1.0.40",
     "date": "2026-06-21",
     "changes": [
