@@ -100,32 +100,6 @@ def author_quick_add():
     return render_template('books/_author_chip.html', author=author)
 
 
-@authors_bp.route('/authors/search', endpoint='author_search')
-def author_search():
-    """Search authors for the author picker."""
-    query = request.args.get('q', '').strip()
-    exclude_str = request.args.get('exclude', '')
-
-    # Parse comma-separated exclude IDs
-    exclude_ids = []
-    if exclude_str:
-        exclude_ids = [int(x) for x in exclude_str.split(',') if x.strip().isdigit()]
-
-    if len(query) < 1:
-        return ''
-
-    authors = Author.query.filter(
-        Author.alias_of_id.is_(None),
-        Author.name.ilike(f'%{query}%')
-    )
-
-    if exclude_ids:
-        authors = authors.filter(~Author.id.in_(exclude_ids))
-
-    authors = authors.order_by(Author.name).limit(10).all()
-    return render_template('books/_author_search_results.html', authors=authors, query=query)
-
-
 @authors_bp.route('/authors/<int:id>/delete', methods=['DELETE', 'POST'], endpoint='author_delete')
 def author_delete(id):
     author = db.get_or_404(Author, id)

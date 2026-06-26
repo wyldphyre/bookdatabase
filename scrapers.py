@@ -1,5 +1,4 @@
 import re
-import time
 import requests as http_requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse

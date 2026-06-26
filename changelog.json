@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.44",
+    "date": "2026-06-27",
+    "changes": [
+      "Remove dead code: unused author/series search routes and templates, an orphaned description-scraper route, an unwired bundle quick-add route, and leftover CSS from earlier nav and picker designs"
+    ]
+  },
+  {
     "version": "1.0.43",
     "date": "2026-06-21",
     "changes": [

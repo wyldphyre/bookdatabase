@@ -1,5 +1,4 @@
 import os
-import re
 import html
 import requests as http_requests
 from datetime import datetime
@@ -123,25 +122,6 @@ def book_new():
                          prefill_parent=prefill_parent)
 
 
-@books_bp.route('/books/bundle-child-quick-add', methods=['POST'], endpoint='book_bundle_child_quick_add')
-def book_bundle_child_quick_add():
-    title = request.form.get('title', '').strip()
-    format_id = request.form.get('format_id', type=int)
-    parent_id = request.form.get('parent_id', type=int)
-    if not title or not format_id or not parent_id:
-        return '', 400
-    child = Book(title=title, format_id=format_id, parent_id=parent_id)
-    db.session.add(child)
-    db.session.commit()
-    return (
-        f'<span class="tag-chip" data-book-id="{child.id}">'
-        f'{html.escape(child.title)}'
-        f'<input type="hidden" name="bundle_children" value="{child.id}">'
-        f'<button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>'
-        f'</span>'
-    )
-
-
 @books_bp.route('/books/bundle-child-search', endpoint='book_bundle_child_search')
 def book_bundle_child_search():
     q = request.args.get('q', '').strip()
@@ -220,32 +200,6 @@ def book_import():
         flash(f'Error importing book: {str(e)}', 'error')
 
     return redirect(url_for('book_new'))
-
-
-@books_bp.route('/books/scrape-description', endpoint='scrape_description')
-def scrape_description():
-    """Scrape book description from Amazon or Goodreads URL."""
-    url = request.args.get('url', '').strip()
-
-    if not url:
-        return jsonify({'error': 'URL is required'}), 400
-
-    try:
-        # Determine source from URL
-        if 'amazon' in url:
-            data = scrape_amazon(url)
-        elif 'goodreads' in url:
-            data = scrape_goodreads(url)
-        else:
-            return jsonify({'error': 'URL must be from Amazon or Goodreads'}), 400
-
-        if data and data.get('description'):
-            return jsonify({'description': data['description']})
-        else:
-            return jsonify({'error': 'Could not find description on page'}), 404
-
-    except Exception as e:
-        return jsonify({'error': f'Failed to fetch page: {str(e)}'}), 500
 
 
 @books_bp.route('/books/search-description', endpoint='search_description')

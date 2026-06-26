@@ -17,11 +17,11 @@
 
 {% set ep = (request.endpoint or '').split('.')|last %}
 {% if ep in ['dashboard'] %}{% set active_nav = 'dashboard' %}
-{% elif ep in ['book_list','book_detail','book_new','book_edit','book_import','book_bundle_child_quick_add','book_bundle_child_search','scrape_description','search_description','book_rate','book_delete','read_add','read_update','read_delete','read_complete','read_abandon'] %}{% set active_nav = 'books' %}
+{% elif ep in ['book_list','book_detail','book_new','book_edit','book_import','book_bundle_child_search','search_description','book_rate','book_delete','read_add','read_update','read_delete','read_complete','read_abandon'] %}{% set active_nav = 'books' %}
 {% elif ep in ['search'] %}{% set active_nav = 'search' %}
 {% elif ep in ['queue_list','queue_add','queue_remove','queue_add_external','queue_link','queue_reorder'] %}{% set active_nav = 'queue' %}
-{% elif ep in ['author_list','author_detail','author_new','author_edit','author_quick_add','author_search','author_delete'] %}{% set active_nav = 'authors' %}
-{% elif ep in ['series_list','series_detail','series_new','series_edit','series_delete','series_update_count','series_search','series_quick_add','series_check_name'] %}{% set active_nav = 'series' %}
+{% elif ep in ['author_list','author_detail','author_new','author_edit','author_quick_add','author_delete'] %}{% set active_nav = 'authors' %}
+{% elif ep in ['series_list','series_detail','series_new','series_edit','series_delete','series_update_count','series_quick_add','series_check_name'] %}{% set active_nav = 'series' %}
 {% elif ep in ['recommendations'] %}{% set active_nav = 'recommendations' %}
 {% elif ep in ['statistics'] %}{% set active_nav = 'statistics' %}
 {% elif ep in ['system','system_tag_search','system_tag_rename','system_tag_delete','scan_genres_start','scan_genres_progress','scan_genres_pause','scan_genres_stop','scan_series_start','scan_series_progress','scan_series_pause','scan_series_stop'] %}{% set active_nav = 'system' %}

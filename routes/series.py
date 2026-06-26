@@ -168,25 +168,6 @@ def series_update_count(id):
     return redirect(url_for('series_detail', id=id))
 
 
-@series_bp.route('/series/search', endpoint='series_search')
-def series_search():
-    """Search series for the series picker."""
-    query = request.args.get('q', '').strip()
-    current_id = request.args.get('current', '')
-
-    if len(query) < 1:
-        return ''
-
-    series_query = Series.query.filter(Series.name.ilike(f'%{query}%'))
-
-    # Exclude current selection if provided
-    if current_id and current_id.isdigit():
-        series_query = series_query.filter(Series.id != int(current_id))
-
-    series_list = series_query.order_by(Series.name).limit(10).all()
-    return render_template('books/_series_search_results.html', series_list=series_list, query=query)
-
-
 @series_bp.route('/series/quick-add', methods=['POST'], endpoint='series_quick_add')
 def series_quick_add():
     """Quick add a series via htmx from the book form."""
