@@ -25,11 +25,26 @@ def dashboard():
         subqueryload(Book.authors),
         subqueryload(Book.reads)
     ).order_by(Book.date_added.desc()).limit(10).all()
+
+    recently_read = []
+    seen_book_ids = set()
+    completed_reads = Read.query.options(
+        joinedload(Read.book).subqueryload(Book.authors)
+    ).filter(Read.status == 'Completed', Read.finish_date.isnot(None)).order_by(Read.finish_date.desc())
+    for read in completed_reads:
+        if read.book_id in seen_book_ids:
+            continue
+        seen_book_ids.add(read.book_id)
+        recently_read.append(read.book)
+        if len(recently_read) >= 10:
+            break
+
     return render_template('dashboard.html',
                          active_reads=active_reads,
                          total_books=total_books,
                          total_reads=total_reads,
-                         recently_added=recently_added)
+                         recently_added=recently_added,
+                         recently_read=recently_read)
 
 
 @books_bp.route('/books', endpoint='book_list')
