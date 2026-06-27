@@ -87,6 +87,30 @@ def save_author(author):
     return redirect(url_for('author_detail', id=author.id))
 
 
+@authors_bp.route('/authors/search', endpoint='author_search')
+def author_search():
+    """Search authors for the book form's author picker."""
+    query = request.args.get('q', '').strip()
+    exclude_str = request.args.get('exclude', '')
+
+    exclude_ids = []
+    if exclude_str:
+        exclude_ids = [int(x) for x in exclude_str.split(',') if x.strip().isdigit()]
+
+    if len(query) < 1:
+        return ''
+
+    authors = Author.query.filter(
+        Author.alias_of_id.is_(None),
+        Author.name.ilike(f'%{query}%')
+    )
+    if exclude_ids:
+        authors = authors.filter(~Author.id.in_(exclude_ids))
+
+    authors = authors.order_by(Author.name).limit(10).all()
+    return render_template('books/_author_search_results.html', authors=authors, query=query)
+
+
 @authors_bp.route('/authors/quick-add', methods=['POST'], endpoint='author_quick_add')
 def author_quick_add():
     """Quick add an author via htmx from the book form."""
@@ -94,9 +118,11 @@ def author_quick_add():
     if not name:
         return '<p class="error">Name is required</p>', 400
 
-    author = Author(name=name)
-    db.session.add(author)
-    db.session.commit()
+    author = Author.query.filter(Author.name.ilike(name)).first()
+    if not author:
+        author = Author(name=name)
+        db.session.add(author)
+        db.session.commit()
 
     # Return the new author as a selected chip
     return render_template('books/_author_chip.html', author=author)

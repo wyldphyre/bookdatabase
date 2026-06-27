@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload, subqueryload
-from models import db, Book, Author, Series, Read, ReadingQueue, BookFormat, Tag, RATING_LABELS
+from models import db, Book, Author, Read, ReadingQueue, BookFormat, Tag, RATING_LABELS
 from utils import allowed_file, parse_date, parse_float, validate_rating, _is_safe_cover_url, clean_external_url
 from scrapers import scrape_amazon, scrape_goodreads, search_amazon_for_book, search_goodreads_for_book
 
@@ -113,8 +113,6 @@ def book_new():
         return save_book(None)
 
     formats = BookFormat.query.all()
-    authors = Author.query.order_by(Author.name).all()
-    series_list = Series.query.order_by(Series.name).all()
 
     # Check for pre-filled data from import, or parent_id query param
     prefill = session.pop('book_prefill', None)
@@ -134,8 +132,6 @@ def book_new():
     return render_template('books/form.html',
                          book=None,
                          formats=formats,
-                         authors=authors,
-                         series_list=series_list,
                          prefill=prefill,
                          prefill_tags=prefill_tags,
                          prefill_parent=prefill_parent)
@@ -265,13 +261,9 @@ def book_edit(id):
         return save_book(book)
 
     formats = BookFormat.query.all()
-    authors = Author.query.order_by(Author.name).all()
-    series_list = Series.query.order_by(Series.name).all()
     return render_template('books/form.html',
                          book=book,
                          formats=formats,
-                         authors=authors,
-                         series_list=series_list,
                          bundle_id=book.id if book.is_book_bundle else None)
 
 

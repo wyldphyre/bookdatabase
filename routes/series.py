@@ -169,6 +169,17 @@ def series_update_count(id):
     return redirect(url_for('series_detail', id=id))
 
 
+@series_bp.route('/series/search', endpoint='series_search')
+def series_search():
+    """Search series for the book form's series picker."""
+    query = request.args.get('q', '').strip()
+    if len(query) < 1:
+        return ''
+
+    series_list = Series.query.filter(Series.name.ilike(f'%{query}%')).order_by(Series.name).limit(10).all()
+    return render_template('books/_series_search_results.html', series_list=series_list, query=query)
+
+
 @series_bp.route('/series/quick-add', methods=['POST'], endpoint='series_quick_add')
 def series_quick_add():
     """Quick add a series via htmx from the book form."""
@@ -176,8 +187,10 @@ def series_quick_add():
     if not name:
         return '<p class="error">Name is required</p>', 400
 
-    series = Series(name=name)
-    db.session.add(series)
-    db.session.commit()
+    series = Series.query.filter(Series.name.ilike(name)).first()
+    if not series:
+        series = Series(name=name)
+        db.session.add(series)
+        db.session.commit()
 
     return jsonify({'id': series.id, 'name': series.name})

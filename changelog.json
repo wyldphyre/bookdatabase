@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.50",
+    "date": "2026-06-27",
+    "changes": [
+      "Replace the book form's author and series pickers with a live search dropdown instead of a browser datalist, which iOS Safari doesn't support reliably — fixes author/series search not working when editing books on mobile"
+    ]
+  },
+  {
     "version": "1.0.49",
     "date": "2026-06-27",
     "changes": [
