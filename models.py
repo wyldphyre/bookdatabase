@@ -72,14 +72,14 @@ class Series(db.Model):
 
 class Author(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(200), nullable=False)
+    name = db.Column(db.String(200), nullable=False, index=True)
     pronouns = db.Column(db.String(50))
     gender_id = db.Column(db.Integer, db.ForeignKey('author_gender.id'))
     goodreads_url = db.Column(db.String(500))
     amazon_url = db.Column(db.String(500))
     storygraph_url = db.Column(db.String(500))
     website = db.Column(db.String(500))
-    alias_of_id = db.Column(db.Integer, db.ForeignKey('author.id'), index=True)
+    alias_of_id = db.Column(db.Integer, db.ForeignKey('author.id'))
 
     # Self-referential relationship for aliases
     alias_of = db.relationship('Author', remote_side=[id], backref='aliases')

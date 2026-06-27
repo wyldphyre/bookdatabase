@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.49",
+    "date": "2026-06-27",
+    "changes": [
+      "Fix author search slowness introduced by the new author.alias_of_id index — it had poor selectivity and made SQLite pick a worse query plan; replaced it with an index on author.name instead"
+    ]
+  },
+  {
     "version": "1.0.48",
     "date": "2026-06-27",
     "changes": [

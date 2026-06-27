@@ -1,6 +1,6 @@
 from models import db, BookFormat, AuthorGender
 
-CURRENT_SCHEMA_VERSION = 7
+CURRENT_SCHEMA_VERSION = 8
 
 
 def _get_schema_version(cursor):
@@ -89,6 +89,15 @@ def run_migrations():
             cursor.execute("CREATE INDEX IF NOT EXISTS ix_read_book_id ON read(book_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS ix_read_status ON read(status)")
             cursor.execute("CREATE INDEX IF NOT EXISTS ix_reading_queue_book_id ON reading_queue(book_id)")
+            conn.commit()
+
+        if version < 8:
+            # ix_author_alias_of_id had terrible selectivity (~97% of authors have
+            # alias_of_id IS NULL, which is the common query direction), causing SQLite
+            # to pick a worse plan than a plain scan. Drop it and index name instead,
+            # which is what author listing/search actually orders by.
+            cursor.execute("DROP INDEX IF EXISTS ix_author_alias_of_id")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_author_name ON author(name)")
             conn.commit()
 
         if version < CURRENT_SCHEMA_VERSION:
