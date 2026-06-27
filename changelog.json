@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.46",
+    "date": "2026-06-27",
+    "changes": [
+      "Fix Amazon import failing on some product pages due to a header that was tripping Amazon's bot detection"
+    ]
+  },
+  {
     "version": "1.0.45",
     "date": "2026-06-27",
     "changes": [
