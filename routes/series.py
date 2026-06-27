@@ -17,7 +17,7 @@ def series_list():
     per_page = request.args.get('per_page', 25, type=int)
     if per_page not in [10, 25, 50, 100]:
         per_page = 25
-    query = Series.query
+    query = Series.query.options(subqueryload(Series.books))
     if search:
         query = query.filter(Series.name.ilike(f'%{search}%'))
     if filter_type == 'no_links':
@@ -62,7 +62,8 @@ def series_list():
 @series_bp.route('/series/<int:id>', endpoint='series_detail')
 def series_detail(id):
     series = Series.query.options(
-        subqueryload(Series.books).subqueryload(Book.reads)
+        subqueryload(Series.books).subqueryload(Book.reads),
+        subqueryload(Series.books).subqueryload(Book.bundle_children)
     ).get_or_404(id)
     read_count = sum(1 for book in series.books if any(r.status == 'Completed' for r in book.reads))
     return render_template('series/detail.html', series=series, read_count=read_count)

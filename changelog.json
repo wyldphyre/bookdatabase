@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.0.47",
+    "date": "2026-06-27",
+    "changes": [
+      "Fix N+1 queries on the queue, series list, author detail, series detail, book list, and bundle child search pages",
+      "Batch the queue reorder update instead of fetching each item individually",
+      "Rewrite the Dashboard's Recently Read query to use a bounded aggregate instead of scanning the full reading history"
+    ]
+  },
+  {
     "version": "1.0.46",
     "date": "2026-06-27",
     "changes": [

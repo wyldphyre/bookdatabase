@@ -23,21 +23,20 @@ def dashboard():
     total_reads = Read.query.filter_by(status='Completed').count()
     recently_added = Book.query.options(
         subqueryload(Book.authors),
-        subqueryload(Book.reads)
+        subqueryload(Book.reads),
+        subqueryload(Book.bundle_children)
     ).order_by(Book.date_added.desc()).limit(10).all()
 
-    recently_read = []
-    seen_book_ids = set()
-    completed_reads = Read.query.options(
-        joinedload(Read.book).subqueryload(Book.authors)
-    ).filter(Read.status == 'Completed', Read.finish_date.isnot(None)).order_by(Read.finish_date.desc())
-    for read in completed_reads:
-        if read.book_id in seen_book_ids:
-            continue
-        seen_book_ids.add(read.book_id)
-        recently_read.append(read.book)
-        if len(recently_read) >= 10:
-            break
+    last_finished_sq = db.session.query(
+        Read.book_id,
+        db.func.max(Read.finish_date).label('last_finished')
+    ).filter(Read.status == 'Completed', Read.finish_date.isnot(None)).group_by(Read.book_id).subquery()
+
+    recently_read = Book.query.options(
+        subqueryload(Book.authors)
+    ).join(
+        last_finished_sq, Book.id == last_finished_sq.c.book_id
+    ).order_by(last_finished_sq.c.last_finished.desc()).limit(10).all()
 
     return render_template('dashboard.html',
                          active_reads=active_reads,
@@ -62,7 +61,12 @@ def book_list():
         pages_filter = ''
 
     # Build query based on filter
-    base = Book.query.options(subqueryload(Book.authors), subqueryload(Book.reads))
+    base = Book.query.options(
+        subqueryload(Book.authors),
+        subqueryload(Book.reads),
+        subqueryload(Book.queue_items),
+        subqueryload(Book.bundle_children)
+    )
     if filter_status == 'read':
         # Books with at least one completed read
         query = base.filter(
@@ -149,7 +153,7 @@ def book_bundle_child_search():
     if not q:
         return ''
 
-    books = Book.query.filter(Book.title.ilike(f'%{q}%')).order_by(Book.title).limit(20).all()
+    books = Book.query.options(subqueryload(Book.authors)).filter(Book.title.ilike(f'%{q}%')).order_by(Book.title).limit(20).all()
     results = [b for b in books if b.id not in exclude_ids]
 
     rows = []

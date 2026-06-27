@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from sqlalchemy.orm import joinedload
 from models import db, Book, ReadingQueue
 
 queue_bp = Blueprint('queue', __name__)
@@ -6,7 +7,11 @@ queue_bp = Blueprint('queue', __name__)
 
 @queue_bp.route('/queue', endpoint='queue_list')
 def queue_list():
-    items = ReadingQueue.query.order_by(ReadingQueue.position).all()
+    items = ReadingQueue.query.options(
+        joinedload(ReadingQueue.book).joinedload(Book.authors),
+        joinedload(ReadingQueue.book).joinedload(Book.series),
+        joinedload(ReadingQueue.book).joinedload(Book.format),
+    ).order_by(ReadingQueue.position).all()
     return render_template('queue.html', items=items)
 
 
@@ -96,9 +101,9 @@ def queue_reorder():
     data = request.get_json()
     if not data:
         return jsonify({'error': 'no data'}), 400
-    for entry in data:
-        item = db.session.get(ReadingQueue, entry['id'])
-        if item:
-            item.position = entry['position']
+    positions = {entry['id']: entry['position'] for entry in data}
+    items = ReadingQueue.query.filter(ReadingQueue.id.in_(positions.keys())).all()
+    for item in items:
+        item.position = positions[item.id]
     db.session.commit()
     return jsonify({'status': 'ok'})

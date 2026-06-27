@@ -23,7 +23,9 @@ def author_list():
 @authors_bp.route('/authors/<int:id>', endpoint='author_detail')
 def author_detail(id):
     author = Author.query.options(
-        subqueryload(Author.books).subqueryload(Book.reads)
+        subqueryload(Author.books).subqueryload(Book.reads),
+        subqueryload(Author.books).joinedload(Book.series),
+        subqueryload(Author.books).subqueryload(Book.bundle_children)
     ).get_or_404(id)
     sorted_books = sorted(author.books, key=lambda b: (
         b.series.name.lower() if b.series else '\xff',
