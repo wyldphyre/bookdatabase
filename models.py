@@ -79,7 +79,7 @@ class Author(db.Model):
     amazon_url = db.Column(db.String(500))
     storygraph_url = db.Column(db.String(500))
     website = db.Column(db.String(500))
-    alias_of_id = db.Column(db.Integer, db.ForeignKey('author.id'))
+    alias_of_id = db.Column(db.Integer, db.ForeignKey('author.id'), index=True)
 
     # Self-referential relationship for aliases
     alias_of = db.relationship('Author', remote_side=[id], backref='aliases')
@@ -93,12 +93,12 @@ class Book(db.Model):
     title = db.Column(db.String(300), nullable=False)
     subtitle = db.Column(db.String(300))
     date_purchased = db.Column(db.DateTime)
-    date_added = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    date_added = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
     description = db.Column(db.Text)
     page_count = db.Column(db.Integer)
-    series_id = db.Column(db.Integer, db.ForeignKey('series.id'))
+    series_id = db.Column(db.Integer, db.ForeignKey('series.id'), index=True)
     series_number = db.Column(db.Float)
-    format_id = db.Column(db.Integer, db.ForeignKey('book_format.id'), nullable=False)
+    format_id = db.Column(db.Integer, db.ForeignKey('book_format.id'), nullable=False, index=True)
     cost = db.Column(db.Float)
     paid = db.Column(db.Float)
     discounts = db.Column(db.Float)
@@ -109,7 +109,7 @@ class Book(db.Model):
     comment = db.Column(db.Text)
     goodreads_url = db.Column(db.String(500))
     amazon_url = db.Column(db.String(500))
-    parent_id = db.Column(db.Integer, db.ForeignKey('book.id'))
+    parent_id = db.Column(db.Integer, db.ForeignKey('book.id'), index=True)
 
     authors = db.relationship('Author', secondary=book_authors, back_populates='books')
     tags = db.relationship('Tag', secondary=book_tags, back_populates='books')
@@ -202,10 +202,10 @@ class Book(db.Model):
 
 class Read(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=False)
+    book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=False, index=True)
     start_date = db.Column(db.DateTime)
     finish_date = db.Column(db.DateTime)
-    status = db.Column(db.String(20), nullable=False, default='Reading')
+    status = db.Column(db.String(20), nullable=False, default='Reading', index=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 
@@ -213,7 +213,7 @@ class ReadingQueue(db.Model):
     __tablename__ = 'reading_queue'
     id = db.Column(db.Integer, primary_key=True)
     position = db.Column(db.Integer, nullable=False)
-    book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=True)
+    book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=True, index=True)
     external_title = db.Column(db.String(300), nullable=True)
     external_author = db.Column(db.String(300), nullable=True)
     external_url = db.Column(db.String(500), nullable=True)

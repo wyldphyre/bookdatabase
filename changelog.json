@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.48",
+    "date": "2026-06-27",
+    "changes": [
+      "Add database indexes on frequently filtered/joined columns (read.book_id, read.status, book.series_id, book.format_id, book.parent_id, book.date_added, author.alias_of_id, reading_queue.book_id)"
+    ]
+  },
+  {
     "version": "1.0.47",
     "date": "2026-06-27",
     "changes": [

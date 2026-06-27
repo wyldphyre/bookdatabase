@@ -1,6 +1,6 @@
 from models import db, BookFormat, AuthorGender
 
-CURRENT_SCHEMA_VERSION = 6
+CURRENT_SCHEMA_VERSION = 7
 
 
 def _get_schema_version(cursor):
@@ -77,6 +77,18 @@ def run_migrations():
             columns = [row[1] for row in cursor.fetchall()]
             if 'amazon_url' not in columns:
                 cursor.execute("ALTER TABLE book ADD COLUMN amazon_url VARCHAR(500)")
+            conn.commit()
+
+        if version < 7:
+            # Add indexes on frequently filtered/joined foreign keys and columns
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_book_date_added ON book(date_added)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_book_series_id ON book(series_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_book_format_id ON book(format_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_book_parent_id ON book(parent_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_author_alias_of_id ON author(alias_of_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_read_book_id ON read(book_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_read_status ON read(status)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_reading_queue_book_id ON reading_queue(book_id)")
             conn.commit()
 
         if version < CURRENT_SCHEMA_VERSION:
