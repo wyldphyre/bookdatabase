@@ -30,6 +30,16 @@
     </script>
 </article>
 
+{% if pushover_configured %}
+<article>
+    <h3>Notifications</h3>
+    <p>Pushover is configured. Send a test notification to confirm it's working.</p>
+    <form method="post" action="{{ url_for('system_pushover_test') }}">
+        <button type="submit" class="outline secondary" style="width: auto;">Send Test Notification</button>
+    </form>
+</article>
+{% endif %}
+
 <article>
     <h3>Tag Management</h3>
     <p>Search, rename, or delete tags across your library.</p>

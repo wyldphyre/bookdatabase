@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.52",
+    "date": "2026-06-28",
+    "changes": [
+      "Add a 'Send Test Notification' button to the System page when Pushover credentials are configured"
+    ]
+  },
+  {
     "version": "1.0.51",
     "date": "2026-06-28",
     "changes": [

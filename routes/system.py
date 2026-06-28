@@ -2,10 +2,11 @@ import os
 import json
 import time
 import threading
-from flask import Blueprint, current_app, render_template, request
+from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash
 from sqlalchemy.orm import joinedload
 from models import db, Book, Series, Tag
 from scrapers import search_goodreads_for_book, scrape_goodreads, scrape_goodreads_series, scrape_amazon_series
+from notifications import send_pushover_notification
 
 system_bp = Blueprint('system', __name__)
 
@@ -50,11 +51,22 @@ def system():
             changelog = json.load(f)
     except (OSError, ValueError):
         changelog = []
+    pushover_configured = bool(os.environ.get('PUSHOVER_USER_KEY')) and bool(os.environ.get('PUSHOVER_APP_TOKEN'))
     return render_template('system.html',
                            scan=_snapshot(genre_scan, genre_scan_lock),
                            series_scan=_snapshot(series_scan, series_scan_lock),
                            version=current_app.config['APP_VERSION'],
-                           changelog=changelog)
+                           changelog=changelog,
+                           pushover_configured=pushover_configured)
+
+
+@system_bp.route('/system/pushover-test', methods=['POST'], endpoint='system_pushover_test')
+def system_pushover_test():
+    if send_pushover_notification('Test notification', 'Pushover is set up correctly.'):
+        flash('Test notification sent — check your phone', 'success')
+    else:
+        flash('Failed to send test notification — check the Pushover credentials and the server logs', 'error')
+    return redirect(url_for('system'))
 
 
 @system_bp.route('/system/scan-genres', methods=['POST'], endpoint='scan_genres_start')
