@@ -14,6 +14,7 @@ A personal book database web application for tracking books, authors, series, an
 - **Recommendations**: Get suggestions for series continuations, recent additions, and random picks from your library
 - **Statistics**: Charts and summaries of your reading history
 - **Search**: Find books, authors, and series quickly
+- **Price Watch**: Track Amazon Kindle book prices and get a [Pushover](https://pushover.net/) notification when the price drops
 
 ## Tech Stack
 
@@ -46,17 +47,29 @@ A personal book database web application for tracking books, authors, series, an
 
 ```
 book-database/
-├── app.py              # Main Flask application with routes
+├── app.py              # Flask app factory; registers blueprints, starts the price watch scheduler
 ├── models.py           # SQLAlchemy ORM models
-├── database.py         # Database initialization and seed data
+├── database.py         # Database initialization, migrations, and seed data
+├── scrapers.py         # Amazon/Goodreads page scraping (book data, prices, series counts)
+├── notifications.py    # Pushover notification helper
+├── price_watch.py      # Daily background price check + manual "Check Now" logic
+├── utils.py            # Shared helpers (URL cleaning, validation, parsing)
 ├── requirements.txt    # Python dependencies
 ├── README.md
 ├── changelog.json      # Version history
+├── routes/             # Flask blueprints, one per feature area
+│   ├── books.py
+│   ├── authors.py
+│   ├── series.py
+│   ├── queue.py
+│   ├── search.py
+│   ├── system.py
+│   └── price_watch.py
 ├── static/
 │   ├── css/style.css   # Custom CSS overrides
 │   └── uploads/        # Book cover images
 └── templates/
-    ├── base.html       # Base template with navigation
+    ├── base.html       # Base template with sidebar navigation
     ├── dashboard.html
     ├── recommendations.html
     ├── statistics.html
@@ -66,6 +79,9 @@ book-database/
     ├── queue/
     │   ├── _button.html  # Add/remove queue button partial
     │   └── _item.html    # Queue row partial
+    ├── price_watch/
+    │   ├── list.html      # Add form + watch list
+    │   └── _item.html     # Watch row partial
     ├── books/
     │   ├── list.html
     │   ├── detail.html
@@ -90,7 +106,28 @@ The SQLite database (`books.db`) is created automatically on first run with seed
 
 Book cover images are stored on the filesystem in `static/uploads/` rather than as BLOBs in the database. This keeps the database small, allows Flask to serve images directly as static files with browser caching, and avoids the overhead of streaming binary data through a database query. The tradeoff is that `static/uploads/` must be backed up separately from `books.db`.
 
+## Price Watch
+
+Paste an Amazon Kindle URL on the Price Watch page to start tracking it - no need for the book to already be in your library. A background check runs once a day (there's also a "Check Now" button for an on-demand check), comparing the latest price against the last known price. If it's dropped, you get a Pushover notification; either way the watch's current price is updated. Only the initial and current price are kept, not a full history.
+
+Requires `PUSHOVER_USER_KEY`/`PUSHOVER_APP_TOKEN` to be set (see [Environment Variables](#environment-variables)) for notifications to actually be sent - without them, price drops are still detected and shown on the page, just not pushed to your phone.
+
 ## Docker Deployment
+
+### Environment Variables
+
+Create a `.env` file in the project root (it's gitignored, so it never gets committed) with any of the following:
+
+```
+SECRET_KEY=some-random-string
+PUSHOVER_USER_KEY=your-pushover-user-key
+PUSHOVER_APP_TOKEN=your-pushover-application-token
+```
+
+- `SECRET_KEY` - used to sign Flask session cookies. Falls back to an insecure development default (with a startup warning) if unset.
+- `PUSHOVER_USER_KEY` / `PUSHOVER_APP_TOKEN` - optional. Required only for [Price Watch](#price-watch) notifications. Get both from [pushover.net](https://pushover.net/) (the user key from your dashboard, the app token by creating an application). When unset, price drops are detected but no notification is sent, and the "Send Test Notification" button on the System page is hidden.
+
+`docker-compose.yml`/`docker-compose.prod.yml` read these via `${VARNAME}` substitution, which Docker Compose resolves automatically from a `.env` file in the same directory - the compose files themselves never contain real secrets.
 
 ### Build and export
 
@@ -177,3 +214,4 @@ To run backups automatically at 2 AM daily:
 5. **Dashboard**: View your currently reading books
 6. **Reading Queue**: Add books to your queue from any book card or detail page; drag to reorder
 7. **Recommendations**: Get reading suggestions based on your library and reading history
+8. **Price Watch**: Paste an Amazon Kindle URL to get notified via Pushover when its price drops
