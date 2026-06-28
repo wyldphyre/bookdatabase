@@ -8,4 +8,6 @@ services:
       - ./data/uploads:/app/static/uploads
     environment:
       - SECRET_KEY=change-me-to-something-random
+      - PUSHOVER_USER_KEY=${PUSHOVER_USER_KEY:-}
+      - PUSHOVER_APP_TOKEN=${PUSHOVER_APP_TOKEN:-}
     restart: unless-stopped

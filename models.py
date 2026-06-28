@@ -228,3 +228,21 @@ class ReadingQueue(db.Model):
     @property
     def display_author(self):
         return self.book.author_names if self.book else self.external_author
+
+
+class PriceWatch(db.Model):
+    __tablename__ = 'price_watch'
+    id = db.Column(db.Integer, primary_key=True)
+    amazon_url = db.Column(db.String(500), nullable=False, unique=True)
+    title = db.Column(db.String(300))
+    cover_url = db.Column(db.String(500))
+    initial_price = db.Column(db.Float)
+    current_price = db.Column(db.Float)
+    currency = db.Column(db.String(10))
+    last_checked_at = db.Column(db.DateTime)
+    last_error = db.Column(db.String(300))
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    @property
+    def dropped(self):
+        return self.current_price is not None and self.initial_price is not None and self.current_price < self.initial_price

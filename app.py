@@ -3,8 +3,9 @@ import logging
 from flask import Flask, request
 from models import db
 from database import init_db
+from price_watch import start_price_watch_scheduler
 
-APP_VERSION = '1.0.50'
+APP_VERSION = '1.0.51'
 
 
 def create_app():
@@ -33,12 +34,14 @@ def create_app():
     from routes.queue import queue_bp
     from routes.search import search_bp
     from routes.system import system_bp
+    from routes.price_watch import price_watch_bp
     app.register_blueprint(books_bp)
     app.register_blueprint(authors_bp)
     app.register_blueprint(series_bp)
     app.register_blueprint(queue_bp)
     app.register_blueprint(search_bp)
     app.register_blueprint(system_bp)
+    app.register_blueprint(price_watch_bp)
 
     # Add bare-name URL rule aliases for every blueprint endpoint so that
     # existing templates using url_for('book_detail', ...) continue to work
@@ -123,6 +126,7 @@ def create_app():
 
 app = create_app()
 init_db(app)
+start_price_watch_scheduler(app)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

@@ -132,6 +132,40 @@ def scrape_amazon(url):
     elif soup.select_one('#ebooksProductTitle'):
         data['detected_format'] = 'Kindle'
 
+    # Price - read it from the Kindle format swatch button itself
+    # ("Kindle AUD 0.00 or AUD 7.24 to buy"). This is the one element that's
+    # unambiguous about which price belongs to the plain Kindle edition - the
+    # page often also shows an unrelated bundle/promo price elsewhere (e.g. an
+    # Audible add-on deal) that a generic price selector would pick up instead.
+    # When there's a Kindle Unlimited "or X to buy" pairing, the buy price is
+    # always the last price-like value in the swatch text.
+    price_text = None
+    swatch = soup.select_one('#tmmSwatches .a-button-selected, #tmm-grid-swatch-KINDLE')
+    if swatch:
+        matches = re.findall(r'([^\d\s]{0,4})\s*([\d,]+\.\d+)', swatch.get_text(' ', strip=True))
+        if matches:
+            currency, amount = matches[-1]
+            price_text = currency + amount
+
+    if not price_text:
+        price_el = soup.select_one(
+            '#corePriceDisplay_desktop_feature_div .a-price .a-offscreen, '
+            '#kindle-price, '
+            '.kindle-price, '
+            '.a-price .a-offscreen'
+        )
+        if price_el:
+            price_text = price_el.get_text(strip=True)
+
+    if price_text:
+        m = re.match(r'^([^\d]*)([\d,]+\.?\d*)', price_text)
+        if m:
+            try:
+                data['price'] = float(m.group(2).replace(',', ''))
+                data['currency'] = m.group(1).strip()
+            except ValueError:
+                pass
+
     return data if data.get('title') else None
 
 

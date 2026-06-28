@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Price Watch - Book Database{% endblock %}
+
+{% block page_heading %}Price Watch{% endblock %}
+
+{% block content %}
+
+<form method="post" action="{{ url_for('price_watch_add') }}">
+    <label>
+        Amazon Kindle URL
+        <input type="url" name="amazon_url" placeholder="https://www.amazon.com/dp/..." required>
+    </label>
+    <button type="submit" style="width: auto;">Add to Watch List</button>
+</form>
+
+{% if watches %}
+<form method="post" action="{{ url_for('price_watch_check_now') }}" style="margin-top: 1rem;">
+    <button type="submit" class="outline secondary" style="width: auto;">Check Prices Now</button>
+</form>
+
+<div id="price-watch-list" class="queue-list" style="margin-top: 1rem;">
+    {% for watch in watches %}
+    {% include 'price_watch/_item.html' %}
+    {% endfor %}
+</div>
+{% else %}
+<article style="margin-top: 1rem;">
+    <p>You're not watching any books yet. Paste an Amazon Kindle URL above to get started.</p>
+</article>
+{% endif %}
+
+{% endblock %}

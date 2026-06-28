@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.0.51",
+    "date": "2026-06-28",
+    "changes": [
+      "Add Kindle Price Watch: track Amazon Kindle book prices and get a Pushover notification when the price drops",
+      "New 'Price Watch' page in the sidebar nav for adding/removing watched books and checking prices on demand"
+    ]
+  },
+  {
     "version": "1.0.50",
     "date": "2026-06-27",
     "changes": [
