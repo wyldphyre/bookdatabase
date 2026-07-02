@@ -1,13 +1,12 @@
 import os
 import html
-import requests as http_requests
 from datetime import datetime
 from urllib.parse import urlparse
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Read, ReadingQueue, BookFormat, Tag, RATING_LABELS
-from utils import allowed_file, parse_date, parse_float, validate_rating, _is_safe_cover_url, clean_external_url
+from utils import allowed_file, parse_date, parse_float, validate_rating, fetch_cover_image, clean_external_url
 from scrapers import scrape_amazon, scrape_goodreads, search_amazon_for_book, search_goodreads_for_book
 
 books_bp = Blueprint('books', __name__)
@@ -171,7 +170,7 @@ def book_import():
 
     if not source or not url:
         flash('Missing source or URL', 'error')
-        return redirect(url_for('book_list'))
+        return redirect(url_for('books.book_list'))
 
     scrapers = {
         'amazon': scrape_amazon,
@@ -181,7 +180,7 @@ def book_import():
     scraper = scrapers.get(source)
     if not scraper:
         flash('Unknown import source', 'error')
-        return redirect(url_for('book_list'))
+        return redirect(url_for('books.book_list'))
 
     try:
         book_data = scraper(url)
@@ -190,7 +189,7 @@ def book_import():
             if book_data.get('genres'):
                 tag_ids = []
                 for genre_name in book_data['genres']:
-                    tag = Tag.query.filter(Tag.name.ilike(genre_name)).first()
+                    tag = Tag.query.filter(db.func.lower(Tag.name) == genre_name.lower()).first()
                     if not tag:
                         tag = Tag(name=genre_name)
                         db.session.add(tag)
@@ -201,7 +200,7 @@ def book_import():
             # Map detected format (e.g. Kindle) to a format_id
             detected_format = book_data.pop('detected_format', None)
             if detected_format:
-                format_match = BookFormat.query.filter(BookFormat.name.ilike(detected_format)).first()
+                format_match = BookFormat.query.filter(db.func.lower(BookFormat.name) == detected_format.lower()).first()
                 if format_match:
                     book_data['format_id'] = format_match.id
 
@@ -214,7 +213,7 @@ def book_import():
     except Exception as e:
         flash(f'Error importing book: {str(e)}', 'error')
 
-    return redirect(url_for('book_new'))
+    return redirect(url_for('books.book_new'))
 
 
 @books_bp.route('/books/search-description', endpoint='search_description')
@@ -278,10 +277,15 @@ def save_book(book):
         flash('Title is required', 'error')
         return redirect(request.url)
 
+    format_id = request.form.get('format_id', type=int)
+    if not format_id:
+        flash('Format is required', 'error')
+        return redirect(request.url)
+
     book.subtitle = request.form.get('subtitle', '').strip() or None
     book.description = request.form.get('description', '').strip() or None
     book.page_count = request.form.get('page_count', type=int) or None
-    book.format_id = request.form.get('format_id', type=int)
+    book.format_id = format_id
     book.series_id = request.form.get('series_id', type=int) or None
     book.series_number = parse_float(request.form.get('series_number'))
     book.cost = parse_float(request.form.get('cost'))
@@ -322,20 +326,13 @@ def save_book(book):
     # Handle cover image URL (only if no file uploaded)
     cover_url = request.form.get('cover_image_url', '').strip()
     if cover_url and not (request.files.get('cover_image') and request.files['cover_image'].filename):
-        if not _is_safe_cover_url(cover_url):
-            flash('Cover image URL must be a public http/https address.', 'warning')
-            cover_url = ''
-    if cover_url and not (request.files.get('cover_image') and request.files['cover_image'].filename):
         try:
-            response = http_requests.get(cover_url, timeout=10)
-            response.raise_for_status()
+            content, content_type = fetch_cover_image(cover_url)
 
             # Determine file extension from URL or content type
             parsed_url = urlparse(cover_url)
             url_path = parsed_url.path.lower()
 
-            content_type = response.headers.get('content-type', '')
-            ext = None
             if 'jpeg' in content_type or 'jpg' in content_type or url_path.endswith('.jpg') or url_path.endswith('.jpeg'):
                 ext = '.jpg'
             elif 'png' in content_type or url_path.endswith('.png'):
@@ -354,7 +351,7 @@ def save_book(book):
             # Save the image
             filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             with open(filepath, 'wb') as f:
-                f.write(response.content)
+                f.write(content)
             book.cover_image = filename
         except Exception as e:
             flash(f'Could not download cover image: {str(e)}', 'warning')
@@ -389,9 +386,9 @@ def save_book(book):
             db.func.lower(ReadingQueue.external_title) == book.title.lower()
         ).first()
         if match:
-            return redirect(url_for('book_detail', id=book.id, suggest_queue=match.id))
+            return redirect(url_for('books.book_detail', id=book.id, suggest_queue=match.id))
 
-    return redirect(url_for('book_detail', id=book.id))
+    return redirect(url_for('books.book_detail', id=book.id))
 
 
 @books_bp.route('/books/<int:id>/rate', methods=['POST'], endpoint='book_rate')
@@ -400,7 +397,7 @@ def book_rate(id):
     rating = validate_rating(parse_float(request.form.get('rating')))
     book.rating = rating
     db.session.commit()
-    return redirect(url_for('book_detail', id=id))
+    return redirect(url_for('books.book_detail', id=id))
 
 
 @books_bp.route('/books/<int:id>/delete', methods=['DELETE', 'POST'], endpoint='book_delete')
@@ -417,15 +414,16 @@ def book_delete(id):
     for child in list(book.bundle_children):
         child.parent_id = None
 
-    # Delete associated reads
+    # Delete associated reads and reading queue entries
     Read.query.filter_by(book_id=id).delete()
+    ReadingQueue.query.filter_by(book_id=id).delete()
     db.session.delete(book)
     db.session.commit()
     flash('Book deleted successfully', 'success')
 
     if request.headers.get('HX-Request'):
-        return '', 200, {'HX-Redirect': url_for('book_list')}
-    return redirect(url_for('book_list'))
+        return '', 200, {'HX-Redirect': url_for('books.book_list')}
+    return redirect(url_for('books.book_list'))
 
 
 @books_bp.route('/books/<int:id>/update-tags', methods=['POST'], endpoint='book_update_tags')
@@ -434,19 +432,19 @@ def book_update_tags(id):
 
     if not book.goodreads_url:
         flash('This book has no Goodreads URL', 'error')
-        return redirect(url_for('book_detail', id=id))
+        return redirect(url_for('books.book_detail', id=id))
 
     data = scrape_goodreads(book.goodreads_url)
     if not data or not data.get('genres'):
         flash('Could not fetch tags from Goodreads', 'error')
-        return redirect(url_for('book_detail', id=id))
+        return redirect(url_for('books.book_detail', id=id))
 
     existing_tag_names = {t.name.lower() for t in book.tags}
     added = []
     for genre_name in data['genres']:
         if genre_name.lower() in existing_tag_names:
             continue
-        tag = Tag.query.filter(Tag.name.ilike(genre_name)).first()
+        tag = Tag.query.filter(db.func.lower(Tag.name) == genre_name.lower()).first()
         if not tag:
             tag = Tag(name=genre_name)
             db.session.add(tag)
@@ -462,7 +460,7 @@ def book_update_tags(id):
     else:
         flash('No new tags found', 'success')
 
-    return redirect(url_for('book_detail', id=id))
+    return redirect(url_for('books.book_detail', id=id))
 
 
 @books_bp.route('/books/<int:book_id>/reads', methods=['POST'], endpoint='read_add')
@@ -473,12 +471,18 @@ def read_add(book_id):
     status = request.form.get('status', 'Reading')
     if status == 'Reading' and book.active_read:
         flash('This book already has an active read', 'error')
-        return redirect(url_for('book_detail', id=book_id))
+        return redirect(url_for('books.book_detail', id=book_id))
+
+    start_date = parse_date(request.form.get('start_date'))
+    finish_date = parse_date(request.form.get('finish_date'))
+    if start_date and finish_date and finish_date < start_date:
+        flash('Finish date cannot be before the start date', 'error')
+        return redirect(url_for('books.book_detail', id=book_id))
 
     read = Read(
         book_id=book_id,
-        start_date=parse_date(request.form.get('start_date')),
-        finish_date=parse_date(request.form.get('finish_date')),
+        start_date=start_date,
+        finish_date=finish_date,
         status=status
     )
     db.session.add(read)
@@ -491,8 +495,8 @@ def read_add(book_id):
     flash('Read added successfully', 'success')
 
     if request.headers.get('HX-Request'):
-        return redirect(url_for('book_detail', id=book_id))
-    return redirect(url_for('book_detail', id=book_id))
+        return redirect(url_for('books.book_detail', id=book_id))
+    return redirect(url_for('books.book_detail', id=book_id))
 
 
 @books_bp.route('/reads/<int:id>', methods=['POST'], endpoint='read_update')
@@ -504,14 +508,20 @@ def read_update(id):
     if new_status == 'Reading' and read.status != 'Reading':
         if read.book.active_read:
             flash('This book already has an active read', 'error')
-            return redirect(url_for('book_detail', id=read.book_id))
+            return redirect(url_for('books.book_detail', id=read.book_id))
 
-    read.start_date = parse_date(request.form.get('start_date'))
-    read.finish_date = parse_date(request.form.get('finish_date'))
+    start_date = parse_date(request.form.get('start_date'))
+    finish_date = parse_date(request.form.get('finish_date'))
+    if start_date and finish_date and finish_date < start_date:
+        flash('Finish date cannot be before the start date', 'error')
+        return redirect(url_for('books.book_detail', id=read.book_id))
+
+    read.start_date = start_date
+    read.finish_date = finish_date
     read.status = new_status
     db.session.commit()
     flash('Read updated successfully', 'success')
-    return redirect(url_for('book_detail', id=read.book_id))
+    return redirect(url_for('books.book_detail', id=read.book_id))
 
 
 @books_bp.route('/reads/<int:id>/delete', methods=['DELETE', 'POST'], endpoint='read_delete')
@@ -523,8 +533,8 @@ def read_delete(id):
     flash('Read deleted successfully', 'success')
 
     if request.headers.get('HX-Request'):
-        return '', 200, {'HX-Redirect': url_for('book_detail', id=book_id)}
-    return redirect(url_for('book_detail', id=book_id))
+        return '', 200, {'HX-Redirect': url_for('books.book_detail', id=book_id)}
+    return redirect(url_for('books.book_detail', id=book_id))
 
 
 @books_bp.route('/reads/<int:id>/complete', methods=['POST'], endpoint='read_complete')
@@ -534,7 +544,7 @@ def read_complete(id):
     read.finish_date = datetime.now()
     db.session.commit()
     flash('Read marked as completed!', 'success')
-    return redirect(url_for('book_detail', id=read.book_id))
+    return redirect(url_for('books.book_detail', id=read.book_id))
 
 
 @books_bp.route('/reads/<int:id>/abandon', methods=['POST'], endpoint='read_abandon')
@@ -544,4 +554,4 @@ def read_abandon(id):
     read.finish_date = datetime.now()
     db.session.commit()
     flash('Read marked as abandoned', 'success')
-    return redirect(url_for('book_detail', id=read.book_id))
+    return redirect(url_for('books.book_detail', id=read.book_id))

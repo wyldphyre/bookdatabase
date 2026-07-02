@@ -66,31 +66,33 @@ def system_pushover_test():
         flash('Test notification sent — check your phone', 'success')
     else:
         flash('Failed to send test notification — check the Pushover credentials and the server logs', 'error')
-    return redirect(url_for('system'))
+    return redirect(url_for('system.system'))
 
 
 @system_bp.route('/system/scan-genres', methods=['POST'], endpoint='scan_genres_start')
 def scan_genres_start():
-    if genre_scan['status'] == 'running':
-        return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan, genre_scan_lock))
-
     untagged_only = request.form.get('untagged_only') == 'on'
 
     with genre_scan_lock:
-        genre_scan.update({
-            'status': 'running',
-            'progress': 0,
-            'total': 0,
-            'current_book': '',
-            'tags_added': 0,
-            'results': [],
-            'paused': False,
-            'stop_requested': False,
-        })
+        # Refuse while a scan thread is alive ('paused' included — resetting its
+        # state here would unpause it and leave two threads running).
+        already_active = genre_scan['status'] in ('running', 'paused')
+        if not already_active:
+            genre_scan.update({
+                'status': 'running',
+                'progress': 0,
+                'total': 0,
+                'current_book': '',
+                'tags_added': 0,
+                'results': [],
+                'paused': False,
+                'stop_requested': False,
+            })
 
-    _app = current_app._get_current_object()
-    thread = threading.Thread(target=run_genre_scan, args=(_app, untagged_only), daemon=True)
-    thread.start()
+    if not already_active:
+        _app = current_app._get_current_object()
+        thread = threading.Thread(target=run_genre_scan, args=(_app, untagged_only), daemon=True)
+        thread.start()
 
     return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan, genre_scan_lock))
 
@@ -183,7 +185,7 @@ def run_genre_scan(app, untagged_only):
                 # Find or create tags and add to book
                 new_tags = []
                 for genre_name in book_data['genres']:
-                    tag = Tag.query.filter(Tag.name.ilike(genre_name)).first()
+                    tag = Tag.query.filter(db.func.lower(Tag.name) == genre_name.lower()).first()
                     if not tag:
                         tag = Tag(name=genre_name)
                         db.session.add(tag)
@@ -224,24 +226,26 @@ def run_genre_scan(app, untagged_only):
 
 @system_bp.route('/system/scan-series', methods=['POST'], endpoint='scan_series_start')
 def scan_series_start():
-    if series_scan['status'] == 'running':
-        return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan, series_scan_lock))
-
     with series_scan_lock:
-        series_scan.update({
-            'status': 'running',
-            'progress': 0,
-            'total': 0,
-            'current_series': '',
-            'updated': 0,
-            'results': [],
-            'paused': False,
-            'stop_requested': False,
-        })
+        # Refuse while a scan thread is alive ('paused' included — resetting its
+        # state here would unpause it and leave two threads running).
+        already_active = series_scan['status'] in ('running', 'paused')
+        if not already_active:
+            series_scan.update({
+                'status': 'running',
+                'progress': 0,
+                'total': 0,
+                'current_series': '',
+                'updated': 0,
+                'results': [],
+                'paused': False,
+                'stop_requested': False,
+            })
 
-    _app = current_app._get_current_object()
-    thread = threading.Thread(target=run_series_scan, args=(_app,), daemon=True)
-    thread.start()
+    if not already_active:
+        _app = current_app._get_current_object()
+        thread = threading.Thread(target=run_series_scan, args=(_app,), daemon=True)
+        thread.start()
 
     return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan, series_scan_lock))
 
@@ -372,7 +376,7 @@ def system_tag_rename(id):
     new_name = request.form.get('name', '').strip()
     if not new_name:
         return render_template('system/_tag_row.html', tag=tag, error='Name is required')
-    existing = Tag.query.filter(Tag.name.ilike(new_name), Tag.id != id).first()
+    existing = Tag.query.filter(db.func.lower(Tag.name) == new_name.lower(), Tag.id != id).first()
     if existing:
         return render_template('system/_tag_row.html', tag=tag, error=f'A tag named "{existing.name}" already exists')
     tag.name = new_name
@@ -421,7 +425,7 @@ def tag_quick_add():
         return '<p class="error">Name is required</p>', 400
 
     # Check if tag already exists (case-insensitive)
-    existing = Tag.query.filter(Tag.name.ilike(name)).first()
+    existing = Tag.query.filter(db.func.lower(Tag.name) == name.lower()).first()
     if existing:
         return render_template('books/_tag_chip.html', tag=existing)
 

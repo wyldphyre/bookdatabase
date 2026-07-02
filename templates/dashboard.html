@@ -27,7 +27,7 @@
 <div class="active-reads-scroll">
     {% for read in active_reads %}
     <div class="active-read-card">
-        <a href="{{ url_for('book_detail', id=read.book.id) }}" class="active-read-cover-link">
+        <a href="{{ url_for('books.book_detail', id=read.book.id) }}" class="active-read-cover-link">
             <div class="cover-wrapper">
                 {% if read.book.cover_image %}
                 <img src="{{ url_for('static', filename='uploads/' + read.book.cover_image) }}" alt="{{ read.book.title }}" loading="lazy">
@@ -38,17 +38,17 @@
             </div>
         </a>
         <div class="active-read-info">
-            <h3><a href="{{ url_for('book_detail', id=read.book.id) }}">{{ read.book.title }}</a></h3>
+            <h3><a href="{{ url_for('books.book_detail', id=read.book.id) }}">{{ read.book.title }}</a></h3>
             {% if read.book.authors %}
             <p class="active-read-authors">
                 {% for author in read.book.authors %}
-                <a href="{{ url_for('author_detail', id=author.id) }}">{{ author.name }}</a>{% if not loop.last %}, {% endif %}
+                <a href="{{ url_for('authors.author_detail', id=author.id) }}">{{ author.name }}</a>{% if not loop.last %}, {% endif %}
                 {% endfor %}
             </p>
             {% endif %}
             {% if read.book.series %}
             <p class="active-read-series">
-                <a href="{{ url_for('series_detail', id=read.book.series.id) }}">{{ read.book.series.name }}</a>{% if read.book.series_number %} #{{ read.book.series_number|num }}{% endif %}
+                <a href="{{ url_for('series.series_detail', id=read.book.series.id) }}">{{ read.book.series.name }}</a>{% if read.book.series_number %} #{{ read.book.series_number|num }}{% endif %}
             </p>
             {% endif %}
             {% if read.start_date %}
@@ -60,10 +60,10 @@
             {% endif %}
         </div>
         <div class="active-read-actions">
-            <form method="post" action="{{ url_for('read_complete', id=read.id) }}">
+            <form method="post" action="{{ url_for('books.read_complete', id=read.id) }}">
                 <button type="submit" class="outline small">Mark Complete</button>
             </form>
-            <form method="post" action="{{ url_for('read_abandon', id=read.id) }}"
+            <form method="post" action="{{ url_for('books.read_abandon', id=read.id) }}"
                   onsubmit="return confirm('Abandon reading {{ read.book.title|e }}?');">
                 <button type="submit" class="outline secondary small">Abandon</button>
             </form>
@@ -74,7 +74,7 @@
 {% else %}
     <article>
         <p>You're not currently reading any books.</p>
-        <a href="{{ url_for('book_list') }}" role="button">Browse Books</a>
+        <a href="{{ url_for('books.book_list') }}" role="button">Browse Books</a>
     </article>
 {% endif %}
 
@@ -82,7 +82,7 @@
 {% if recently_added %}
 <div class="recently-added-scroll">
     {% for book in recently_added %}
-    <a href="{{ url_for('book_detail', id=book.id) }}" class="recently-added-card">
+    <a href="{{ url_for('books.book_detail', id=book.id) }}" class="recently-added-card">
         {% set is_read = book.is_completed %}
         <div class="cover-wrapper">
             {% if book.cover_image %}
@@ -108,7 +108,7 @@
 {% if recently_read %}
 <div class="recently-added-scroll">
     {% for book in recently_read %}
-    <a href="{{ url_for('book_detail', id=book.id) }}" class="recently-added-card">
+    <a href="{{ url_for('books.book_detail', id=book.id) }}" class="recently-added-card">
         <div class="cover-wrapper">
             {% if book.cover_image %}
             <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">

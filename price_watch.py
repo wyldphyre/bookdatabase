@@ -1,4 +1,3 @@
-import os
 import time
 import logging
 import threading
@@ -15,10 +14,19 @@ def run_price_checks(app):
     """Check every watched price, notify on drops, and record the latest price."""
     with app.app_context():
         for watch in PriceWatch.query.all():
-            data = scrape_amazon(watch.amazon_url)
+            try:
+                data = scrape_amazon(watch.amazon_url)
+            except Exception as e:
+                watch.last_error = f'Fetch failed: {e}'[:300]
+                watch.last_checked_at = datetime.now()
+                db.session.commit()
+                time.sleep(2)
+                continue
             if not data or data.get('price') is None:
                 watch.last_error = 'Could not read price from page'
+                watch.last_checked_at = datetime.now()
                 db.session.commit()
+                time.sleep(2)
                 continue
 
             new_price = data['price']
@@ -33,7 +41,7 @@ def run_price_checks(app):
             watch.current_price = new_price
             if data.get('currency'):
                 watch.currency = data['currency']
-            watch.last_checked_at = datetime.utcnow()
+            watch.last_checked_at = datetime.now()
             watch.last_error = None
             db.session.commit()
 
@@ -41,8 +49,11 @@ def run_price_checks(app):
 
 
 def start_price_watch_scheduler(app):
-    """Start a daemon thread that checks prices once a day. Safe under gunicorn
-    (single worker) and guarded against double-starting under the Flask debug reloader."""
+    """Start a daemon thread that checks prices once a day.
+
+    The caller is responsible for only invoking this in the process that
+    serves requests — see app.py, which skips the debug reloader's parent
+    process (it would otherwise run a second, duplicate scheduler)."""
     def loop():
         while True:
             try:
@@ -51,5 +62,4 @@ def start_price_watch_scheduler(app):
                 logging.warning('Price watch check failed', exc_info=True)
             time.sleep(CHECK_INTERVAL_SECONDS)
 
-    if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-        threading.Thread(target=loop, daemon=True).start()
+    threading.Thread(target=loop, daemon=True).start()

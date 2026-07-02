@@ -19,12 +19,12 @@ def price_watch_add():
     url = clean_external_url(request.form.get('amazon_url', '').strip())
     if not url:
         flash('An Amazon URL is required', 'error')
-        return redirect(url_for('price_watch_list'))
+        return redirect(url_for('price_watch.price_watch_list'))
 
     data = scrape_amazon(url)
     if not data or data.get('price') is None:
         flash('Could not read a price from that page', 'error')
-        return redirect(url_for('price_watch_list'))
+        return redirect(url_for('price_watch.price_watch_list'))
 
     watch = PriceWatch(
         amazon_url=url,
@@ -42,7 +42,7 @@ def price_watch_add():
         db.session.rollback()
         flash('You\'re already watching that book', 'error')
 
-    return redirect(url_for('price_watch_list'))
+    return redirect(url_for('price_watch.price_watch_list'))
 
 
 @price_watch_bp.route('/price-watch/<int:id>/delete', methods=['DELETE', 'POST'], endpoint='price_watch_delete')
@@ -54,7 +54,7 @@ def price_watch_delete(id):
     if request.headers.get('HX-Request'):
         return '', 200
     flash('Removed from price watch', 'success')
-    return redirect(url_for('price_watch_list'))
+    return redirect(url_for('price_watch.price_watch_list'))
 
 
 @price_watch_bp.route('/price-watch/check-now', methods=['POST'], endpoint='price_watch_check_now')
@@ -62,4 +62,4 @@ def price_watch_check_now():
     app = current_app._get_current_object()
     run_price_checks(app)
     flash('Price check complete', 'success')
-    return redirect(url_for('price_watch_list'))
+    return redirect(url_for('price_watch.price_watch_list'))

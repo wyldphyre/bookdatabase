@@ -53,7 +53,7 @@
 
 <aside id="sidebar">
     <div class="sidebar-header">
-        <a href="{{ url_for('dashboard') }}" class="sidebar-brand" title="Book Database">
+        <a href="{{ url_for('books.dashboard') }}" class="sidebar-brand" title="Book Database">
             <span class="sidebar-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
             </span>
@@ -67,25 +67,25 @@
     <nav class="sidebar-nav">
         <ul>
             <li>
-                <a href="{{ url_for('dashboard') }}" class="sidebar-link{% if active_nav == 'dashboard' %} active{% endif %}" title="Dashboard">
+                <a href="{{ url_for('books.dashboard') }}" class="sidebar-link{% if active_nav == 'dashboard' %} active{% endif %}" title="Dashboard">
                     <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
                     <span class="sidebar-label">Dashboard</span>
                 </a>
             </li>
             <li>
-                <a href="{{ url_for('book_list') }}" class="sidebar-link{% if active_nav == 'books' %} active{% endif %}" title="Books">
+                <a href="{{ url_for('books.book_list') }}" class="sidebar-link{% if active_nav == 'books' %} active{% endif %}" title="Books">
                     <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
                     <span class="sidebar-label">Books</span>
                 </a>
             </li>
             <li>
-                <a href="{{ url_for('search') }}" class="sidebar-link{% if active_nav == 'search' %} active{% endif %}" title="Search">
+                <a href="{{ url_for('search.search') }}" class="sidebar-link{% if active_nav == 'search' %} active{% endif %}" title="Search">
                     <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
                     <span class="sidebar-label">Search</span>
                 </a>
             </li>
             <li>
-                <a href="{{ url_for('queue_list') }}" class="sidebar-link{% if active_nav == 'queue' %} active{% endif %}" title="Queue">
+                <a href="{{ url_for('queue.queue_list') }}" class="sidebar-link{% if active_nav == 'queue' %} active{% endif %}" title="Queue">
                     <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
                     <span class="sidebar-label">Queue</span>
                 </a>
@@ -95,13 +95,13 @@
         <p class="sidebar-section-label">Library</p>
         <ul>
             <li>
-                <a href="{{ url_for('author_list') }}" class="sidebar-link{% if active_nav == 'authors' %} active{% endif %}" title="Authors">
+                <a href="{{ url_for('authors.author_list') }}" class="sidebar-link{% if active_nav == 'authors' %} active{% endif %}" title="Authors">
                     <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
                     <span class="sidebar-label">Authors</span>
                 </a>
             </li>
             <li>
-                <a href="{{ url_for('series_list') }}" class="sidebar-link{% if active_nav == 'series' %} active{% endif %}" title="Series">
+                <a href="{{ url_for('series.series_list') }}" class="sidebar-link{% if active_nav == 'series' %} active{% endif %}" title="Series">
                     <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span>
                     <span class="sidebar-label">Series</span>
                 </a>
@@ -111,19 +111,19 @@
         <p class="sidebar-section-label">Discover</p>
         <ul>
             <li>
-                <a href="{{ url_for('recommendations') }}" class="sidebar-link{% if active_nav == 'recommendations' %} active{% endif %}" title="Recommendations">
+                <a href="{{ url_for('search.recommendations') }}" class="sidebar-link{% if active_nav == 'recommendations' %} active{% endif %}" title="Recommendations">
                     <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
                     <span class="sidebar-label">Recommendations</span>
                 </a>
             </li>
             <li>
-                <a href="{{ url_for('statistics') }}" class="sidebar-link{% if active_nav == 'statistics' %} active{% endif %}" title="Statistics">
+                <a href="{{ url_for('search.statistics') }}" class="sidebar-link{% if active_nav == 'statistics' %} active{% endif %}" title="Statistics">
                     <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
                     <span class="sidebar-label">Statistics</span>
                 </a>
             </li>
             <li>
-                <a href="{{ url_for('price_watch_list') }}" class="sidebar-link{% if active_nav == 'price_watch' %} active{% endif %}" title="Price Watch">
+                <a href="{{ url_for('price_watch.price_watch_list') }}" class="sidebar-link{% if active_nav == 'price_watch' %} active{% endif %}" title="Price Watch">
                     <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg></span>
                     <span class="sidebar-label">Price Watch</span>
                 </a>
@@ -133,7 +133,7 @@
         <p class="sidebar-section-label">Admin</p>
         <ul>
             <li>
-                <a href="{{ url_for('system') }}" class="sidebar-link{% if active_nav == 'system' %} active{% endif %}" title="System">
+                <a href="{{ url_for('system.system') }}" class="sidebar-link{% if active_nav == 'system' %} active{% endif %}" title="System">
                     <span class="sidebar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
                     <span class="sidebar-label">System</span>
                 </a>
@@ -178,7 +178,7 @@ if (localStorage.getItem('sidebar-collapsed') === 'true') {
     </main>
 
     <footer class="container">
-        <small>Book Database v{{ app_version }} &mdash; <a href="{{ url_for('system') }}#changelog">Changelog</a></small>
+        <small>Book Database v{{ app_version }} &mdash; <a href="{{ url_for('system.system') }}#changelog">Changelog</a></small>
     </footer>
 </div>
 

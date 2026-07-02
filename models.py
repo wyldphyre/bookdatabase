@@ -93,7 +93,7 @@ class Book(db.Model):
     title = db.Column(db.String(300), nullable=False)
     subtitle = db.Column(db.String(300))
     date_purchased = db.Column(db.DateTime)
-    date_added = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+    date_added = db.Column(db.DateTime, nullable=False, default=datetime.now, index=True)
     description = db.Column(db.Text)
     page_count = db.Column(db.Integer)
     series_id = db.Column(db.Integer, db.ForeignKey('series.id'), index=True)
@@ -121,7 +121,6 @@ class Book(db.Model):
     @property
     def saved(self):
         cost = self.cost or 0
-        discounts = self.discounts or 0
         paid = self.paid or 0
         return cost - paid
 
@@ -206,7 +205,7 @@ class Read(db.Model):
     start_date = db.Column(db.DateTime)
     finish_date = db.Column(db.DateTime)
     status = db.Column(db.String(20), nullable=False, default='Reading', index=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
 
 
 class ReadingQueue(db.Model):
@@ -217,7 +216,7 @@ class ReadingQueue(db.Model):
     external_title = db.Column(db.String(300), nullable=True)
     external_author = db.Column(db.String(300), nullable=True)
     external_url = db.Column(db.String(500), nullable=True)
-    added_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    added_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
 
     book = db.relationship('Book', backref='queue_items')
 
@@ -241,7 +240,7 @@ class PriceWatch(db.Model):
     currency = db.Column(db.String(10))
     last_checked_at = db.Column(db.DateTime)
     last_error = db.Column(db.String(300))
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
 
     @property
     def dropped(self):

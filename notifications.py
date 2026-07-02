@@ -17,7 +17,11 @@ def send_pushover_notification(title, message, url=None):
         payload['url_title'] = 'View on Amazon'
 
     try:
-        requests.post('https://api.pushover.net/1/messages.json', data=payload, timeout=10)
+        response = requests.post('https://api.pushover.net/1/messages.json', data=payload, timeout=10)
+        result = response.json()
+        if result.get('status') != 1:
+            logging.warning('Pushover rejected the notification: %s', result.get('errors') or response.text)
+            return False
         return True
     except Exception:
         logging.warning('Pushover notification failed', exc_info=True)

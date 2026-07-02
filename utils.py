@@ -3,7 +3,7 @@ import re
 import socket
 import ipaddress
 from datetime import datetime
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
@@ -18,7 +18,7 @@ def parse_date(date_str):
         return None
     try:
         dt = datetime.strptime(date_str, '%Y-%m-%d')
-        if dt.year < 1900 or dt.year > datetime.utcnow().year + 2:
+        if dt.year < 1900 or dt.year > datetime.now().year + 2:
             return None
         return dt
     except ValueError:
@@ -90,3 +90,39 @@ def _is_safe_cover_url(url):
         return not (addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved)
     except Exception:
         return False
+
+
+MAX_COVER_DOWNLOAD_BYTES = 10 * 1024 * 1024  # 10MB
+
+
+def fetch_cover_image(url, max_redirects=5):
+    """Download a cover image, re-validating every redirect hop against
+    _is_safe_cover_url and capping the download size.
+
+    Returns (content_bytes, content_type). Raises ValueError on an unsafe
+    URL / too many redirects / oversized file, and requests exceptions on
+    network errors."""
+    import requests
+
+    for _ in range(max_redirects + 1):
+        if not _is_safe_cover_url(url):
+            raise ValueError('URL must be a public http/https address')
+        response = requests.get(url, timeout=10, stream=True, allow_redirects=False)
+        if response.is_redirect or response.is_permanent_redirect:
+            location = response.headers.get('location')
+            if not location:
+                raise ValueError('Redirect without a location header')
+            url = urljoin(url, location)
+            continue
+        response.raise_for_status()
+
+        chunks = []
+        size = 0
+        for chunk in response.iter_content(chunk_size=64 * 1024):
+            size += len(chunk)
+            if size > MAX_COVER_DOWNLOAD_BYTES:
+                raise ValueError('Image is too large (over 10MB)')
+            chunks.append(chunk)
+        return b''.join(chunks), response.headers.get('content-type', '')
+
+    raise ValueError('Too many redirects')

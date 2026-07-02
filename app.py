@@ -5,7 +5,7 @@ from models import db
 from database import init_db
 from price_watch import start_price_watch_scheduler
 
-APP_VERSION = '1.0.52'
+APP_VERSION = '1.0.53'
 
 
 def create_app():
@@ -42,27 +42,6 @@ def create_app():
     app.register_blueprint(search_bp)
     app.register_blueprint(system_bp)
     app.register_blueprint(price_watch_bp)
-
-    # Add bare-name URL rule aliases for every blueprint endpoint so that
-    # existing templates using url_for('book_detail', ...) continue to work
-    # without modification.
-    import werkzeug.routing as _wr
-    for _rule in list(app.url_map.iter_rules()):
-        _ep = _rule.endpoint
-        if '.' not in _ep:
-            continue  # already bare (e.g. 'static')
-        _bare = _ep.split('.', 1)[1]
-        if _bare in app.view_functions:
-            continue  # already registered under bare name
-        # Register same view function under bare endpoint name
-        app.view_functions[_bare] = app.view_functions[_ep]
-        # Add a URL rule so url_for can reverse the bare endpoint
-        app.add_url_rule(
-            _rule.rule,
-            endpoint=_bare,
-            view_func=app.view_functions[_bare],
-            methods=list(_rule.methods),
-        )
 
     # Context processor
     @app.context_processor
@@ -126,7 +105,14 @@ def create_app():
 
 app = create_app()
 init_db(app)
-start_price_watch_scheduler(app)
 
 if __name__ == '__main__':
+    # Debug server: this module runs in both the reloader parent and the
+    # serving child (WERKZEUG_RUN_MAIN=true); only the child gets a scheduler,
+    # otherwise price checks run twice.
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        start_price_watch_scheduler(app)
     app.run(debug=True, port=5001)
+else:
+    # Production (gunicorn, single worker): imported exactly once.
+    start_price_watch_scheduler(app)

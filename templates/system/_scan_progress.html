@@ -6,7 +6,7 @@
             Only scan books with no tags
         </label>
     </fieldset>
-    <button hx-post="{{ url_for('scan_genres_start') }}"
+    <button hx-post="{{ url_for('system.scan_genres_start') }}"
             hx-target="#scan-area"
             hx-include="#untagged-only">
         Start Scan
@@ -15,7 +15,7 @@
 
 {% elif scan.status in ('running', 'paused') %}
 <div id="scan-controls"
-     hx-get="{{ url_for('scan_genres_progress') }}"
+     hx-get="{{ url_for('system.scan_genres_progress') }}"
      hx-trigger="every 1s"
      hx-target="#scan-area">
 
@@ -36,12 +36,12 @@
     {% endif %}
 
     <div class="button-group">
-        <button hx-post="{{ url_for('scan_genres_pause') }}"
+        <button hx-post="{{ url_for('system.scan_genres_pause') }}"
                 hx-target="#scan-area"
                 class="outline">
             {{ 'Resume' if scan.status == 'paused' else 'Pause' }}
         </button>
-        <button hx-post="{{ url_for('scan_genres_stop') }}"
+        <button hx-post="{{ url_for('system.scan_genres_stop') }}"
                 hx-target="#scan-area"
                 class="secondary">
             Stop
@@ -100,7 +100,7 @@
             Only scan books with no tags
         </label>
     </fieldset>
-    <button hx-post="{{ url_for('scan_genres_start') }}"
+    <button hx-post="{{ url_for('system.scan_genres_start') }}"
             hx-target="#scan-area"
             hx-include="#untagged-only">
         Start New Scan

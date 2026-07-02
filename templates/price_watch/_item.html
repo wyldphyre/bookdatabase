@@ -26,7 +26,7 @@
         {% endif %}
     </div>
     <button class="queue-item-remove"
-            hx-post="{{ url_for('price_watch_delete', id=watch.id) }}"
+            hx-post="{{ url_for('price_watch.price_watch_delete', id=watch.id) }}"
             hx-target="#price-watch-item-{{ watch.id }}"
             hx-swap="outerHTML"
             aria-label="Remove from watch list"

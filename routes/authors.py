@@ -84,7 +84,7 @@ def save_author(author):
         db.session.add(author)
     db.session.commit()
     flash('Author saved successfully', 'success')
-    return redirect(url_for('author_detail', id=author.id))
+    return redirect(url_for('authors.author_detail', id=author.id))
 
 
 @authors_bp.route('/authors/search', endpoint='author_search')
@@ -118,7 +118,7 @@ def author_quick_add():
     if not name:
         return '<p class="error">Name is required</p>', 400
 
-    author = Author.query.filter(Author.name.ilike(name)).first()
+    author = Author.query.filter(db.func.lower(Author.name) == name.lower()).first()
     if not author:
         author = Author(name=name)
         db.session.add(author)
@@ -140,5 +140,5 @@ def author_delete(id):
     flash('Author deleted successfully', 'success')
 
     if request.headers.get('HX-Request'):
-        return '', 200, {'HX-Redirect': url_for('author_list')}
-    return redirect(url_for('author_list'))
+        return '', 200, {'HX-Redirect': url_for('authors.author_list')}
+    return redirect(url_for('authors.author_list'))

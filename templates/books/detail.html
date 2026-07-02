@@ -9,17 +9,17 @@
 <article class="flash flash-info queue-suggest-banner">
     <span>This book matches an external queue entry.</span>
     <div class="queue-suggest-actions">
-        <form method="post" action="{{ url_for('queue_link', item_id=suggest_queue_id) }}">
+        <form method="post" action="{{ url_for('queue.queue_link', item_id=suggest_queue_id) }}">
             <input type="hidden" name="book_id" value="{{ book.id }}">
             <button type="submit" class="outline">Link it</button>
         </form>
-        <a href="{{ url_for('book_detail', id=book.id) }}" role="button" class="outline secondary">Dismiss</a>
+        <a href="{{ url_for('books.book_detail', id=book.id) }}" role="button" class="outline secondary">Dismiss</a>
     </div>
 </article>
 {% endif %}
 {% if not book.page_count %}
 <article class="flash flash-warning">
-    This book has no page count. <a href="{{ url_for('book_edit', id=book.id) }}">Edit the book</a> to add one.
+    This book has no page count. <a href="{{ url_for('books.book_edit', id=book.id) }}">Edit the book</a> to add one.
 </article>
 {% endif %}
 <div class="book-detail">
@@ -35,15 +35,15 @@
         </div>
 
         {% if book.active_read %}
-        <form method="post" action="{{ url_for('read_complete', id=book.active_read.id) }}" style="margin: 1rem 0 0 0;">
+        <form method="post" action="{{ url_for('books.read_complete', id=book.active_read.id) }}" style="margin: 1rem 0 0 0;">
             <button type="submit" style="width: 100%;">Mark Complete</button>
         </form>
-        <form method="post" action="{{ url_for('read_abandon', id=book.active_read.id) }}" style="margin: 0.5rem 0 0 0;"
+        <form method="post" action="{{ url_for('books.read_abandon', id=book.active_read.id) }}" style="margin: 0.5rem 0 0 0;"
               onsubmit="return confirm('Abandon reading this book?');">
             <button type="submit" class="outline secondary" style="width: 100%;">Abandon</button>
         </form>
         {% else %}
-        <form method="post" action="{{ url_for('read_add', book_id=book.id) }}" style="margin: 1rem 0 0 0;">
+        <form method="post" action="{{ url_for('books.read_add', book_id=book.id) }}" style="margin: 1rem 0 0 0;">
             <input type="hidden" name="status" value="Reading">
             <input type="hidden" name="start_date" value="{{ today }}">
             <button type="submit" style="width: 100%;">Start Reading</button>
@@ -57,14 +57,14 @@
         {% endif %}
 
         {% if book.parent %}
-        <p><mark>Part of bundle: <a href="{{ url_for('book_detail', id=book.parent.id) }}">{{ book.parent.title }}</a></mark></p>
+        <p><mark>Part of bundle: <a href="{{ url_for('books.book_detail', id=book.parent.id) }}">{{ book.parent.title }}</a></mark></p>
         {% endif %}
 
         {% if book.authors %}
         <p>
             <strong>By:</strong>
             {% for author in book.authors %}
-            <a href="{{ url_for('author_detail', id=author.id) }}">{{ author.name }}</a>{% if author.alias_of %} (<a href="{{ url_for('author_detail', id=author.alias_of.id) }}">{{ author.alias_of.name }}</a>){% endif %}{% if not loop.last %}, {% endif %}
+            <a href="{{ url_for('authors.author_detail', id=author.id) }}">{{ author.name }}</a>{% if author.alias_of %} (<a href="{{ url_for('authors.author_detail', id=author.alias_of.id) }}">{{ author.alias_of.name }}</a>){% endif %}{% if not loop.last %}, {% endif %}
             {% endfor %}
         </p>
         {% endif %}
@@ -72,7 +72,7 @@
         {% if book.series %}
         <p>
             <strong>Series:</strong>
-            <a href="{{ url_for('series_detail', id=book.series.id) }}">{{ book.series.name }}</a>
+            <a href="{{ url_for('series.series_detail', id=book.series.id) }}">{{ book.series.name }}</a>
             {% if book.series_number %}(#{{ book.series_number|num }}){% endif %}
         </p>
         {% endif %}
@@ -82,7 +82,7 @@
             {{ book.rating_label }}{% if not book.rating and book.bundle_children %} <span class="secondary" style="font-size: 0.8em;">avg</span>{% endif %}
         </p>
         {% elif is_read %}
-        <form method="post" action="{{ url_for('book_rate', id=book.id) }}" class="quick-rate-form">
+        <form method="post" action="{{ url_for('books.book_rate', id=book.id) }}" class="quick-rate-form">
             <span class="quick-rate-label">Rate this book:</span>
             <button type="submit" name="rating" value="1" class="quick-rate-emoji" title="Abandoned">🚫</button>
             <button type="submit" name="rating" value="2" class="quick-rate-emoji" title="Didn't like">☹️</button>
@@ -105,7 +105,7 @@
                 <ul class="dropdown-menu" style="white-space: nowrap; min-width: 0;">
                     {% if book.goodreads_url %}
                     <li>
-                        <form method="post" action="{{ url_for('book_update_tags', id=book.id) }}" style="margin: 0;">
+                        <form method="post" action="{{ url_for('books.book_update_tags', id=book.id) }}" style="margin: 0;">
                             <button type="submit" style="background: none; border: none !important; padding: 0.5rem 1rem !important; width: 100% !important; text-align: left; cursor: pointer; color: inherit; box-shadow: none !important;">Fetch tags from Goodreads</button>
                         </form>
                     </li>
@@ -189,15 +189,15 @@
         {% endif %}
 
         <div class="button-group">
-            <a href="{{ url_for('book_edit', id=book.id) }}" role="button">Edit Book</a>
+            <a href="{{ url_for('books.book_edit', id=book.id) }}" role="button">Edit Book</a>
             {% set in_queue = book.queue_items | length > 0 %}
             {% if in_queue %}
                 {% set qi = book.queue_items[0] if book.queue_items else None %}
-                <form method="post" action="{{ url_for('queue_remove', item_id=qi.id) if qi else '#' }}" style="display: contents;">
+                <form method="post" action="{{ url_for('queue.queue_remove', item_id=qi.id) if qi else '#' }}" style="display: contents;">
                     <button type="submit" class="queue-btn queue-btn--in secondary outline" title="Remove from queue">&#10003; Queue</button>
                 </form>
             {% else %}
-                <form method="post" action="{{ url_for('queue_add') }}" id="queue-add-form" style="display: contents;">
+                <form method="post" action="{{ url_for('queue.queue_add') }}" id="queue-add-form" style="display: contents;">
                     <input type="hidden" name="book_id" value="{{ book.id }}">
                     <input type="hidden" name="add_to_top" value="0" id="queue-add-to-top">
                     <div class="dropdown-button queue-dropdown">
@@ -210,7 +210,7 @@
                 </form>
             {% endif %}
             <button class="outline secondary"
-                    hx-delete="{{ url_for('book_delete', id=book.id) }}"
+                    hx-delete="{{ url_for('books.book_delete', id=book.id) }}"
                     hx-confirm="Are you sure you want to delete this book?"
                     hx-target="body">
                 Delete Book
@@ -226,7 +226,7 @@
     <h2>Books in this Bundle</h2>
     <div class="book-grid">
         {% for child in book.bundle_children %}
-        <a href="{{ url_for('book_detail', id=child.id) }}" class="book-card" style="text-decoration: none; color: inherit;">
+        <a href="{{ url_for('books.book_detail', id=child.id) }}" class="book-card" style="text-decoration: none; color: inherit;">
             {% set child_is_read = child.reads|selectattr('status', 'equalto', 'Completed')|list|length > 0 %}
             <div class="cover-wrapper">
                 {% if child.cover_image %}
@@ -278,7 +278,7 @@
             <button onclick="submitBundleImport({{ book.id }})">Import from URL</button>
         </div>
         <footer style="justify-content: flex-start;">
-            <a href="{{ url_for('book_new', parent_id=book.id) }}" role="button" class="outline">Add manually</a>
+            <a href="{{ url_for('books.book_new', parent_id=book.id) }}" role="button" class="outline">Add manually</a>
         </footer>
     </article>
 </dialog>
@@ -288,7 +288,7 @@ function submitBundleImport(bundleId) {
     const url = document.getElementById('bundle-add-url').value.trim();
     const source = document.getElementById('bundle-add-source').value;
     if (!url) { document.getElementById('bundle-add-url').focus(); return; }
-    window.location.href = '{{ url_for("book_import") }}?source=' + source + '&url=' + encodeURIComponent(url) + '&parent_id=' + bundleId;
+    window.location.href = '{{ url_for("books.book_import") }}?source=' + source + '&url=' + encodeURIComponent(url) + '&parent_id=' + bundleId;
 }
 document.getElementById('bundle-add-url').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') submitBundleImport({{ book.id }});
@@ -319,7 +319,7 @@ document.getElementById('bundle-add-url').addEventListener('keydown', function(e
             <div class="read-entry">
                 <div>
                     <span class="read-status status-{{ read.status.lower() }}">{{ read.status }}</span>
-                    <a href="{{ url_for('book_detail', id=child.id) }}" class="secondary"><small>{{ child.title }}</small></a>
+                    <a href="{{ url_for('books.book_detail', id=child.id) }}" class="secondary"><small>{{ child.title }}</small></a>
                     {% if read.start_date %} — Started: {{ read.start_date.strftime('%Y-%m-%d') }}{% endif %}
                     {% if read.finish_date %} | Finished: {{ read.finish_date.strftime('%Y-%m-%d') }}{% endif %}
                     {% if read.status == 'Completed' and read.start_date and read.finish_date %}
@@ -353,7 +353,7 @@ document.getElementById('bundle-add-url').addEventListener('keydown', function(e
             <div class="button-group">
                 <details>
                     <summary role="button" class="outline secondary">Edit</summary>
-                    <form method="post" action="{{ url_for('read_update', id=read.id) }}">
+                    <form method="post" action="{{ url_for('books.read_update', id=read.id) }}">
                         <label>
                             Status
                             <select name="status" required>
@@ -376,7 +376,7 @@ document.getElementById('bundle-add-url').addEventListener('keydown', function(e
                     </form>
                 </details>
                 <button class="outline secondary"
-                        hx-delete="{{ url_for('read_delete', id=read.id) }}"
+                        hx-delete="{{ url_for('books.read_delete', id=read.id) }}"
                         hx-confirm="Delete this read entry?">
                     Delete
                 </button>
@@ -389,7 +389,7 @@ document.getElementById('bundle-add-url').addEventListener('keydown', function(e
 
     <details>
         <summary role="button" class="outline">Add New Read</summary>
-        <form method="post" action="{{ url_for('read_add', book_id=book.id) }}">
+        <form method="post" action="{{ url_for('books.read_add', book_id=book.id) }}">
             <div class="form-grid">
                 <label>
                     Status

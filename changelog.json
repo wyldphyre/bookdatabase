@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.0.53",
+    "date": "2026-07-02",
+    "changes": [
+      "Fix Amazon cover images being lost during import when the page provides a plain image URL (operator-precedence bug)",
+      "Fix Pushover test button reporting success when the API rejected the notification — the API response is now checked",
+      "Fix a single failing price watch aborting the daily check for all remaining watches; errors are recorded per watch instead",
+      "Fix the price watch scheduler running twice (duplicate checks/notifications) under the Flask debug server",
+      "Fix deleting a book leaving a blank ghost entry in the reading queue",
+      "Fix 'add to top' of the reading queue assigning duplicate positions once an item reached position 0",
+      "Fix starting a genre/series scan while another was paused running two scans at once",
+      "Validate that a read's finish date is not before its start date, and that a book has a format, with friendly errors instead of crashes",
+      "Harden cover image URL downloads: redirects are re-validated against private/internal addresses and downloads are capped at 10MB",
+      "Use local time consistently for date added / created timestamps (was a mix of UTC and local, causing off-by-one-day displays)",
+      "Fix quick-add and duplicate checks treating % and _ in names as wildcards, which could match the wrong author/series/tag",
+      "Internal: all routes now use blueprint-qualified endpoints; removed the bare-endpoint aliasing shim"
+    ]
+  },
+  {
     "version": "1.0.52",
     "date": "2026-06-28",
     "changes": [
@@ -410,7 +428,7 @@
     "version": "0.11.25",
     "date": "2026-03-24",
     "changes": [
-      "Browser tab and toolbar now reflect the app\u2019s primary colour via theme-color meta tags"
+      "Browser tab and toolbar now reflect the app’s primary colour via theme-color meta tags"
     ]
   },
   {
@@ -446,7 +464,7 @@
     "date": "2026-03-21",
     "changes": [
       "Fix Amazon series number extraction picking up the next-in-series value instead of the current book",
-      "Amazon import now parses series text (e.g. \u201cBook 5 of 16: Series Name\u201d) into series name and number separately"
+      "Amazon import now parses series text (e.g. “Book 5 of 16: Series Name”) into series name and number separately"
     ]
   },
   {
@@ -568,7 +586,7 @@
     "version": "0.11.1",
     "date": "2026-02-21",
     "changes": [
-      "Add \u201cRead\u201d overlay badges to book grid cards across all pages",
+      "Add “Read” overlay badges to book grid cards across all pages",
       "Fix book cover aspect ratio to reduce unwanted clipping",
       "Add Recently Added section to the dashboard",
       "Redesign Currently Reading section as a horizontal scroll card layout",

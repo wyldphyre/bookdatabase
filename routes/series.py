@@ -75,14 +75,14 @@ def series_check_name():
     exclude_id = request.args.get('exclude_id', type=int)
     if not name:
         return ''
-    q = Series.query.filter(Series.name.ilike(name))
+    q = Series.query.filter(db.func.lower(Series.name) == name.lower())
     if exclude_id:
         q = q.filter(Series.id != exclude_id)
     existing = q.first()
     if not existing:
         return ''
     return (f'<small style="color: var(--pico-del-color);">'
-            f'⚠ A series named <a href="{url_for("series_detail", id=existing.id)}" target="_blank">'
+            f'⚠ A series named <a href="{url_for("series.series_detail", id=existing.id)}" target="_blank">'
             f'{html.escape(existing.name)}</a> already exists.</small>')
 
 
@@ -125,7 +125,7 @@ def save_series(series):
         db.session.add(series)
     db.session.commit()
     flash('Series saved successfully', 'success')
-    return redirect(url_for('series_detail', id=series.id))
+    return redirect(url_for('series.series_detail', id=series.id))
 
 
 @series_bp.route('/series/<int:id>/delete', methods=['DELETE', 'POST'], endpoint='series_delete')
@@ -138,8 +138,8 @@ def series_delete(id):
     flash('Series deleted successfully', 'success')
 
     if request.headers.get('HX-Request'):
-        return '', 200, {'HX-Redirect': url_for('series_list')}
-    return redirect(url_for('series_list'))
+        return '', 200, {'HX-Redirect': url_for('series.series_list')}
+    return redirect(url_for('series.series_list'))
 
 
 @series_bp.route('/series/<int:id>/update-count', methods=['POST'], endpoint='series_update_count')
@@ -166,7 +166,7 @@ def series_update_count(id):
     else:
         flash('Could not determine book count from the series page', 'error')
 
-    return redirect(url_for('series_detail', id=id))
+    return redirect(url_for('series.series_detail', id=id))
 
 
 @series_bp.route('/series/search', endpoint='series_search')
@@ -187,7 +187,7 @@ def series_quick_add():
     if not name:
         return '<p class="error">Name is required</p>', 400
 
-    series = Series.query.filter(Series.name.ilike(name)).first()
+    series = Series.query.filter(db.func.lower(Series.name) == name.lower()).first()
     if not series:
         series = Series(name=name)
         db.session.add(series)

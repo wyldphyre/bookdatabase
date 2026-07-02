@@ -6,17 +6,17 @@
 
 {% block content %}
 
-<form action="{{ url_for('search') }}" method="get">
+<form action="{{ url_for('search.search') }}" method="get">
     <input type="search" name="q" placeholder="Search books, authors, or series..."
            value="{{ query }}" autofocus
-           hx-get="{{ url_for('search') }}"
+           hx-get="{{ url_for('search.search') }}"
            hx-trigger="keyup changed delay:300ms"
            hx-target="#search-results"
            hx-push-url="true"
            hx-include="[name=tags]">
     <label>
         <input type="checkbox" name="tags" value="1" {% if include_tags %}checked{% endif %}
-               hx-get="{{ url_for('search') }}"
+               hx-get="{{ url_for('search.search') }}"
                hx-trigger="change"
                hx-target="#search-results"
                hx-push-url="true"

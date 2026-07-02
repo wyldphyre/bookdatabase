@@ -8,7 +8,7 @@
 
 <form method="post" enctype="multipart/form-data">
     {% if prefill_parent is defined and prefill_parent %}
-    <p><mark>Adding to bundle: <a href="{{ url_for('book_detail', id=prefill_parent.id) }}">{{ prefill_parent.title }}</a></mark></p>
+    <p><mark>Adding to bundle: <a href="{{ url_for('books.book_detail', id=prefill_parent.id) }}">{{ prefill_parent.title }}</a></mark></p>
     <input type="hidden" name="parent_id" value="{{ prefill_parent.id }}">
     {% endif %}
 
@@ -56,7 +56,7 @@
                    id="author-search"
                    placeholder="Search for an author..."
                    autocomplete="off"
-                   hx-get="{{ url_for('author_search') }}"
+                   hx-get="{{ url_for('authors.author_search') }}"
                    hx-trigger="input changed delay:200ms, focus"
                    hx-target="#author-search-results"
                    hx-vals='js:{exclude: Array.from(document.querySelectorAll("#selected-authors input[name=authors]")).map(i => i.value).join(",")}'
@@ -72,7 +72,7 @@
                     <input type="text" name="name" id="new-author-name" placeholder="Enter author name...">
                 </label>
                 <button type="button" class="secondary"
-                        hx-post="{{ url_for('author_quick_add') }}"
+                        hx-post="{{ url_for('authors.author_quick_add') }}"
                         hx-include="#new-author-name"
                         hx-target="#selected-authors"
                         hx-swap="beforeend"
@@ -110,7 +110,7 @@
         try {
             const formData = new FormData();
             formData.append('name', name);
-            const response = await fetch('{{ url_for("author_quick_add") }}', { method: 'POST', body: formData });
+            const response = await fetch('{{ url_for("authors.author_quick_add") }}', { method: 'POST', body: formData });
             if (!response.ok) throw new Error('Failed to add author');
             const html = await response.text();
 
@@ -151,7 +151,7 @@
         try {
             const formData = new FormData();
             formData.append('series_name', name);
-            const response = await fetch('{{ url_for("series_quick_add") }}', { method: 'POST', body: formData });
+            const response = await fetch('{{ url_for("series.series_quick_add") }}', { method: 'POST', body: formData });
             if (!response.ok) throw new Error('Failed to add series');
             const data = await response.json();
             applySeriesQuickAdd(data.id, data.name);
@@ -176,7 +176,7 @@
         try {
             const formData = new FormData();
             formData.append('series_name', name);
-            const response = await fetch('{{ url_for("series_quick_add") }}', { method: 'POST', body: formData });
+            const response = await fetch('{{ url_for("series.series_quick_add") }}', { method: 'POST', body: formData });
             if (!response.ok) return;
             const data = await response.json();
             applySeriesQuickAdd(data.id, data.name);
@@ -266,7 +266,7 @@
                        placeholder="Search for a series..."
                        autocomplete="off"
                        value="{% if book and book.series %}{{ book.series.name }}{% endif %}"
-                       hx-get="{{ url_for('series_search') }}"
+                       hx-get="{{ url_for('series.series_search') }}"
                        hx-trigger="input changed delay:200ms, focus"
                        hx-target="#series-search-results"
                        name="q">
@@ -346,7 +346,7 @@
 
         try {
             const params = new URLSearchParams({ title: title, author: authorNames });
-            const response = await fetch('{{ url_for("search_description") }}?' + params);
+            const response = await fetch('{{ url_for("books.search_description") }}?' + params);
             const data = await response.json();
 
             if (response.ok && data.description) {
@@ -438,7 +438,7 @@
                    name="q"
                    placeholder="Search for existing book..."
                    autocomplete="off"
-                   hx-get="{{ url_for('book_bundle_child_search') }}"
+                   hx-get="{{ url_for('books.book_bundle_child_search') }}"
                    hx-trigger="input changed delay:200ms, focus"
                    hx-target="#bundle-child-results"
                    hx-vals='js:{exclude: getBundleChildIds(), bundle_id: {{ book.id }}}'>
@@ -558,7 +558,7 @@
                        id="tag-search"
                        placeholder="Search for tags..."
                        autocomplete="off"
-                       hx-get="{{ url_for('tag_search') }}"
+                       hx-get="{{ url_for('system.tag_search') }}"
                        hx-trigger="input changed delay:200ms, focus"
                        hx-target="#tag-search-results"
                        hx-vals='js:{exclude: Array.from(document.querySelectorAll("#selected-tags input[name=tags]")).map(i => i.value).join(",")}'
@@ -571,7 +571,7 @@
         <div id="quick-add-tag-form" hidden class="quick-add-tag-form">
             <input type="text" name="tag_name" id="new-tag-name" placeholder="New tag name...">
             <button type="button" class="secondary tag-new-btn"
-                    hx-post="{{ url_for('tag_quick_add') }}"
+                    hx-post="{{ url_for('system.tag_quick_add') }}"
                     hx-include="#new-tag-name"
                     hx-target="#selected-tags"
                     hx-swap="beforeend"
@@ -583,7 +583,7 @@
 
     <div class="button-group">
         <button type="submit">{{ 'Update' if book else 'Add' }} Book</button>
-        <a href="{{ url_for('book_detail', id=book.id) if book else url_for('book_list') }}" role="button" class="secondary">Cancel</a>
+        <a href="{{ url_for('books.book_detail', id=book.id) if book else url_for('books.book_list') }}" role="button" class="secondary">Cancel</a>
     </div>
 </form>
 {% endblock %}

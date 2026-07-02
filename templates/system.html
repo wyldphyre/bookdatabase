@@ -34,7 +34,7 @@
 <article>
     <h3>Notifications</h3>
     <p>Pushover is configured. Send a test notification to confirm it's working.</p>
-    <form method="post" action="{{ url_for('system_pushover_test') }}">
+    <form method="post" action="{{ url_for('system.system_pushover_test') }}">
         <button type="submit" class="outline secondary" style="width: auto;">Send Test Notification</button>
     </form>
 </article>
@@ -49,7 +49,7 @@
            name="q"
            placeholder="Search tags by name..."
            autocomplete="off"
-           hx-get="{{ url_for('system_tag_search') }}"
+           hx-get="{{ url_for('system.system_tag_search') }}"
            hx-trigger="input changed delay:200ms"
            hx-target="#system-tag-results">
 

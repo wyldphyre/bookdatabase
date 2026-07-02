@@ -95,7 +95,12 @@ def scrape_amazon(url):
     # Cover image
     img_el = soup.select_one('#imgBlkFront, #ebooksImgBlkFront, #landingImage')
     if img_el:
-        data['cover_url'] = img_el.get('src') or img_el.get('data-a-dynamic-image', '').split('"')[1] if '"' in img_el.get('data-a-dynamic-image', '') else None
+        cover_url = img_el.get('src')
+        if not cover_url:
+            dynamic_image = img_el.get('data-a-dynamic-image', '')
+            if '"' in dynamic_image:
+                cover_url = dynamic_image.split('"')[1]
+        data['cover_url'] = cover_url
 
     # Page count
     details = soup.select('#detailBullets_feature_div li, #productDetailsTable .content li')

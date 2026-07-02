@@ -116,7 +116,7 @@
                        id="tag-search"
                        placeholder="Search for tags..."
                        autocomplete="off"
-                       hx-get="{{ url_for('tag_search') }}"
+                       hx-get="{{ url_for('system.tag_search') }}"
                        hx-trigger="input changed delay:200ms, focus"
                        hx-target="#tag-search-results"
                        hx-vals='js:{exclude: Array.from(document.querySelectorAll("#selected-tags input[name=tags]")).map(i => i.value).join(",")}'
@@ -129,7 +129,7 @@
         <div id="quick-add-tag-form" hidden class="quick-add-tag-form">
             <input type="text" name="tag_name" id="new-tag-name" placeholder="New tag name...">
             <button type="button" class="secondary tag-new-btn"
-                    hx-post="{{ url_for('tag_quick_add') }}"
+                    hx-post="{{ url_for('system.tag_quick_add') }}"
                     hx-include="#new-tag-name"
                     hx-target="#selected-tags"
                     hx-swap="beforeend"
@@ -174,7 +174,7 @@
 
     <div class="button-group">
         <button type="submit">{{ 'Update' if author else 'Add' }} Author</button>
-        <a href="{{ url_for('author_detail', id=author.id) if author else url_for('author_list') }}" role="button" class="secondary">Cancel</a>
+        <a href="{{ url_for('authors.author_detail', id=author.id) if author else url_for('authors.author_list') }}" role="button" class="secondary">Cancel</a>
     </div>
 </form>
 {% endblock %}

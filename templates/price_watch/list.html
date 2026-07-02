@@ -6,7 +6,7 @@
 
 {% block content %}
 
-<form method="post" action="{{ url_for('price_watch_add') }}">
+<form method="post" action="{{ url_for('price_watch.price_watch_add') }}">
     <label>
         Amazon Kindle URL
         <input type="url" name="amazon_url" placeholder="https://www.amazon.com/dp/..." required>
@@ -15,7 +15,7 @@
 </form>
 
 {% if watches %}
-<form method="post" action="{{ url_for('price_watch_check_now') }}" style="margin-top: 1rem;">
+<form method="post" action="{{ url_for('price_watch.price_watch_check_now') }}" style="margin-top: 1rem;">
     <button type="submit" class="outline secondary" style="width: auto;">Check Prices Now</button>
 </form>
 
