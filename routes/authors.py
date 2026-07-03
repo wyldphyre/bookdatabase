@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from sqlalchemy.orm import subqueryload
-from models import db, Book, Author, AuthorGender, Tag
+from models import db, Book, Author, AuthorGender, AuthorInfoSuggestion, Tag
 from utils import clean_external_url
+from author_info import lookup_author_info
 
 authors_bp = Blueprint('authors', __name__)
 
@@ -128,6 +129,38 @@ def author_quick_add():
     return render_template('books/_author_chip.html', author=author)
 
 
+@authors_bp.route('/authors/lookup-info', endpoint='author_lookup_info')
+def author_lookup_info():
+    """Live gender/pronoun lookup for the author form."""
+    name = request.args.get('name', '').strip()
+    if not name:
+        return jsonify({'error': 'Enter the author name first'}), 400
+
+    goodreads_url = request.args.get('goodreads_url', '').strip() or None
+    website = request.args.get('website', '').strip() or None
+
+    try:
+        info = lookup_author_info(name, goodreads_url, website)
+    except Exception as e:
+        return jsonify({'error': f'Lookup failed: {e}'}), 500
+
+    if not info:
+        return jsonify({'error': 'No clear evidence found — best left blank'}), 404
+
+    gender = None
+    if info['gender']:
+        gender = AuthorGender.query.filter(
+            db.func.lower(AuthorGender.name) == info['gender'].lower()).first()
+
+    return jsonify({
+        'gender_id': gender.id if gender else None,
+        'gender': gender.name if gender else None,
+        'pronouns': info['pronouns'],
+        'evidence': info['evidence'],
+        'source_url': info['source_url'],
+    })
+
+
 @authors_bp.route('/authors/<int:id>/delete', methods=['DELETE', 'POST'], endpoint='author_delete')
 def author_delete(id):
     author = db.get_or_404(Author, id)
@@ -135,6 +168,8 @@ def author_delete(id):
     author.books = []
     # Update any aliases pointing to this author
     Author.query.filter_by(alias_of_id=id).update({'alias_of_id': None})
+    # Remove any pending info suggestion
+    AuthorInfoSuggestion.query.filter_by(author_id=id).delete()
     db.session.delete(author)
     db.session.commit()
     flash('Author deleted successfully', 'success')

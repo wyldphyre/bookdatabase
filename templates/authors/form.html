@@ -32,6 +32,61 @@
         </label>
     </div>
 
+    <div style="margin-bottom: 1rem;">
+        <button type="button" id="lookup-info-btn" class="outline secondary" style="width: auto;"
+                onclick="lookupAuthorInfo()"
+                title="Search the author's Goodreads bio, Wikipedia, and website for gender and pronoun evidence">
+            Look up gender &amp; pronouns
+        </button>
+        <small id="lookup-info-result" style="display: block; margin-top: 0.5rem;"></small>
+    </div>
+
+    <script>
+    async function lookupAuthorInfo() {
+        const btn = document.getElementById('lookup-info-btn');
+        const result = document.getElementById('lookup-info-result');
+        const name = document.querySelector('input[name="name"]').value.trim();
+        result.textContent = '';
+        if (!name) {
+            result.textContent = 'Enter the author name first';
+            return;
+        }
+        btn.disabled = true;
+        btn.textContent = 'Looking up…';
+        try {
+            const params = new URLSearchParams({
+                name: name,
+                goodreads_url: document.querySelector('input[name="goodreads_url"]').value,
+                website: document.querySelector('input[name="website"]').value,
+            });
+            const resp = await fetch(`{{ url_for('authors.author_lookup_info') }}?${params}`);
+            const data = await resp.json();
+            if (!resp.ok) {
+                result.textContent = data.error || 'Lookup failed';
+                return;
+            }
+            if (data.pronouns) document.querySelector('input[name="pronouns"]').value = data.pronouns;
+            if (data.gender_id) document.querySelector('select[name="gender_id"]').value = data.gender_id;
+            const em = document.createElement('em');
+            em.textContent = data.evidence ? `"${data.evidence}"` : 'Found — review before saving';
+            result.replaceChildren(em);
+            if (data.source_url) {
+                const link = document.createElement('a');
+                link.href = data.source_url;
+                link.target = '_blank';
+                link.rel = 'noopener';
+                link.textContent = 'source';
+                result.append(' — ', link);
+            }
+        } catch (err) {
+            result.textContent = 'Lookup failed: ' + err;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Look up gender & pronouns';
+        }
+    }
+    </script>
+
     <label>
         Alias Of
         <input type="text" id="alias-of-input" list="alias-of-options" autocomplete="off"

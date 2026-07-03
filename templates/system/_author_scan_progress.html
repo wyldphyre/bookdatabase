@@ -1,0 +1,94 @@
+{% if scan.status == 'idle' %}
+<div id="author-scan-controls">
+    <button hx-post="{{ url_for('system.scan_authors_start') }}"
+            hx-target="#author-scan-area">
+        Start Scan
+    </button>
+</div>
+
+{% elif scan.status in ('running', 'paused') %}
+<div id="author-scan-controls"
+     hx-get="{{ url_for('system.scan_authors_progress') }}"
+     hx-trigger="every 1s"
+     hx-target="#author-scan-area">
+
+    <div class="scan-stats">
+        <strong>{{ scan.progress }}</strong> of <strong>{{ scan.total }}</strong> authors scanned
+        {% if scan.suggestions_found > 0 %}
+        &mdash; <strong>{{ scan.suggestions_found }}</strong> suggestions found
+        {% endif %}
+        {% if scan.synced > 0 %}
+        &mdash; <strong>{{ scan.synced }}</strong> synced from aliases
+        {% endif %}
+        {% if scan.status == 'paused' %}
+        &mdash; <em>Paused</em>
+        {% endif %}
+    </div>
+
+    <progress value="{{ scan.progress }}" max="{{ scan.total }}"></progress>
+
+    {% if scan.current_author %}
+    <p class="scan-current">Processing: <strong>{{ scan.current_author }}</strong></p>
+    {% endif %}
+
+    <div class="button-group">
+        <button hx-post="{{ url_for('system.scan_authors_pause') }}"
+                hx-target="#author-scan-area"
+                class="outline">
+            {{ 'Resume' if scan.status == 'paused' else 'Pause' }}
+        </button>
+        <button hx-post="{{ url_for('system.scan_authors_stop') }}"
+                hx-target="#author-scan-area"
+                class="secondary">
+            Stop
+        </button>
+    </div>
+</div>
+
+{% elif scan.status in ('complete', 'stopped') %}
+<div id="author-scan-controls">
+    <div class="scan-stats">
+        Scan {{ 'complete' if scan.status == 'complete' else 'stopped' }}:
+        <strong>{{ scan.progress }}</strong> of <strong>{{ scan.total }}</strong> authors scanned
+        &mdash; <strong>{{ scan.suggestions_found }}</strong> suggestions found
+        {% if scan.synced > 0 %}
+        &mdash; <strong>{{ scan.synced }}</strong> synced from aliases
+        {% endif %}
+    </div>
+    <progress value="{{ scan.progress }}" max="{{ scan.total }}"></progress>
+    {% if scan.suggestions_found > 0 %}
+    <p><a href="{{ url_for('system.system') }}#author-suggestions" role="button" class="outline">Review suggestions</a></p>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if scan.results %}
+<details open class="scan-log">
+    <summary>Scan Log ({{ scan.results|length }} entries)</summary>
+    <div class="scan-log-entries">
+        {% for entry in scan.results|reverse %}
+        <div class="scan-log-entry {{ entry.status }}">
+            <strong>{{ entry.author }}</strong>
+            {% if entry.status == 'suggested' %}
+            &mdash; {% if entry.gender %}gender: {{ entry.gender }}{% endif %}{% if entry.gender and entry.pronouns %}, {% endif %}{% if entry.pronouns %}pronouns: {{ entry.pronouns }}{% endif %}
+            {% elif entry.status == 'synced' %}
+            &mdash; <em>copied from alias/primary record</em>
+            {% elif entry.status == 'not_found' %}
+            &mdash; <em>no clear evidence found</em>
+            {% elif entry.status == 'error' %}
+            &mdash; <em>error: {{ entry.message }}</em>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</details>
+{% endif %}
+
+{% if scan.status in ('complete', 'stopped') %}
+<div style="margin-top: 1rem;">
+    <button hx-post="{{ url_for('system.scan_authors_start') }}"
+            hx-target="#author-scan-area">
+        Start New Scan
+    </button>
+</div>
+{% endif %}

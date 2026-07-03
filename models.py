@@ -229,6 +229,22 @@ class ReadingQueue(db.Model):
         return self.book.author_names if self.book else self.external_author
 
 
+class AuthorInfoSuggestion(db.Model):
+    """A gender/pronoun suggestion found by the author info scan, awaiting
+    review on the System page."""
+    __tablename__ = 'author_info_suggestion'
+    id = db.Column(db.Integer, primary_key=True)
+    author_id = db.Column(db.Integer, db.ForeignKey('author.id'), nullable=False, unique=True)
+    suggested_gender_id = db.Column(db.Integer, db.ForeignKey('author_gender.id'))
+    suggested_pronouns = db.Column(db.String(50))
+    evidence = db.Column(db.Text)
+    source_url = db.Column(db.String(500))
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+
+    author = db.relationship('Author', backref=db.backref('info_suggestion', uselist=False))
+    suggested_gender = db.relationship('AuthorGender')
+
+
 class PriceWatch(db.Model):
     __tablename__ = 'price_watch'
     id = db.Column(db.Integer, primary_key=True)

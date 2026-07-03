@@ -4,8 +4,9 @@ import time
 import threading
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash
 from sqlalchemy.orm import joinedload
-from models import db, Book, Series, Tag
+from models import db, Book, Series, Tag, Author, AuthorGender, AuthorInfoSuggestion
 from scrapers import search_goodreads_for_book, scrape_goodreads, scrape_goodreads_series, scrape_amazon_series
+from author_info import lookup_author_info
 from notifications import send_pushover_notification
 
 system_bp = Blueprint('system', __name__)
@@ -34,6 +35,19 @@ series_scan = {
 }
 series_scan_lock = threading.Lock()
 
+author_scan = {
+    'status': 'idle',
+    'progress': 0,
+    'total': 0,
+    'current_author': '',
+    'suggestions_found': 0,
+    'synced': 0,
+    'results': [],
+    'paused': False,
+    'stop_requested': False,
+}
+author_scan_lock = threading.Lock()
+
 
 def _snapshot(scan, lock):
     """Return a consistent copy of a scan dict under lock."""
@@ -52,9 +66,15 @@ def system():
     except (OSError, ValueError):
         changelog = []
     pushover_configured = bool(os.environ.get('PUSHOVER_USER_KEY')) and bool(os.environ.get('PUSHOVER_APP_TOKEN'))
+    suggestions = AuthorInfoSuggestion.query.options(
+        joinedload(AuthorInfoSuggestion.author).joinedload(Author.gender),
+        joinedload(AuthorInfoSuggestion.suggested_gender)
+    ).join(Author).order_by(Author.name).all()
     return render_template('system.html',
                            scan=_snapshot(genre_scan, genre_scan_lock),
                            series_scan=_snapshot(series_scan, series_scan_lock),
+                           author_scan=_snapshot(author_scan, author_scan_lock),
+                           suggestions=suggestions,
                            version=current_app.config['APP_VERSION'],
                            changelog=changelog,
                            pushover_configured=pushover_configured)
@@ -359,6 +379,221 @@ def run_series_scan(app):
             series_scan['progress'] = series_scan['total']
             series_scan['current_series'] = ''
             series_scan['status'] = 'complete'
+
+
+@system_bp.route('/system/scan-authors', methods=['POST'], endpoint='scan_authors_start')
+def scan_authors_start():
+    with author_scan_lock:
+        # Refuse while a scan thread is alive ('paused' included — resetting its
+        # state here would unpause it and leave two threads running).
+        already_active = author_scan['status'] in ('running', 'paused')
+        if not already_active:
+            author_scan.update({
+                'status': 'running',
+                'progress': 0,
+                'total': 0,
+                'current_author': '',
+                'suggestions_found': 0,
+                'synced': 0,
+                'results': [],
+                'paused': False,
+                'stop_requested': False,
+            })
+
+    if not already_active:
+        _app = current_app._get_current_object()
+        thread = threading.Thread(target=run_author_scan, args=(_app,), daemon=True)
+        thread.start()
+
+    return render_template('system/_author_scan_progress.html', scan=_snapshot(author_scan, author_scan_lock))
+
+
+@system_bp.route('/system/scan-authors/progress', endpoint='scan_authors_progress')
+def scan_authors_progress():
+    return render_template('system/_author_scan_progress.html', scan=_snapshot(author_scan, author_scan_lock))
+
+
+@system_bp.route('/system/scan-authors/pause', methods=['POST'], endpoint='scan_authors_pause')
+def scan_authors_pause():
+    with author_scan_lock:
+        if author_scan['status'] == 'running':
+            author_scan['paused'] = True
+            author_scan['status'] = 'paused'
+        elif author_scan['status'] == 'paused':
+            author_scan['paused'] = False
+            author_scan['status'] = 'running'
+    return render_template('system/_author_scan_progress.html', scan=_snapshot(author_scan, author_scan_lock))
+
+
+@system_bp.route('/system/scan-authors/stop', methods=['POST'], endpoint='scan_authors_stop')
+def scan_authors_stop():
+    with author_scan_lock:
+        author_scan['stop_requested'] = True
+    return render_template('system/_author_scan_progress.html', scan=_snapshot(author_scan, author_scan_lock))
+
+
+def _author_needs_info(author, unknown_id):
+    needs_pronouns = not author.pronouns
+    needs_gender = author.gender_id is None or author.gender_id == unknown_id
+    return needs_pronouns, needs_gender
+
+
+def _sync_author_aliases():
+    """Copy gender/pronouns between alias and primary author records when one
+    side has the data and the other doesn't. Returns list of synced names."""
+    unknown = AuthorGender.query.filter(db.func.lower(AuthorGender.name) == 'unknown').first()
+    unknown_id = unknown.id if unknown else -1
+    synced = []
+    for alias in Author.query.filter(Author.alias_of_id.isnot(None)).all():
+        primary = alias.alias_of
+        if not primary:
+            continue
+        for src, dst in ((primary, alias), (alias, primary)):
+            changed = False
+            if src.pronouns and not dst.pronouns:
+                dst.pronouns = src.pronouns
+                changed = True
+            if src.gender_id and src.gender_id != unknown_id and \
+                    (dst.gender_id is None or dst.gender_id == unknown_id):
+                dst.gender_id = src.gender_id
+                changed = True
+            if changed:
+                synced.append(dst.name)
+    if synced:
+        db.session.commit()
+    return synced
+
+
+def run_author_scan(app):
+    """Background thread that looks up gender/pronouns for authors missing
+    them and records suggestions for review. Never writes to the author
+    directly, except for the alias<->primary sync pre-pass."""
+    with app.app_context():
+        # Free pre-pass: sync data between aliases and their primary record
+        synced = _sync_author_aliases()
+        with author_scan_lock:
+            author_scan['synced'] = len(synced)
+            for name in synced:
+                author_scan['results'].append({'author': name, 'status': 'synced'})
+
+        unknown = AuthorGender.query.filter(db.func.lower(AuthorGender.name) == 'unknown').first()
+        unknown_id = unknown.id if unknown else -1
+
+        authors = Author.query.filter(
+            Author.alias_of_id.is_(None),
+            db.or_(
+                Author.pronouns.is_(None), Author.pronouns == '',
+                Author.gender_id.is_(None), Author.gender_id == unknown_id,
+            )
+        ).order_by(Author.name).all()
+
+        with author_scan_lock:
+            author_scan['total'] = len(authors)
+
+        for i, author in enumerate(authors):
+            if author_scan['stop_requested']:
+                with author_scan_lock:
+                    author_scan['status'] = 'stopped'
+                    author_scan['current_author'] = ''
+                return
+
+            while author_scan['paused']:
+                if author_scan['stop_requested']:
+                    with author_scan_lock:
+                        author_scan['status'] = 'stopped'
+                        author_scan['current_author'] = ''
+                    return
+                time.sleep(0.5)
+
+            with author_scan_lock:
+                author_scan['current_author'] = author.name
+                author_scan['progress'] = i
+
+            needs_pronouns, needs_gender = _author_needs_info(author, unknown_id)
+
+            try:
+                info = lookup_author_info(author.name, author.goodreads_url, author.website)
+
+                suggested_pronouns = info['pronouns'] if info and needs_pronouns else None
+                suggested_gender = None
+                if info and needs_gender and info['gender']:
+                    suggested_gender = AuthorGender.query.filter(
+                        db.func.lower(AuthorGender.name) == info['gender'].lower()).first()
+
+                if suggested_pronouns or suggested_gender:
+                    AuthorInfoSuggestion.query.filter_by(author_id=author.id).delete()
+                    db.session.add(AuthorInfoSuggestion(
+                        author_id=author.id,
+                        suggested_gender_id=suggested_gender.id if suggested_gender else None,
+                        suggested_pronouns=suggested_pronouns,
+                        evidence=info['evidence'],
+                        source_url=info['source_url'],
+                    ))
+                    db.session.commit()
+                    with author_scan_lock:
+                        author_scan['suggestions_found'] += 1
+                        author_scan['results'].append({
+                            'author': author.name,
+                            'status': 'suggested',
+                            'pronouns': suggested_pronouns,
+                            'gender': suggested_gender.name if suggested_gender else None,
+                        })
+                else:
+                    with author_scan_lock:
+                        author_scan['results'].append({
+                            'author': author.name,
+                            'status': 'not_found',
+                        })
+
+            except Exception as e:
+                with author_scan_lock:
+                    author_scan['results'].append({
+                        'author': author.name,
+                        'status': 'error',
+                        'message': str(e),
+                    })
+
+            # Brief delay to be polite to the sources
+            time.sleep(2)
+
+        with author_scan_lock:
+            author_scan['progress'] = author_scan['total']
+            author_scan['current_author'] = ''
+            author_scan['status'] = 'complete'
+
+
+@system_bp.route('/system/author-suggestions/<int:id>/accept', methods=['POST'], endpoint='author_suggestion_accept')
+def author_suggestion_accept(id):
+    suggestion = db.get_or_404(AuthorInfoSuggestion, id)
+    if suggestion.suggested_gender_id:
+        suggestion.author.gender_id = suggestion.suggested_gender_id
+    if suggestion.suggested_pronouns:
+        suggestion.author.pronouns = suggestion.suggested_pronouns
+    db.session.delete(suggestion)
+    db.session.commit()
+    return ''
+
+
+@system_bp.route('/system/author-suggestions/<int:id>/reject', methods=['POST', 'DELETE'], endpoint='author_suggestion_reject')
+def author_suggestion_reject(id):
+    suggestion = db.get_or_404(AuthorInfoSuggestion, id)
+    db.session.delete(suggestion)
+    db.session.commit()
+    return ''
+
+
+@system_bp.route('/system/author-suggestions/accept-all', methods=['POST'], endpoint='author_suggestion_accept_all')
+def author_suggestion_accept_all():
+    suggestions = AuthorInfoSuggestion.query.all()
+    for suggestion in suggestions:
+        if suggestion.suggested_gender_id:
+            suggestion.author.gender_id = suggestion.suggested_gender_id
+        if suggestion.suggested_pronouns:
+            suggestion.author.pronouns = suggestion.suggested_pronouns
+        db.session.delete(suggestion)
+    db.session.commit()
+    flash(f'Applied {len(suggestions)} author info suggestion(s)', 'success')
+    return redirect(url_for('system.system'))
 
 
 @system_bp.route('/system/tags/search', endpoint='system_tag_search')

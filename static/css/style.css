@@ -2131,3 +2131,31 @@ ul.tag-search-results {
     padding: 0.3rem 0.75rem;
     font-size: 0.9rem;
 }
+
+/* Author info suggestion review rows (System page) */
+.author-suggestion {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+    font-size: 0.9rem;
+}
+
+.author-suggestion:last-child {
+    border-bottom: none;
+}
+
+.author-suggestion-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.author-suggestion-actions button {
+    margin: 0;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.9rem;
+    width: auto;
+}

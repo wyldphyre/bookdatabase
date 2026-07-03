@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.0.54",
+    "date": "2026-07-03",
+    "changes": [
+      "Add Author Gender & Pronoun Scanner to the System page: looks up authors missing gender or pronouns using their Goodreads bio, Wikidata/Wikipedia, and website, counting the pronouns actually used in third-person prose (never guessing from names)",
+      "Scan findings appear as suggestions with an evidence quote and source link — accept or reject each one (or Accept All); nothing is written to an author without review",
+      "Scan pre-pass syncs gender/pronouns between alias and primary author records automatically",
+      "Add a 'Look up gender & pronouns' button to the author form that does the same lookup live and pre-fills the fields with the evidence shown"
+    ]
+  },
+  {
     "version": "1.0.53",
     "date": "2026-07-02",
     "changes": [

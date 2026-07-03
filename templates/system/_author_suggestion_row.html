@@ -1,0 +1,32 @@
+<div class="author-suggestion" id="suggestion-{{ suggestion.id }}">
+    <div class="author-suggestion-body">
+        <strong><a href="{{ url_for('authors.author_detail', id=suggestion.author.id) }}">{{ suggestion.author.name }}</a></strong>
+        {% if suggestion.suggested_gender %}
+        &mdash; gender: <em>{{ suggestion.author.gender.name if suggestion.author.gender else 'not set' }}</em> &rarr; <strong>{{ suggestion.suggested_gender.name }}</strong>
+        {% endif %}
+        {% if suggestion.suggested_pronouns %}
+        &mdash; pronouns: <strong>{{ suggestion.suggested_pronouns }}</strong>
+        {% endif %}
+        {% if suggestion.evidence %}
+        <br><small class="secondary">&ldquo;{{ suggestion.evidence }}&rdquo;
+        {% if suggestion.source_url %}
+        &mdash; <a href="{{ suggestion.source_url }}" target="_blank" rel="noopener">source</a>
+        {% endif %}
+        </small>
+        {% endif %}
+    </div>
+    <div class="author-suggestion-actions">
+        <button class="outline"
+                hx-post="{{ url_for('system.author_suggestion_accept', id=suggestion.id) }}"
+                hx-target="#suggestion-{{ suggestion.id }}"
+                hx-swap="outerHTML">
+            Accept
+        </button>
+        <button class="outline secondary"
+                hx-post="{{ url_for('system.author_suggestion_reject', id=suggestion.id) }}"
+                hx-target="#suggestion-{{ suggestion.id }}"
+                hx-swap="outerHTML">
+            Reject
+        </button>
+    </div>
+</div>

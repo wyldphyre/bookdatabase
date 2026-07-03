@@ -74,6 +74,34 @@
     </div>
 </article>
 
+<article>
+    <h3>Author Gender &amp; Pronoun Scanner</h3>
+    <p>Look up gender and pronouns for authors missing them, using their Goodreads bio, Wikipedia, and website.
+       Nothing is written automatically &mdash; findings appear below as suggestions with their evidence for you to accept or reject.</p>
+
+    <div id="author-scan-area">
+        {% with scan=author_scan %}{% include "system/_author_scan_progress.html" %}{% endwith %}
+    </div>
+</article>
+
+{% if suggestions %}
+<article id="author-suggestions">
+    <h3>Author Info Suggestions ({{ suggestions|length }})</h3>
+    <p>Review each suggestion against its evidence. Accept applies it to the author; reject discards it.</p>
+
+    <form method="post" action="{{ url_for('system.author_suggestion_accept_all') }}"
+          onsubmit="return confirm('Apply all {{ suggestions|length }} suggestions?');">
+        <button type="submit" class="outline" style="width: auto;">Accept All</button>
+    </form>
+
+    <div class="author-suggestions">
+        {% for suggestion in suggestions %}
+        {% include "system/_author_suggestion_row.html" %}
+        {% endfor %}
+    </div>
+</article>
+{% endif %}
+
 {% if changelog %}
 <article id="changelog">
     <h3>Change Log</h3>
@@ -111,27 +139,19 @@ function cancelRename(tagId) {
 }
 
 // Preserve scan log scroll position across htmx polling swaps
+var scanAreas = ['scan-area', 'series-scan-area', 'author-scan-area'];
+var scanLogScroll = {};
 document.addEventListener('htmx:beforeSwap', function(e) {
-    if (e.detail.target.id === 'scan-area') {
-        var logEl = document.querySelector('#scan-area .scan-log-entries');
-        if (logEl) window._scanLogScroll = logEl.scrollTop;
-    }
-    if (e.detail.target.id === 'series-scan-area') {
-        var logEl = document.querySelector('#series-scan-area .scan-log-entries');
-        if (logEl) window._seriesScanLogScroll = logEl.scrollTop;
+    if (scanAreas.indexOf(e.detail.target.id) !== -1) {
+        var logEl = document.querySelector('#' + e.detail.target.id + ' .scan-log-entries');
+        if (logEl) scanLogScroll[e.detail.target.id] = logEl.scrollTop;
     }
 });
 document.addEventListener('htmx:afterSettle', function(e) {
-    if (e.detail.target.id === 'scan-area') {
-        var logEl = document.querySelector('#scan-area .scan-log-entries');
-        if (logEl && window._scanLogScroll !== undefined) {
-            logEl.scrollTop = window._scanLogScroll;
-        }
-    }
-    if (e.detail.target.id === 'series-scan-area') {
-        var logEl = document.querySelector('#series-scan-area .scan-log-entries');
-        if (logEl && window._seriesScanLogScroll !== undefined) {
-            logEl.scrollTop = window._seriesScanLogScroll;
+    if (scanAreas.indexOf(e.detail.target.id) !== -1) {
+        var logEl = document.querySelector('#' + e.detail.target.id + ' .scan-log-entries');
+        if (logEl && scanLogScroll[e.detail.target.id] !== undefined) {
+            logEl.scrollTop = scanLogScroll[e.detail.target.id];
         }
     }
 });
