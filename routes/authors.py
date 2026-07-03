@@ -10,15 +10,25 @@ authors_bp = Blueprint('authors', __name__)
 @authors_bp.route('/authors', endpoint='author_list')
 def author_list():
     search = request.args.get('search', '').strip()
+    filter_type = request.args.get('filter', 'all')
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 25, type=int)
     if per_page not in [10, 25, 50, 100]:
         per_page = 25
+    if filter_type not in ('all', 'unknown_gender'):
+        filter_type = 'all'
     query = Author.query.options(subqueryload(Author.books)).filter_by(alias_of_id=None)
     if search:
         query = query.filter(Author.name.ilike(f'%{search}%'))
+    if filter_type == 'unknown_gender':
+        # No gender set, or explicitly set to the 'Unknown' gender
+        conditions = [Author.gender_id.is_(None)]
+        unknown = AuthorGender.query.filter(db.func.lower(AuthorGender.name) == 'unknown').first()
+        if unknown:
+            conditions.append(Author.gender_id == unknown.id)
+        query = query.filter(db.or_(*conditions))
     authors = query.order_by(Author.name).paginate(page=page, per_page=per_page, error_out=False)
-    return render_template('authors/list.html', authors=authors, search=search, per_page=per_page)
+    return render_template('authors/list.html', authors=authors, search=search, per_page=per_page, filter_type=filter_type)
 
 
 @authors_bp.route('/authors/<int:id>', endpoint='author_detail')

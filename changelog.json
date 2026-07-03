@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.56",
+    "date": "2026-07-03",
+    "changes": [
+      "Add an 'Unknown Gender' filter to the Authors page showing authors with no gender set or gender set to Unknown — works alongside search, pagination, and per-page"
+    ]
+  },
+  {
     "version": "1.0.55",
     "date": "2026-07-03",
     "changes": [
