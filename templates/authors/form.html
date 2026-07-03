@@ -150,6 +150,11 @@
         </div>
     </details>
 
+    <label>
+        Notes
+        <textarea name="notes" rows="3" placeholder="e.g., writing duo, recommended by...">{{ author.notes or '' if author else '' }}</textarea>
+    </label>
+
     <fieldset>
         <legend>Tags</legend>
 

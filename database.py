@@ -1,6 +1,6 @@
 from models import db, BookFormat, AuthorGender
 
-CURRENT_SCHEMA_VERSION = 8
+CURRENT_SCHEMA_VERSION = 9
 
 
 def _get_schema_version(cursor):
@@ -100,6 +100,13 @@ def run_migrations():
             cursor.execute("CREATE INDEX IF NOT EXISTS ix_author_name ON author(name)")
             conn.commit()
 
+        if version < 9:
+            cursor.execute("PRAGMA table_info(author)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'notes' not in columns:
+                cursor.execute("ALTER TABLE author ADD COLUMN notes TEXT")
+            conn.commit()
+
         if version < CURRENT_SCHEMA_VERSION:
             _set_schema_version(cursor, conn, CURRENT_SCHEMA_VERSION)
     finally:
@@ -122,8 +129,8 @@ def seed_data():
         if not BookFormat.query.filter_by(name=format_name).first():
             db.session.add(BookFormat(name=format_name))
 
-    # Seed author genders
-    genders = ['Female', 'Male', 'Nonbinary', 'Unknown']
+    # Seed author genders ('Male and Female' is for two people writing under one name)
+    genders = ['Female', 'Male', 'Male and Female', 'Nonbinary', 'Unknown']
     for gender_name in genders:
         if not AuthorGender.query.filter_by(name=gender_name).first():
             db.session.add(AuthorGender(name=gender_name))

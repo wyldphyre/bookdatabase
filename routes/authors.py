@@ -85,6 +85,7 @@ def save_author(author):
     author.amazon_url = clean_external_url(request.form.get('amazon_url', '').strip()) or None
     author.storygraph_url = clean_external_url(request.form.get('storygraph_url', '').strip()) or None
     author.website = request.form.get('website', '').strip() or None
+    author.notes = request.form.get('notes', '').strip() or None
     author.alias_of_id = request.form.get('alias_of_id', type=int) or None
 
     # Handle tags

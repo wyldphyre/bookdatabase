@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.0.57",
+    "date": "2026-07-04",
+    "changes": [
+      "Add a Notes field to authors — free-text notes shown on the author page and edited on the author form",
+      "Add a 'Male and Female' gender option for two people writing under one pen name"
+    ]
+  },
+  {
     "version": "1.0.56",
     "date": "2026-07-03",
     "changes": [

@@ -79,6 +79,7 @@ class Author(db.Model):
     amazon_url = db.Column(db.String(500))
     storygraph_url = db.Column(db.String(500))
     website = db.Column(db.String(500))
+    notes = db.Column(db.Text)
     alias_of_id = db.Column(db.Integer, db.ForeignKey('author.id'))
 
     # Self-referential relationship for aliases
