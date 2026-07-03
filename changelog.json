@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.0.55",
+    "date": "2026-07-03",
+    "changes": [
+      "Fix the author scan's 'Review suggestions' button doing nothing when clicked from the System page — it now loads the review section in place via htmx instead of a same-page anchor link that never triggered a reload",
+      "Harden the author scan worker so an unexpected error can't leave the progress display stuck on 'running' forever — it now logs the error to the scan log and stops cleanly"
+    ]
+  },
+  {
     "version": "1.0.54",
     "date": "2026-07-03",
     "changes": [

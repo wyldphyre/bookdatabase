@@ -57,7 +57,10 @@
     </div>
     <progress value="{{ scan.progress }}" max="{{ scan.total }}"></progress>
     {% if scan.suggestions_found > 0 %}
-    <p><a href="{{ url_for('system.system') }}#author-suggestions" role="button" class="outline">Review suggestions</a></p>
+    <p><button class="outline" style="width: auto;"
+               hx-get="{{ url_for('system.author_suggestions_partial') }}"
+               hx-target="#author-suggestions-area"
+               hx-swap="innerHTML show:#author-suggestions-area:top">Review suggestions</button></p>
     {% endif %}
 </div>
 {% endif %}

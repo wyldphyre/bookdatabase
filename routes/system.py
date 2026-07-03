@@ -66,18 +66,29 @@ def system():
     except (OSError, ValueError):
         changelog = []
     pushover_configured = bool(os.environ.get('PUSHOVER_USER_KEY')) and bool(os.environ.get('PUSHOVER_APP_TOKEN'))
-    suggestions = AuthorInfoSuggestion.query.options(
-        joinedload(AuthorInfoSuggestion.author).joinedload(Author.gender),
-        joinedload(AuthorInfoSuggestion.suggested_gender)
-    ).join(Author).order_by(Author.name).all()
     return render_template('system.html',
                            scan=_snapshot(genre_scan, genre_scan_lock),
                            series_scan=_snapshot(series_scan, series_scan_lock),
                            author_scan=_snapshot(author_scan, author_scan_lock),
-                           suggestions=suggestions,
+                           suggestions=_load_suggestions(),
                            version=current_app.config['APP_VERSION'],
                            changelog=changelog,
                            pushover_configured=pushover_configured)
+
+
+def _load_suggestions():
+    return AuthorInfoSuggestion.query.options(
+        joinedload(AuthorInfoSuggestion.author).joinedload(Author.gender),
+        joinedload(AuthorInfoSuggestion.suggested_gender)
+    ).join(Author).order_by(Author.name).all()
+
+
+@system_bp.route('/system/author-suggestions', endpoint='author_suggestions_partial')
+def author_suggestions_partial():
+    """The suggestions review section, fetched via htmx so the 'Review
+    suggestions' button works without a page reload (the section may not have
+    existed when the page was first rendered)."""
+    return render_template('system/_author_suggestions.html', suggestions=_load_suggestions())
 
 
 @system_bp.route('/system/pushover-test', methods=['POST'], endpoint='system_pushover_test')
@@ -468,6 +479,18 @@ def run_author_scan(app):
     """Background thread that looks up gender/pronouns for authors missing
     them and records suggestions for review. Never writes to the author
     directly, except for the alias<->primary sync pre-pass."""
+    try:
+        _run_author_scan(app)
+    except Exception as e:
+        # Without this, an uncaught error would leave the status stuck at
+        # 'running' with the progress bar frozen and polling forever.
+        with author_scan_lock:
+            author_scan['results'].append({'author': '(scan aborted)', 'status': 'error', 'message': str(e)})
+            author_scan['current_author'] = ''
+            author_scan['status'] = 'stopped'
+
+
+def _run_author_scan(app):
     with app.app_context():
         # Free pre-pass: sync data between aliases and their primary record
         synced = _sync_author_aliases()
