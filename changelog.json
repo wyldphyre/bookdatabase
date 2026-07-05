@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.58",
+    "date": "2026-07-05",
+    "changes": [
+      "Add a book options menu (…) next to the title on the book details page — find the book on Amazon, Goodreads, StoryGraph, or Kobo (linking directly when the book has a stored URL), plus Edit and Delete"
+    ]
+  },
+  {
     "version": "1.0.57",
     "date": "2026-07-04",
     "changes": [

@@ -171,6 +171,7 @@ if (localStorage.getItem('sidebar-collapsed') === 'true') {
         <div class="page-header">
             {{ nav_icon(active_nav) }}
             <h1>{% block page_heading %}{% endblock %}</h1>
+            {% block page_actions %}{% endblock %}
         </div>
         {% endif %}
 

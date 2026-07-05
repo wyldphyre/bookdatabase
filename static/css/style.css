@@ -1238,6 +1238,51 @@ img.lightbox-trigger {
     background: rgba(128, 128, 128, 0.15) !important;
 }
 
+.dropdown-menu button.menu-item {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0.5rem 1rem;
+    background: none;
+    border: none;
+    box-shadow: none;
+    /* inherit, not var(--pico-color): Pico redefines --pico-color to the
+       inverse (white) on button elements */
+    color: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.dropdown-menu .dropdown-divider {
+    border-top: 1px solid var(--pico-muted-border-color);
+    margin: 0.4rem 0;
+}
+
+/* Small ellipsis (…) trigger button for option menus */
+button.ellipsis-btn {
+    padding: 0.25rem 0.5rem;
+    /* Pico's default button margin-bottom pushes the button off-center
+       inside its wrapper (e.g. next to the page heading) */
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1;
+    width: auto;
+}
+
+/* Book options menu next to the page heading */
+.page-actions-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.page-actions-dropdown .dropdown-menu {
+    left: 0;
+    right: auto;
+    white-space: nowrap;
+}
+
 /* Prefill notices for imported books */
 .prefill-notice {
     padding: 1rem;
