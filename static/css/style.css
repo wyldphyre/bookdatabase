@@ -2177,8 +2177,9 @@ ul.tag-search-results {
     font-size: 0.9rem;
 }
 
-/* Author info suggestion review rows (System page) */
-.author-suggestion {
+/* Author info suggestion review rows (System page) — distinct from the
+   .author-suggestion import chips on the book form */
+.author-scan-suggestion {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -2188,17 +2189,17 @@ ul.tag-search-results {
     font-size: 0.9rem;
 }
 
-.author-suggestion:last-child {
+.author-scan-suggestion:last-child {
     border-bottom: none;
 }
 
-.author-suggestion-actions {
+.author-scan-suggestion-actions {
     display: flex;
     gap: 0.5rem;
     flex-shrink: 0;
 }
 
-.author-suggestion-actions button {
+.author-scan-suggestion-actions button {
     margin: 0;
     padding: 0.3rem 0.75rem;
     font-size: 0.9rem;

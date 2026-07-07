@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.59",
+    "date": "2026-07-07",
+    "changes": [
+      "Fix the author/series suggestion chips on the book form rendering as full-width rows — the author scan review styles (v1.0.54) reused the same CSS class name; the System page rows are now .author-scan-suggestion"
+    ]
+  },
+  {
     "version": "1.0.58",
     "date": "2026-07-05",
     "changes": [

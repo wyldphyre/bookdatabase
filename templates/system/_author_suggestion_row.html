@@ -1,5 +1,5 @@
-<div class="author-suggestion" id="suggestion-{{ suggestion.id }}">
-    <div class="author-suggestion-body">
+<div class="author-scan-suggestion" id="suggestion-{{ suggestion.id }}">
+    <div class="author-scan-suggestion-body">
         <strong><a href="{{ url_for('authors.author_detail', id=suggestion.author.id) }}">{{ suggestion.author.name }}</a></strong>
         {% if suggestion.suggested_gender %}
         &mdash; gender: <em>{{ suggestion.author.gender.name if suggestion.author.gender else 'not set' }}</em> &rarr; <strong>{{ suggestion.suggested_gender.name }}</strong>
@@ -15,7 +15,7 @@
         </small>
         {% endif %}
     </div>
-    <div class="author-suggestion-actions">
+    <div class="author-scan-suggestion-actions">
         <button class="outline"
                 hx-post="{{ url_for('system.author_suggestion_accept', id=suggestion.id) }}"
                 hx-target="#suggestion-{{ suggestion.id }}"
