@@ -45,7 +45,9 @@
     <p>Export the entire library &mdash; all data plus cover images &mdash; as a zip file,
        or import a previously exported zip to replace this instance's data.</p>
 
-    <a href="{{ url_for('system.system_export') }}" role="button" class="outline" style="width: auto;">Export Library</a>
+    <div id="export-area">
+        {% include "system/_export_progress.html" %}
+    </div>
 
     {% if pending_import %}
     <div class="flash flash-warning" style="margin-top: 1rem;">

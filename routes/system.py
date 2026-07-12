@@ -2,7 +2,7 @@ import os
 import json
 import time
 import threading
-from datetime import date
+from datetime import date, datetime
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, send_file
 from sqlalchemy.orm import joinedload
 from models import db, Book, Series, Tag, Author, AuthorGender, AuthorInfoSuggestion
@@ -51,6 +51,19 @@ author_scan = {
 }
 author_scan_lock = threading.Lock()
 
+export_state = {
+    'status': 'idle',       # idle, building, ready, error
+    'progress': 0,          # covers added so far
+    'total': 0,             # total covers
+    'path': None,           # temp file holding the finished zip
+    'size_label': '',
+    'built_at': '',
+    'book_count': 0,
+    'cover_count': 0,
+    'error': '',
+}
+export_lock = threading.Lock()
+
 
 def _snapshot(scan, lock):
     """Return a consistent copy of a scan dict under lock."""
@@ -77,6 +90,7 @@ def system():
                            version=current_app.config['APP_VERSION'],
                            changelog=changelog,
                            pushover_configured=pushover_configured,
+                           export=_export_snapshot(),
                            pending_import=_pending_import_manifest(),
                            current_book_count=Book.query.count())
 
@@ -98,16 +112,66 @@ def _pending_import_manifest():
         return None
 
 
-@system_bp.route('/system/export', endpoint='system_export')
-def system_export():
-    zip_path, _ = build_export_zip(current_app.config['UPLOAD_FOLDER'],
-                                   current_app.config['APP_VERSION'])
-    # Unlink while a handle is open: the OS reclaims the temp file once
-    # send_file finishes streaming, with no cleanup hook needed.
-    f = open(zip_path, 'rb')
-    os.unlink(zip_path)
-    return send_file(f, as_attachment=True, mimetype='application/zip',
+def _export_snapshot():
+    with export_lock:
+        return dict(export_state)
+
+
+@system_bp.route('/system/export/start', methods=['POST'], endpoint='system_export_start')
+def system_export_start():
+    with export_lock:
+        if export_state['status'] != 'building':
+            # Drop the previous build before starting a new one
+            if export_state['path'] and os.path.exists(export_state['path']):
+                os.unlink(export_state['path'])
+            export_state.update(status='building', progress=0, total=0, path=None,
+                                size_label='', built_at='', book_count=0,
+                                cover_count=0, error='')
+            _app = current_app._get_current_object()
+            thread = threading.Thread(target=run_export_build, args=(_app,), daemon=True)
+            thread.start()
+    return render_template('system/_export_progress.html', export=_export_snapshot())
+
+
+@system_bp.route('/system/export/progress', endpoint='system_export_progress')
+def system_export_progress():
+    return render_template('system/_export_progress.html', export=_export_snapshot())
+
+
+@system_bp.route('/system/export/download', endpoint='system_export_download')
+def system_export_download():
+    with export_lock:
+        path = export_state['path'] if export_state['status'] == 'ready' else None
+    if not path or not os.path.exists(path):
+        flash('No export is ready — build one first', 'error')
+        return redirect(url_for('system.system') + '#import-export')
+    # The file is kept so the download can be retried; it's replaced on the next build.
+    return send_file(path, as_attachment=True, mimetype='application/zip',
                      download_name=f'bookdb-export-{date.today().isoformat()}.zip')
+
+
+def run_export_build(app):
+    """Background thread that builds the export zip and parks it for download."""
+    def on_progress(done, total):
+        with export_lock:
+            export_state['progress'] = done
+            export_state['total'] = total
+
+    try:
+        with app.app_context():
+            zip_path, manifest = build_export_zip(app.config['UPLOAD_FOLDER'],
+                                                  app.config['APP_VERSION'],
+                                                  progress=on_progress)
+        size = os.path.getsize(zip_path)
+        with export_lock:
+            export_state.update(status='ready', path=zip_path,
+                                size_label=f'{size / (1024 * 1024):.0f} MB',
+                                built_at=datetime.now().strftime('%H:%M'),
+                                book_count=manifest['counts']['book'],
+                                cover_count=manifest['cover_count'])
+    except Exception as e:
+        with export_lock:
+            export_state.update(status='error', error=str(e))
 
 
 @system_bp.route('/system/import', methods=['POST'], endpoint='system_import_upload')

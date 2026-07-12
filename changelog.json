@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.61",
+    "date": "2026-07-12",
+    "changes": [
+      "Build library exports in the background — the Export Library button now shows a live progress bar while the zip is assembled (helpful on slower hosts), then presents a Download Export button; the built zip is kept for re-download until the next export or app restart"
+    ]
+  },
+  {
     "version": "1.0.60",
     "date": "2026-07-12",
     "changes": [

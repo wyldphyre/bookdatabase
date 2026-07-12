@@ -1,0 +1,55 @@
+{% if export.status == 'idle' %}
+<div>
+    <button hx-post="{{ url_for('system.system_export_start') }}"
+            hx-target="#export-area"
+            class="outline" style="width: auto;">
+        Export Library
+    </button>
+</div>
+
+{% elif export.status == 'building' %}
+<div hx-get="{{ url_for('system.system_export_progress') }}"
+     hx-trigger="every 1s"
+     hx-target="#export-area">
+    <div class="scan-stats">
+        Building export&hellip;
+        {% if export.total > 0 %}
+        adding cover image <strong>{{ export.progress }}</strong> of <strong>{{ export.total }}</strong>
+        {% endif %}
+    </div>
+    {% if export.total > 0 %}
+    <progress value="{{ export.progress }}" max="{{ export.total }}"></progress>
+    {% else %}
+    <progress></progress>
+    {% endif %}
+</div>
+
+{% elif export.status == 'ready' %}
+<div>
+    <div class="scan-stats">
+        Export ready &mdash; <strong>{{ export.book_count }}</strong> books and
+        <strong>{{ export.cover_count }}</strong> covers ({{ export.size_label }}), built at {{ export.built_at }}.
+        Kept until the next export or app restart.
+    </div>
+    <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
+        <a href="{{ url_for('system.system_export_download') }}" role="button" style="width: auto; margin: 0;">
+            Download Export
+        </a>
+        <button hx-post="{{ url_for('system.system_export_start') }}"
+                hx-target="#export-area"
+                class="outline secondary" style="width: auto; margin: 0;">
+            Build New Export
+        </button>
+    </div>
+</div>
+
+{% elif export.status == 'error' %}
+<div>
+    <div class="flash flash-error">Export failed: {{ export.error }}</div>
+    <button hx-post="{{ url_for('system.system_export_start') }}"
+            hx-target="#export-area"
+            class="outline" style="width: auto;">
+        Try Again
+    </button>
+</div>
+{% endif %}

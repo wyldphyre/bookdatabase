@@ -76,10 +76,17 @@ def _referenced_covers(book_rows, upload_folder):
     return covers
 
 
-def build_export_zip(upload_folder, app_version):
-    """Write the export zip to a temp file; returns (path, manifest)."""
+def build_export_zip(upload_folder, app_version, progress=None):
+    """Write the export zip to a temp file; returns (path, manifest).
+
+    `progress`, if given, is called as progress(covers_done, covers_total)
+    after the data tables are serialized and again as each cover is added —
+    covers dominate the build time.
+    """
     data = _serialize_tables()
     covers = _referenced_covers(data['book'], upload_folder)
+    if progress:
+        progress(0, len(covers))
     manifest = {
         'format': EXPORT_FORMAT,
         'schema_version': CURRENT_SCHEMA_VERSION,
@@ -93,10 +100,12 @@ def build_export_zip(upload_folder, app_version):
         with zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED) as zf:
             zf.writestr('manifest.json', json.dumps(manifest, indent=2, ensure_ascii=False))
             zf.writestr('data.json', json.dumps(data, indent=2, ensure_ascii=False))
-            for filename in covers:
+            for i, filename in enumerate(covers, start=1):
                 # Covers are already-compressed images; deflating them wastes CPU
                 zf.write(os.path.join(upload_folder, filename),
                          'covers/' + filename, compress_type=zipfile.ZIP_STORED)
+                if progress:
+                    progress(i, len(covers))
         tmp.close()
     except Exception:
         tmp.close()

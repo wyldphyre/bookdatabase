@@ -5,7 +5,7 @@ from models import db
 from database import init_db
 from price_watch import start_price_watch_scheduler
 
-APP_VERSION = '1.0.60'
+APP_VERSION = '1.0.61'
 
 
 def create_app():
