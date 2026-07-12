@@ -2,10 +2,67 @@ import os
 import re
 import socket
 import ipaddress
+import threading
 from datetime import datetime
 from urllib.parse import urlparse, urljoin
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+THUMB_SUBFOLDER = 'thumbs'
+# 2x the ~200px-wide grid cards, so thumbs stay sharp on hidpi screens
+THUMB_MAX_SIZE = (400, 640)
+
+
+def thumb_path(upload_folder, filename):
+    return os.path.join(upload_folder, THUMB_SUBFOLDER, filename)
+
+
+def generate_thumbnail(upload_folder, filename):
+    """Create a small copy of a cover for list/grid pages, keeping the same
+    filename under uploads/thumbs/. Originals that already fit THUMB_MAX_SIZE
+    get no thumb — cover_thumb_url falls back to the original. Returns True
+    if a thumb was written; broken or unreadable images are skipped."""
+    from PIL import Image
+    dst = thumb_path(upload_folder, filename)
+    try:
+        with Image.open(os.path.join(upload_folder, filename)) as img:
+            if img.width <= THUMB_MAX_SIZE[0] and img.height <= THUMB_MAX_SIZE[1]:
+                return False
+            img.thumbnail(THUMB_MAX_SIZE)
+            if dst.lower().endswith(('.jpg', '.jpeg')) and img.mode not in ('RGB', 'L'):
+                img = img.convert('RGB')
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            img.save(dst, quality=80)
+            return True
+    except (OSError, ValueError):
+        return False
+
+
+def delete_thumbnail(upload_folder, filename):
+    path = thumb_path(upload_folder, filename)
+    if os.path.exists(path):
+        os.remove(path)
+
+
+def backfill_thumbnails(upload_folder):
+    """Generate any missing thumbnails and prune thumbs whose original is
+    gone. Cheap when everything is up to date (header reads only), so it's
+    safe to run at every startup and after an import."""
+    thumbs_dir = os.path.join(upload_folder, THUMB_SUBFOLDER)
+    os.makedirs(thumbs_dir, exist_ok=True)
+    for entry in os.listdir(thumbs_dir):
+        if not os.path.isfile(os.path.join(upload_folder, entry)):
+            os.remove(os.path.join(thumbs_dir, entry))
+    for entry in os.listdir(upload_folder):
+        if entry.startswith('.') or not allowed_file(entry):
+            continue
+        if os.path.isfile(os.path.join(upload_folder, entry)) and \
+                not os.path.exists(thumb_path(upload_folder, entry)):
+            generate_thumbnail(upload_folder, entry)
+
+
+def start_thumbnail_backfill(upload_folder):
+    threading.Thread(target=backfill_thumbnails, args=(upload_folder,), daemon=True).start()
 
 
 def allowed_file(filename):

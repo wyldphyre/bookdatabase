@@ -23,6 +23,7 @@ from models import (db, Tag, BookFormat, AuthorGender, Series, Author, Book, Rea
                     ReadingQueue, AuthorInfoSuggestion, PriceWatch,
                     book_authors, book_tags, author_tags, series_tags)
 from database import CURRENT_SCHEMA_VERSION
+from utils import THUMB_SUBFOLDER
 
 EXPORT_FORMAT = 'bookdb-export'
 PRE_IMPORT_BACKUP_NAME = 'books_pre_import.db'
@@ -234,6 +235,8 @@ def apply_import(zip_path, upload_folder):
                 path = os.path.join(upload_folder, entry)
                 if os.path.isfile(path):
                     os.unlink(path)
+            # Thumbnails belong to the replaced covers; the caller regenerates them
+            shutil.rmtree(os.path.join(upload_folder, THUMB_SUBFOLDER), ignore_errors=True)
             for entry in os.listdir(staging):
                 shutil.move(os.path.join(staging, entry), os.path.join(upload_folder, entry))
         except Exception:

@@ -6,7 +6,7 @@
             {% for book in books %}
             <a href="{{ url_for('books.book_detail', id=book.id) }}" class="book-card" style="text-decoration: none; color: inherit;">
                 {% if book.cover_image %}
-                <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
+                <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
                 {% else %}
                 <div class="placeholder-cover">📚</div>
                 {% endif %}

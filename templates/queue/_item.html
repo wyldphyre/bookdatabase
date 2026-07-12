@@ -2,7 +2,7 @@
     <span class="drag-handle" title="Drag to reorder">&#8801;</span>
     <div class="queue-item-cover">
         {% if item.book and item.book.cover_image %}
-        <img src="{{ url_for('static', filename='uploads/' + item.book.cover_image) }}" alt="{{ item.display_title }}" loading="lazy">
+        <img src="{{ cover_thumb_url(item.book.cover_image) }}" alt="{{ item.display_title }}" loading="lazy">
         {% elif item.book %}
         <div class="queue-cover-placeholder">{{ item.display_title[0] }}</div>
         {% else %}

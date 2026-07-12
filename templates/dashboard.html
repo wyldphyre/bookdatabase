@@ -30,7 +30,7 @@
         <a href="{{ url_for('books.book_detail', id=read.book.id) }}" class="active-read-cover-link">
             <div class="cover-wrapper">
                 {% if read.book.cover_image %}
-                <img src="{{ url_for('static', filename='uploads/' + read.book.cover_image) }}" alt="{{ read.book.title }}" loading="lazy">
+                <img src="{{ cover_thumb_url(read.book.cover_image) }}" alt="{{ read.book.title }}" loading="lazy">
                 {% else %}
                 <div class="active-read-placeholder">📚</div>
                 {% endif %}
@@ -86,7 +86,7 @@
         {% set is_read = book.is_completed %}
         <div class="cover-wrapper">
             {% if book.cover_image %}
-            <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
+            <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
             {% else %}
             <div class="recently-added-placeholder">{{ book.title[0] }}</div>
             {% endif %}
@@ -111,7 +111,7 @@
     <a href="{{ url_for('books.book_detail', id=book.id) }}" class="recently-added-card">
         <div class="cover-wrapper">
             {% if book.cover_image %}
-            <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
+            <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
             {% else %}
             <div class="recently-added-placeholder">{{ book.title[0] }}</div>
             {% endif %}

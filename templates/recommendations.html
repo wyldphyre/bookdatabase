@@ -14,7 +14,7 @@
         <div class="rec-card-wrapper">
         <a href="{{ url_for('books.book_detail', id=book.id) }}" class="rec-card">
             {% if book.cover_image %}
-            <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
+            <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
             {% else %}
             <div class="rec-cover-placeholder">{{ book.title[0] }}</div>
             {% endif %}
@@ -54,7 +54,7 @@
         <div class="rec-card-wrapper">
         <a href="{{ url_for('books.book_detail', id=book.id) }}" class="rec-card">
             {% if book.cover_image %}
-            <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
+            <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
             {% else %}
             <div class="rec-cover-placeholder">{{ book.title[0] }}</div>
             {% endif %}
@@ -91,7 +91,7 @@
         <div class="rec-card-wrapper">
         <a href="{{ url_for('books.book_detail', id=book.id) }}" class="rec-card">
             {% if book.cover_image %}
-            <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
+            <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
             {% else %}
             <div class="rec-cover-placeholder">{{ book.title[0] }}</div>
             {% endif %}

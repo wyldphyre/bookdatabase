@@ -77,7 +77,7 @@
                         {% set is_read = book.is_completed %}
                         <div class="cover-wrapper" style="width: 50px;">
                             {% if book.cover_image %}
-                            <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" style="width: 50px; height: 75px; object-fit: cover; display: block;" loading="lazy">
+                            <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" style="width: 50px; height: 75px; object-fit: cover; display: block;" loading="lazy">
                             {% else %}
                             <div style="width: 50px; height: 75px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white;">📚</div>
                             {% endif %}
@@ -105,7 +105,7 @@
             {% set is_read = book.is_completed %}
             <div class="cover-wrapper">
                 {% if book.cover_image %}
-                <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
+                <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
                 {% else %}
                 <div class="series-book-card-placeholder">📚</div>
                 {% endif %}

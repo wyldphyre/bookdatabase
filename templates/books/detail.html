@@ -265,7 +265,7 @@
             {% set child_is_read = child.reads|selectattr('status', 'equalto', 'Completed')|list|length > 0 %}
             <div class="cover-wrapper">
                 {% if child.cover_image %}
-                <img src="{{ url_for('static', filename='uploads/' + child.cover_image) }}" alt="{{ child.title }}" loading="lazy">
+                <img src="{{ cover_thumb_url(child.cover_image) }}" alt="{{ child.title }}" loading="lazy">
                 {% else %}
                 <div class="placeholder-cover">📚</div>
                 {% endif %}

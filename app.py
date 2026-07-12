@@ -1,11 +1,12 @@
 import os
 import logging
-from flask import Flask, request
+from flask import Flask, request, url_for
 from models import db
 from database import init_db
 from price_watch import start_price_watch_scheduler
+from utils import THUMB_SUBFOLDER, start_thumbnail_backfill
 
-APP_VERSION = '1.0.61'
+APP_VERSION = '1.0.62'
 
 
 def create_app():
@@ -47,6 +48,14 @@ def create_app():
     @app.context_processor
     def inject_version():
         return {'app_version': APP_VERSION}
+
+    @app.template_global('cover_thumb_url')
+    def cover_thumb_url(filename):
+        """URL of a cover's thumbnail for list/grid pages, falling back to the
+        original when no thumb exists (small originals never get one)."""
+        if filename and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], THUMB_SUBFOLDER, filename)):
+            return url_for('static', filename=f'uploads/{THUMB_SUBFOLDER}/{filename}')
+        return url_for('static', filename=f'uploads/{filename}')
 
     # After-request hook
     @app.after_request
@@ -112,7 +121,9 @@ if __name__ == '__main__':
     # otherwise price checks run twice.
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         start_price_watch_scheduler(app)
+        start_thumbnail_backfill(app.config['UPLOAD_FOLDER'])
     app.run(debug=True, port=5001)
 else:
     # Production (gunicorn, single worker): imported exactly once.
     start_price_watch_scheduler(app)
+    start_thumbnail_backfill(app.config['UPLOAD_FOLDER'])

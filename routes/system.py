@@ -9,6 +9,7 @@ from models import db, Book, Series, Tag, Author, AuthorGender, AuthorInfoSugges
 from scrapers import search_goodreads_for_book, scrape_goodreads, scrape_goodreads_series, scrape_amazon_series
 from author_info import lookup_author_info
 from notifications import send_pushover_notification
+from utils import start_thumbnail_backfill
 from data_transfer import (build_export_zip, validate_import_zip, apply_import,
                            ImportValidationError, PRE_IMPORT_BACKUP_NAME)
 
@@ -198,9 +199,11 @@ def system_import_confirm():
         return redirect(url_for('system.system') + '#import-export')
     try:
         result = apply_import(path, current_app.config['UPLOAD_FOLDER'])
+        start_thumbnail_backfill(current_app.config['UPLOAD_FOLDER'])
         flash(f"Import complete: {result['books']} books, {result['authors']} authors, "
               f"{result['series']} series, {result['reads']} reads and {result['covers']} covers restored. "
-              f"The previous database was saved as {PRE_IMPORT_BACKUP_NAME}.", 'success')
+              f"The previous database was saved as {PRE_IMPORT_BACKUP_NAME}. "
+              f"Cover thumbnails are being regenerated in the background.", 'success')
     except ImportValidationError as e:
         flash(str(e), 'error')
     finally:

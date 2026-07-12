@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.62",
+    "date": "2026-07-12",
+    "changes": [
+      "Serve resized cover thumbnails (max 400px wide) on all list and grid pages instead of full-size images — the book detail page lightbox still shows the original. Thumbnails are generated on upload, backfilled in the background at startup, and regenerated after an import. Adds Pillow as a dependency."
+    ]
+  },
+  {
     "version": "1.0.61",
     "date": "2026-07-12",
     "changes": [

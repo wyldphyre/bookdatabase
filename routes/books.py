@@ -6,7 +6,8 @@ from flask import Blueprint, current_app, render_template, request, redirect, ur
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Read, ReadingQueue, BookFormat, Tag, RATING_LABELS
-from utils import allowed_file, parse_date, parse_float, validate_rating, fetch_cover_image, clean_external_url
+from utils import (allowed_file, parse_date, parse_float, validate_rating, fetch_cover_image,
+                   clean_external_url, generate_thumbnail, delete_thumbnail)
 from scrapers import scrape_amazon, scrape_goodreads, search_amazon_for_book, search_goodreads_for_book
 
 books_bp = Blueprint('books', __name__)
@@ -321,6 +322,7 @@ def save_book(book):
             base, ext = os.path.splitext(filename)
             filename = f"{base}_{int(datetime.now().timestamp())}{ext}"
             file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
+            generate_thumbnail(current_app.config['UPLOAD_FOLDER'], filename)
             book.cover_image = filename
 
     # Handle cover image URL (only if no file uploaded)
@@ -352,6 +354,7 @@ def save_book(book):
             filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             with open(filepath, 'wb') as f:
                 f.write(content)
+            generate_thumbnail(current_app.config['UPLOAD_FOLDER'], filename)
             book.cover_image = filename
         except Exception as e:
             flash(f'Could not download cover image: {str(e)}', 'warning')
@@ -409,6 +412,7 @@ def book_delete(id):
         cover_path = os.path.join(current_app.config['UPLOAD_FOLDER'], book.cover_image)
         if os.path.exists(cover_path):
             os.remove(cover_path)
+        delete_thumbnail(current_app.config['UPLOAD_FOLDER'], book.cover_image)
 
     # Detach bundle children before deletion
     for child in list(book.bundle_children):
