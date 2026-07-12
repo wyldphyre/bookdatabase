@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.60",
+    "date": "2026-07-12",
+    "changes": [
+      "Add full-library export and import to the System page — export downloads a zip of all data (as JSON) plus cover images; importing a zip replaces the instance's data after an explicit confirmation step, backing up the current database to books_pre_import.db first"
+    ]
+  },
+  {
     "version": "1.0.59",
     "date": "2026-07-07",
     "changes": [

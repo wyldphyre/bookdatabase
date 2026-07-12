@@ -40,6 +40,44 @@
 </article>
 {% endif %}
 
+<article id="import-export">
+    <h3>Export &amp; Import</h3>
+    <p>Export the entire library &mdash; all data plus cover images &mdash; as a zip file,
+       or import a previously exported zip to replace this instance's data.</p>
+
+    <a href="{{ url_for('system.system_export') }}" role="button" class="outline" style="width: auto;">Export Library</a>
+
+    {% if pending_import %}
+    <div class="flash flash-warning" style="margin-top: 1rem;">
+        <p><strong>Ready to import</strong> &mdash; exported {{ pending_import.exported_at.replace('T', ' at ') }}
+           from app v{{ pending_import.app_version }}:</p>
+        <p>{{ pending_import.counts.book }} books, {{ pending_import.counts.author }} authors,
+           {{ pending_import.counts.series }} series, {{ pending_import.counts.read }} reads,
+           {{ pending_import.counts.tag }} tags and {{ pending_import.cover_count }} cover images.</p>
+        <p><strong>Importing permanently replaces everything in this instance</strong>
+           (currently {{ current_book_count }} books) and its cover images.
+           The current database will be saved alongside as a pre-import backup first.</p>
+        <div style="display: flex; gap: 0.75rem;">
+            <form method="post" action="{{ url_for('system.system_import_confirm') }}" style="margin: 0;">
+                <button type="submit" class="danger" style="width: auto; margin: 0;">Replace All Data</button>
+            </form>
+            <form method="post" action="{{ url_for('system.system_import_cancel') }}" style="margin: 0;">
+                <button type="submit" class="outline secondary" style="width: auto; margin: 0;">Cancel</button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <form method="post" action="{{ url_for('system.system_import_upload') }}"
+          enctype="multipart/form-data" style="margin-top: 1rem;">
+        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <input type="file" name="file" accept=".zip,application/zip" required style="width: auto; margin: 0;">
+            <button type="submit" class="outline secondary" style="width: auto; margin: 0;">Upload Export File</button>
+        </div>
+        <small class="secondary">You'll be shown what the file contains and asked to confirm before anything is replaced.</small>
+    </form>
+    {% endif %}
+</article>
+
 <article>
     <h3>Tag Management</h3>
     <p>Search, rename, or delete tags across your library.</p>

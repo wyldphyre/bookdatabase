@@ -2,12 +2,15 @@ import os
 import json
 import time
 import threading
-from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash
+from datetime import date
+from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, send_file
 from sqlalchemy.orm import joinedload
 from models import db, Book, Series, Tag, Author, AuthorGender, AuthorInfoSuggestion
 from scrapers import search_goodreads_for_book, scrape_goodreads, scrape_goodreads_series, scrape_amazon_series
 from author_info import lookup_author_info
 from notifications import send_pushover_notification
+from data_transfer import (build_export_zip, validate_import_zip, apply_import,
+                           ImportValidationError, PRE_IMPORT_BACKUP_NAME)
 
 system_bp = Blueprint('system', __name__)
 
@@ -73,7 +76,81 @@ def system():
                            suggestions=_load_suggestions(),
                            version=current_app.config['APP_VERSION'],
                            changelog=changelog,
-                           pushover_configured=pushover_configured)
+                           pushover_configured=pushover_configured,
+                           pending_import=_pending_import_manifest(),
+                           current_book_count=Book.query.count())
+
+
+def _pending_import_path():
+    return os.path.join(current_app.instance_path, 'import_pending.zip')
+
+
+def _pending_import_manifest():
+    """Manifest of the uploaded-but-unconfirmed import zip, or None. A file
+    that no longer validates (e.g. truncated upload) is discarded."""
+    path = _pending_import_path()
+    if not os.path.exists(path):
+        return None
+    try:
+        return validate_import_zip(path)
+    except ImportValidationError:
+        os.unlink(path)
+        return None
+
+
+@system_bp.route('/system/export', endpoint='system_export')
+def system_export():
+    zip_path, _ = build_export_zip(current_app.config['UPLOAD_FOLDER'],
+                                   current_app.config['APP_VERSION'])
+    # Unlink while a handle is open: the OS reclaims the temp file once
+    # send_file finishes streaming, with no cleanup hook needed.
+    f = open(zip_path, 'rb')
+    os.unlink(zip_path)
+    return send_file(f, as_attachment=True, mimetype='application/zip',
+                     download_name=f'bookdb-export-{date.today().isoformat()}.zip')
+
+
+@system_bp.route('/system/import', methods=['POST'], endpoint='system_import_upload')
+def system_import_upload():
+    file = request.files.get('file')
+    if not file or not file.filename:
+        flash('Choose an export zip file to upload', 'error')
+        return redirect(url_for('system.system') + '#import-export')
+    path = _pending_import_path()
+    file.save(path)
+    try:
+        validate_import_zip(path)
+    except ImportValidationError as e:
+        os.unlink(path)
+        flash(str(e), 'error')
+    return redirect(url_for('system.system') + '#import-export')
+
+
+@system_bp.route('/system/import/confirm', methods=['POST'], endpoint='system_import_confirm')
+def system_import_confirm():
+    path = _pending_import_path()
+    if not os.path.exists(path):
+        flash('No uploaded import file found — upload the export zip again', 'error')
+        return redirect(url_for('system.system') + '#import-export')
+    try:
+        result = apply_import(path, current_app.config['UPLOAD_FOLDER'])
+        flash(f"Import complete: {result['books']} books, {result['authors']} authors, "
+              f"{result['series']} series, {result['reads']} reads and {result['covers']} covers restored. "
+              f"The previous database was saved as {PRE_IMPORT_BACKUP_NAME}.", 'success')
+    except ImportValidationError as e:
+        flash(str(e), 'error')
+    finally:
+        if os.path.exists(path):
+            os.unlink(path)
+    return redirect(url_for('system.system'))
+
+
+@system_bp.route('/system/import/cancel', methods=['POST'], endpoint='system_import_cancel')
+def system_import_cancel():
+    path = _pending_import_path()
+    if os.path.exists(path):
+        os.unlink(path)
+    return redirect(url_for('system.system') + '#import-export')
 
 
 def _load_suggestions():

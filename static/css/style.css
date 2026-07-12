@@ -400,6 +400,13 @@ form fieldset {
     color: #856404;
 }
 
+/* Destructive-action confirm buttons (e.g. import replace) */
+button.danger {
+    background-color: #c0392b;
+    border-color: #c0392b;
+    color: #fff;
+}
+
 /* Book grid */
 .book-grid {
     display: grid;

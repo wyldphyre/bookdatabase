@@ -5,7 +5,7 @@ from models import db
 from database import init_db
 from price_watch import start_price_watch_scheduler
 
-APP_VERSION = '1.0.59'
+APP_VERSION = '1.0.60'
 
 
 def create_app():
@@ -19,7 +19,7 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///books.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['UPLOAD_FOLDER'] = os.path.join(app.static_folder, 'uploads')
-    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+    app.config['MAX_CONTENT_LENGTH'] = 512 * 1024 * 1024  # 512MB: import zips carry the full cover library
     app.config['APP_VERSION'] = APP_VERSION
     app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 7 * 24 * 60 * 60  # 1 week, for static assets
 
