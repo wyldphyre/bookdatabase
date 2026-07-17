@@ -9,12 +9,14 @@ Import is wipe-and-replace: all rows are deleted and re-inserted with their
 original IDs, and the uploads folder contents are replaced by the archive's
 covers. The database is backed up to books_pre_import.db first.
 """
+import glob
 import json
 import os
 import shutil
 import sqlite3
 import tempfile
 import zipfile
+import zlib
 from datetime import datetime
 
 from sqlalchemy import DateTime
@@ -27,10 +29,12 @@ from utils import THUMB_SUBFOLDER
 
 EXPORT_FORMAT = 'bookdb-export'
 PRE_IMPORT_BACKUP_NAME = 'books_pre_import.db'
+EXPORT_TMP_PREFIX = 'bookdb-export-build-'
 
 # Every table that holds user data, in FK-safe insert order (referenced tables
-# first). Deletes run in reverse. New tables must be added here or they will
-# silently be left out of exports.
+# first). Deletes run in reverse. Completeness is asserted against db.metadata
+# below, so a new model that isn't added here fails at startup instead of
+# being silently left out of exports.
 EXPORT_TABLES = [
     ('book_format', BookFormat.__table__),
     ('author_gender', AuthorGender.__table__),
@@ -48,9 +52,22 @@ EXPORT_TABLES = [
     ('series_tags', series_tags),
 ]
 
+# (schema_version is created via raw SQL in database.py and is not in
+# db.metadata; it is versioning bookkeeping, not user data.)
+_unexported = {t.name for t in db.metadata.sorted_tables} - {t.name for _, t in EXPORT_TABLES}
+if _unexported:
+    raise RuntimeError(
+        f'EXPORT_TABLES is missing tables defined in models.py: {sorted(_unexported)}. '
+        f'Add them (in FK-safe order) so exports stay complete.')
+
 
 class ImportValidationError(Exception):
     """The uploaded file is not a usable export archive."""
+
+
+class ImportCoverError(Exception):
+    """Raised when the database import committed but replacing the cover
+    files failed — the data is imported, the covers may be incomplete."""
 
 
 def _serialize_tables():
@@ -77,36 +94,52 @@ def _referenced_covers(book_rows, upload_folder):
     return covers
 
 
+def cleanup_stale_exports():
+    """Remove export zips a previous process left in the temp dir (the parked
+    download is tracked only in memory, so a restart orphans it)."""
+    for path in glob.glob(os.path.join(tempfile.gettempdir(), EXPORT_TMP_PREFIX + '*.zip')):
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+
+
 def build_export_zip(upload_folder, app_version, progress=None):
     """Write the export zip to a temp file; returns (path, manifest).
 
     `progress`, if given, is called as progress(covers_done, covers_total)
     after the data tables are serialized and again as each cover is added —
-    covers dominate the build time.
+    covers dominate the build time. A cover that disappears between listing
+    and writing (e.g. an import ran concurrently) is skipped, not fatal.
     """
     data = _serialize_tables()
     covers = _referenced_covers(data['book'], upload_folder)
     if progress:
         progress(0, len(covers))
-    manifest = {
-        'format': EXPORT_FORMAT,
-        'schema_version': CURRENT_SCHEMA_VERSION,
-        'app_version': app_version,
-        'exported_at': datetime.now().isoformat(timespec='seconds'),
-        'counts': {name: len(rows) for name, rows in data.items()},
-        'cover_count': len(covers),
-    }
-    tmp = tempfile.NamedTemporaryFile(suffix='.zip', delete=False)
+    tmp = tempfile.NamedTemporaryFile(prefix=EXPORT_TMP_PREFIX, suffix='.zip', delete=False)
     try:
         with zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED) as zf:
-            zf.writestr('manifest.json', json.dumps(manifest, indent=2, ensure_ascii=False))
             zf.writestr('data.json', json.dumps(data, indent=2, ensure_ascii=False))
+            added = 0
             for i, filename in enumerate(covers, start=1):
-                # Covers are already-compressed images; deflating them wastes CPU
-                zf.write(os.path.join(upload_folder, filename),
-                         'covers/' + filename, compress_type=zipfile.ZIP_STORED)
+                try:
+                    # Covers are already-compressed images; deflating them wastes CPU
+                    zf.write(os.path.join(upload_folder, filename),
+                             'covers/' + filename, compress_type=zipfile.ZIP_STORED)
+                    added += 1
+                except FileNotFoundError:
+                    pass
                 if progress:
                     progress(i, len(covers))
+            manifest = {
+                'format': EXPORT_FORMAT,
+                'schema_version': CURRENT_SCHEMA_VERSION,
+                'app_version': app_version,
+                'exported_at': datetime.now().isoformat(timespec='seconds'),
+                'counts': {name: len(rows) for name, rows in data.items()},
+                'cover_count': added,
+            }
+            zf.writestr('manifest.json', json.dumps(manifest, indent=2, ensure_ascii=False))
         tmp.close()
     except Exception:
         tmp.close()
@@ -122,13 +155,21 @@ def _load_manifest(zf):
         raise ImportValidationError('Not a Book Database export: no manifest.json in the zip.')
     except ValueError:
         raise ImportValidationError('The manifest.json in the zip is not valid JSON.')
-    if manifest.get('format') != EXPORT_FORMAT:
+    if not isinstance(manifest, dict) or manifest.get('format') != EXPORT_FORMAT:
         raise ImportValidationError('Not a Book Database export: unrecognized manifest format.')
     if manifest.get('schema_version', 0) > CURRENT_SCHEMA_VERSION:
         raise ImportValidationError(
             f"This export came from a newer version of the app "
             f"(schema v{manifest.get('schema_version')}, this instance is v{CURRENT_SCHEMA_VERSION}). "
             f"Update this instance first, then import.")
+    # The System page renders these fields, so their absence must fail
+    # validation here rather than crash the page later.
+    if not isinstance(manifest.get('exported_at'), str) \
+            or not isinstance(manifest.get('app_version'), str) \
+            or not isinstance(manifest.get('counts'), dict) \
+            or not isinstance(manifest.get('cover_count'), int):
+        raise ImportValidationError('The manifest.json is missing required fields '
+                                    '(exported_at, app_version, counts, cover_count).')
     return manifest
 
 
@@ -152,15 +193,20 @@ def validate_import_zip(zip_path):
     """Check the archive is a usable export without touching any data. Returns its manifest."""
     if not zipfile.is_zipfile(zip_path):
         raise ImportValidationError('The uploaded file is not a zip archive.')
-    with zipfile.ZipFile(zip_path) as zf:
-        manifest = _load_manifest(zf)
-        try:
-            json.loads(zf.read('data.json'))
-        except KeyError:
-            raise ImportValidationError('Not a Book Database export: no data.json in the zip.')
-        except ValueError:
-            raise ImportValidationError('The data.json in the zip is not valid JSON.')
-        _cover_members(zf)
+    try:
+        with zipfile.ZipFile(zip_path) as zf:
+            manifest = _load_manifest(zf)
+            try:
+                json.loads(zf.read('data.json'))
+            except KeyError:
+                raise ImportValidationError('Not a Book Database export: no data.json in the zip.')
+            except ValueError:
+                raise ImportValidationError('The data.json in the zip is not valid JSON.')
+            _cover_members(zf)
+    except (zipfile.BadZipFile, EOFError, zlib.error, OSError) as e:
+        # A truncated upload can still pass is_zipfile() (intact end-of-central
+        # -directory) and then fail on member reads — treat it as invalid, not a 500.
+        raise ImportValidationError(f'The zip archive is corrupt or unreadable: {e}')
     return manifest
 
 
@@ -204,8 +250,10 @@ def apply_import(zip_path, upload_folder):
     """Replace all data and covers with the archive's contents.
 
     Covers are fully extracted and validated before the database is touched,
-    and the row replacement is a single transaction, so a bad archive or a
-    failure mid-import leaves the database unchanged.
+    and the row replacement is a single transaction — a bad archive or a
+    failure before commit leaves the database unchanged. The cover-file swap
+    happens after commit and cannot be rolled back; if it fails, the imported
+    rows stand and ImportCoverError is raised so the caller can say so.
     """
     with zipfile.ZipFile(zip_path) as zf:
         _load_manifest(zf)
@@ -221,27 +269,35 @@ def apply_import(zip_path, upload_folder):
 
             _backup_database()
 
-            for name, table in reversed(EXPORT_TABLES):
-                db.session.execute(table.delete())
-            for name, table in EXPORT_TABLES:
-                rows = _deserialize_rows(data.get(name, []), table)
-                if rows:
-                    db.session.execute(table.insert(), rows)
-            db.session.commit()
+            try:
+                for name, table in reversed(EXPORT_TABLES):
+                    db.session.execute(table.delete())
+                for name, table in EXPORT_TABLES:
+                    rows = _deserialize_rows(data.get(name, []), table)
+                    if rows:
+                        db.session.execute(table.insert(), rows)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                raise
 
-            for entry in os.listdir(upload_folder):
-                if entry.startswith('.'):
-                    continue
-                path = os.path.join(upload_folder, entry)
-                if os.path.isfile(path):
-                    os.unlink(path)
-            # Thumbnails belong to the replaced covers; the caller regenerates them
-            shutil.rmtree(os.path.join(upload_folder, THUMB_SUBFOLDER), ignore_errors=True)
-            for entry in os.listdir(staging):
-                shutil.move(os.path.join(staging, entry), os.path.join(upload_folder, entry))
-        except Exception:
-            db.session.rollback()
-            raise
+            # Past this point the import is committed and cannot be undone.
+            try:
+                for entry in os.listdir(upload_folder):
+                    if entry.startswith('.'):
+                        continue
+                    path = os.path.join(upload_folder, entry)
+                    if os.path.isfile(path):
+                        os.unlink(path)
+                # Thumbnails belong to the replaced covers; the caller regenerates them
+                shutil.rmtree(os.path.join(upload_folder, THUMB_SUBFOLDER), ignore_errors=True)
+                for entry in os.listdir(staging):
+                    shutil.move(os.path.join(staging, entry), os.path.join(upload_folder, entry))
+            except Exception as e:
+                raise ImportCoverError(
+                    f'The data was imported, but replacing the cover images failed '
+                    f'partway ({e}). Some covers may be missing until they are '
+                    f're-uploaded or the import is run again.')
         finally:
             shutil.rmtree(staging, ignore_errors=True)
 

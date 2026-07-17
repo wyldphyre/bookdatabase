@@ -53,9 +53,9 @@
     <div class="flash flash-warning" style="margin-top: 1rem;">
         <p><strong>Ready to import</strong> &mdash; exported {{ pending_import.exported_at.replace('T', ' at ') }}
            from app v{{ pending_import.app_version }}:</p>
-        <p>{{ pending_import.counts.book }} books, {{ pending_import.counts.author }} authors,
-           {{ pending_import.counts.series }} series, {{ pending_import.counts.read }} reads,
-           {{ pending_import.counts.tag }} tags and {{ pending_import.cover_count }} cover images.</p>
+        <p>{{ pending_import.counts.get('book', 0) }} books, {{ pending_import.counts.get('author', 0) }} authors,
+           {{ pending_import.counts.get('series', 0) }} series, {{ pending_import.counts.get('read', 0) }} reads,
+           {{ pending_import.counts.get('tag', 0) }} tags and {{ pending_import.cover_count }} cover images.</p>
         <p><strong>Importing permanently replaces everything in this instance</strong>
            (currently {{ current_book_count }} books) and its cover images.
            The current database will be saved alongside as a pre-import backup first.</p>

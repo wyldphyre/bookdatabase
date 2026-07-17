@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.63",
+    "date": "2026-07-17",
+    "changes": [
+      "Harden export/import and thumbnails after a code review: corrupt or incomplete import zips now show an error instead of breaking the System page, import failures (e.g. conflicting data) flash a message instead of a 500 and leave the database unchanged, importing is blocked while an export is building, huge-pixel cover images no longer break book saves or the thumbnail backfill, direct cover uploads are capped at 10MB again, orphaned export temp files are cleaned up at startup, and exports now fail loudly at startup if a new table is missing from the export list"
+    ]
+  },
+  {
     "version": "1.0.62",
     "date": "2026-07-12",
     "changes": [

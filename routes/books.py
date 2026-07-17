@@ -7,7 +7,8 @@ from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Read, ReadingQueue, BookFormat, Tag, RATING_LABELS
 from utils import (allowed_file, parse_date, parse_float, validate_rating, fetch_cover_image,
-                   clean_external_url, generate_thumbnail, delete_thumbnail)
+                   clean_external_url, generate_thumbnail, delete_thumbnail,
+                   MAX_COVER_DOWNLOAD_BYTES)
 from scrapers import scrape_amazon, scrape_goodreads, search_amazon_for_book, search_goodreads_for_book
 
 books_bp = Blueprint('books', __name__)
@@ -317,13 +318,21 @@ def save_book(book):
     if 'cover_image' in request.files:
         file = request.files['cover_image']
         if file and file.filename and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            # Add timestamp to avoid conflicts
-            base, ext = os.path.splitext(filename)
-            filename = f"{base}_{int(datetime.now().timestamp())}{ext}"
-            file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
-            generate_thumbnail(current_app.config['UPLOAD_FOLDER'], filename)
-            book.cover_image = filename
+            # The global MAX_CONTENT_LENGTH is sized for import zips, so cover
+            # uploads need their own cap (mirrors the URL-fetch limit).
+            file.stream.seek(0, os.SEEK_END)
+            upload_size = file.stream.tell()
+            file.stream.seek(0)
+            if upload_size > MAX_COVER_DOWNLOAD_BYTES:
+                flash('Cover image is too large (over 10MB) — it was not saved', 'warning')
+            else:
+                filename = secure_filename(file.filename)
+                # Add timestamp to avoid conflicts
+                base, ext = os.path.splitext(filename)
+                filename = f"{base}_{int(datetime.now().timestamp())}{ext}"
+                file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
+                generate_thumbnail(current_app.config['UPLOAD_FOLDER'], filename)
+                book.cover_image = filename
 
     # Handle cover image URL (only if no file uploaded)
     cover_url = request.form.get('cover_image_url', '').strip()

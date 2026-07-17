@@ -11,7 +11,7 @@ from author_info import lookup_author_info
 from notifications import send_pushover_notification
 from utils import start_thumbnail_backfill
 from data_transfer import (build_export_zip, validate_import_zip, apply_import,
-                           ImportValidationError, PRE_IMPORT_BACKUP_NAME)
+                           ImportValidationError, ImportCoverError, PRE_IMPORT_BACKUP_NAME)
 
 system_bp = Blueprint('system', __name__)
 
@@ -197,6 +197,13 @@ def system_import_confirm():
     if not os.path.exists(path):
         flash('No uploaded import file found — upload the export zip again', 'error')
         return redirect(url_for('system.system') + '#import-export')
+    with export_lock:
+        export_building = export_state['status'] == 'building'
+    if export_building:
+        # The export thread is reading the same uploads folder the import
+        # would wipe — let it finish first.
+        flash('An export is currently building — wait for it to finish before importing', 'error')
+        return redirect(url_for('system.system') + '#import-export')
     try:
         result = apply_import(path, current_app.config['UPLOAD_FOLDER'])
         start_thumbnail_backfill(current_app.config['UPLOAD_FOLDER'])
@@ -206,6 +213,13 @@ def system_import_confirm():
               f"Cover thumbnails are being regenerated in the background.", 'success')
     except ImportValidationError as e:
         flash(str(e), 'error')
+    except ImportCoverError as e:
+        # The rows are imported; only the cover files are suspect.
+        flash(str(e), 'error')
+    except Exception as e:
+        current_app.logger.exception('Import failed')
+        db.session.rollback()
+        flash(f'Import failed and the database was left unchanged: {e}', 'error')
     finally:
         if os.path.exists(path):
             os.unlink(path)

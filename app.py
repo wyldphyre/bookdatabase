@@ -6,7 +6,7 @@ from database import init_db
 from price_watch import start_price_watch_scheduler
 from utils import THUMB_SUBFOLDER, start_thumbnail_backfill
 
-APP_VERSION = '1.0.62'
+APP_VERSION = '1.0.63'
 
 
 def create_app():
@@ -27,6 +27,10 @@ def create_app():
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
     db.init_app(app)
+
+    # A restart orphans any parked export zip (its path lives only in memory)
+    from data_transfer import cleanup_stale_exports
+    cleanup_stale_exports()
 
     # Register blueprints
     from routes.books import books_bp

@@ -21,7 +21,10 @@ def generate_thumbnail(upload_folder, filename):
     """Create a small copy of a cover for list/grid pages, keeping the same
     filename under uploads/thumbs/. Originals that already fit THUMB_MAX_SIZE
     get no thumb — cover_thumb_url falls back to the original. Returns True
-    if a thumb was written; broken or unreadable images are skipped."""
+    if a thumb was written. Thumbnailing is best-effort: any unreadable or
+    hostile image (including Pillow's DecompressionBombError, which is not an
+    OSError) is skipped rather than failing the book save or killing the
+    backfill thread — the page falls back to the original."""
     from PIL import Image
     dst = thumb_path(upload_folder, filename)
     try:
@@ -34,7 +37,7 @@ def generate_thumbnail(upload_folder, filename):
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             img.save(dst, quality=80)
             return True
-    except (OSError, ValueError):
+    except Exception:
         return False
 
 
@@ -44,21 +47,35 @@ def delete_thumbnail(upload_folder, filename):
         os.remove(path)
 
 
+_backfill_lock = threading.Lock()
+
+
 def backfill_thumbnails(upload_folder):
     """Generate any missing thumbnails and prune thumbs whose original is
     gone. Cheap when everything is up to date (header reads only), so it's
-    safe to run at every startup and after an import."""
-    thumbs_dir = os.path.join(upload_folder, THUMB_SUBFOLDER)
-    os.makedirs(thumbs_dir, exist_ok=True)
-    for entry in os.listdir(thumbs_dir):
-        if not os.path.isfile(os.path.join(upload_folder, entry)):
-            os.remove(os.path.join(thumbs_dir, entry))
-    for entry in os.listdir(upload_folder):
-        if entry.startswith('.') or not allowed_file(entry):
-            continue
-        if os.path.isfile(os.path.join(upload_folder, entry)) and \
-                not os.path.exists(thumb_path(upload_folder, entry)):
-            generate_thumbnail(upload_folder, entry)
+    safe to run at every startup and after an import. Serialized under a
+    lock so an import-triggered run can't race a still-running startup run,
+    and the prune tolerates files vanishing between listdir and remove."""
+    with _backfill_lock:
+        thumbs_dir = os.path.join(upload_folder, THUMB_SUBFOLDER)
+        try:
+            os.makedirs(thumbs_dir, exist_ok=True)
+            for entry in os.listdir(thumbs_dir):
+                if not os.path.isfile(os.path.join(upload_folder, entry)):
+                    try:
+                        os.remove(os.path.join(thumbs_dir, entry))
+                    except OSError:
+                        pass
+            for entry in os.listdir(upload_folder):
+                if entry.startswith('.') or not allowed_file(entry):
+                    continue
+                if os.path.isfile(os.path.join(upload_folder, entry)) and \
+                        not os.path.exists(thumb_path(upload_folder, entry)):
+                    generate_thumbnail(upload_folder, entry)
+        except FileNotFoundError:
+            # An import wiped the folder out from under us mid-run; the
+            # post-import backfill will regenerate everything.
+            return
 
 
 def start_thumbnail_backfill(upload_folder):
