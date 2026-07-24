@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.64",
+    "date": "2026-07-24",
+    "changes": [
+      "Redesign the book, author, and series detail pages plus their Add/Edit forms with a more compact, Grimmory-inspired look — smaller covers, plain-text metadata instead of boxed cards, pill-shaped tag chips, right-sized buttons and dropdown menus instead of full Pico scale, and a bordered style for Description/Notes sections instead of filled cards. The series detail page now shows its books as a wrapping cover grid (with the book number as a corner badge) instead of a table. Also pins Pico's fluid root font-size scaling, which was quietly re-inflating UI on wide windows, and fixes an unstyled 'small' button class that left Edit buttons oversized on the Series and Author list pages"
+    ]
+  },
+  {
     "version": "1.0.63",
     "date": "2026-07-17",
     "changes": [

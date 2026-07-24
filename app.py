@@ -6,7 +6,7 @@ from database import init_db
 from price_watch import start_price_watch_scheduler
 from utils import THUMB_SUBFOLDER, start_thumbnail_backfill
 
-APP_VERSION = '1.0.63'
+APP_VERSION = '1.0.64'
 
 
 def create_app():

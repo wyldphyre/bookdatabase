@@ -6,7 +6,7 @@
 
 {% block content %}
 
-<form method="post">
+<form method="post" class="edit-form">
     <label>
         Name *
         <input type="text" name="name" value="{{ author.name if author else '' }}" required>
@@ -232,7 +232,7 @@
     });
     </script>
 
-    <div class="button-group">
+    <div class="detail-actions">
         <button type="submit">{{ 'Update' if author else 'Add' }} Author</button>
         <a href="{{ url_for('authors.author_detail', id=author.id) if author else url_for('authors.author_list') }}" role="button" class="secondary">Cancel</a>
     </div>

@@ -6,7 +6,7 @@
 
 {% block content %}
 
-<form method="post" onsubmit="return confirmDuplicate()">
+<form method="post" onsubmit="return confirmDuplicate()" class="edit-form">
     <label>
         Name *
         <input type="text" name="name" value="{{ series.name if series else '' }}" required
@@ -118,7 +118,7 @@
     });
     </script>
 
-    <div class="button-group">
+    <div class="detail-actions">
         <button type="submit">{{ 'Update' if series else 'Add' }} Series</button>
         <a href="{{ url_for('series.series_detail', id=series.id) if series else url_for('series.series_list') }}" role="button" class="secondary">Cancel</a>
     </div>

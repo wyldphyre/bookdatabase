@@ -22,37 +22,25 @@
 {% endif %}
 
 {% if author.tags %}
-<p class="detail-tags">
+<div class="tags-row">
     {% for tag in author.tags %}
-    <mark class="tag-label">{{ tag.name }}</mark>
+    <span class="detail-chip">{{ tag.name }}</span>
     {% endfor %}
-</p>
+</div>
 {% endif %}
 
-<div class="meta-info">
+<div class="detail-facts">
     {% if author.gender %}
-    <div class="meta-item">
-        <div class="meta-label">Gender</div>
-        <div class="meta-value">{{ author.gender.name }}</div>
-    </div>
+    <span class="detail-fact"><span class="detail-fact-label">Gender</span> {{ author.gender.name }}</span>
     {% endif %}
-    <div class="meta-item">
-        <div class="meta-label">Books</div>
-        <div class="meta-value">{{ author.books|length }}</div>
-    </div>
+    <span class="detail-fact"><span class="detail-fact-label">Books</span> {{ author.books|length }}</span>
     {% set total_pages = author.books|selectattr('page_count')|sum(attribute='page_count') %}
     {% if total_pages %}
-    <div class="meta-item">
-        <div class="meta-label">Total Pages</div>
-        <div class="meta-value">{{ "{:,}".format(total_pages) }}</div>
-    </div>
+    <span class="detail-fact"><span class="detail-fact-label">Total Pages</span> {{ "{:,}".format(total_pages) }}</span>
     {% endif %}
     {% set series_count = author.books|unique_series_count %}
     {% if series_count %}
-    <div class="meta-item">
-        <div class="meta-label">Series</div>
-        <div class="meta-value">{{ series_count }}</div>
-    </div>
+    <span class="detail-fact"><span class="detail-fact-label">Series</span> {{ series_count }}</span>
     {% endif %}
 </div>
 
@@ -74,13 +62,13 @@
 {% endif %}
 
 {% if author.notes %}
-<article>
+<div class="detail-section">
     <h3>Notes</h3>
     <p style="white-space: pre-line;">{{ author.notes }}</p>
-</article>
+</div>
 {% endif %}
 
-<div class="button-group" style="margin-top: 1rem;">
+<div class="detail-actions">
     <a href="{{ url_for('authors.author_edit', id=author.id) }}" role="button">Edit Author</a>
     <button class="secondary"
             hx-delete="{{ url_for('authors.author_delete', id=author.id) }}"
@@ -90,11 +78,9 @@
     </button>
 </div>
 
-<hr>
-
 {% if author.aliases %}
 <section>
-    <h2>Aliases</h2>
+    <h2 class="section-title">Aliases</h2>
     <ul>
         {% for alias in author.aliases %}
         <li><a href="{{ url_for('authors.author_detail', id=alias.id) }}">{{ alias.name }}</a></li>
@@ -104,9 +90,9 @@
 {% endif %}
 
 <section>
-    <h2>Books by {{ author.name }}</h2>
+    <h2 class="section-title">Books by {{ author.name }}</h2>
     {% if author.books %}
-    <div class="book-grid">
+    <div class="book-grid book-grid--compact">
         {% for book in sorted_books %}
         <a href="{{ url_for('books.book_detail', id=book.id) }}" class="book-card" style="text-decoration: none; color: inherit;">
             {% set is_read = book.is_completed %}

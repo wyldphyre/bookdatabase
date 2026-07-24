@@ -17,11 +17,11 @@
 {% endif %}
 
 {% if series.tags %}
-<p class="detail-tags">
+<div class="tags-row">
     {% for tag in series.tags %}
-    <mark class="tag-label">{{ tag.name }}</mark>
+    <span class="detail-chip">{{ tag.name }}</span>
     {% endfor %}
-</p>
+</div>
 {% endif %}
 
 {% if series.goodreads_url or series.amazon_url or series.storygraph_url %}
@@ -38,11 +38,11 @@
 </div>
 {% endif %}
 
-<div class="button-group" style="margin-top: 1rem;">
+<div class="detail-actions">
     <a href="{{ url_for('series.series_edit', id=series.id) }}" role="button">Edit Series</a>
     {% if series.goodreads_url or series.amazon_url %}
-    <form method="post" action="{{ url_for('series.series_update_count', id=series.id) }}" style="margin: 0;">
-        <button type="submit" class="outline" style="margin: 0;">Update Book Count</button>
+    <form method="post" action="{{ url_for('series.series_update_count', id=series.id) }}">
+        <button type="submit" class="outline">Update Book Count</button>
     </form>
     {% endif %}
     <button class="secondary"
@@ -53,69 +53,29 @@
     </button>
 </div>
 
-<hr>
-
 <section>
-    <h2>Books in Series</h2>
+    <h2 class="section-title">Books in Series</h2>
     {% if series.books %}
-    <div class="series-books-table">
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Cover</th>
-                    <th>Title</th>
-                    <th>Author(s)</th>
-                    <th>Rating</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for book in series.books %}
-                <tr>
-                    <td>{{ book.series_number|num or '-' }}</td>
-                    <td>
-                        {% set is_read = book.is_completed %}
-                        <div class="cover-wrapper" style="width: 50px;">
-                            {% if book.cover_image %}
-                            <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" style="width: 50px; height: 75px; object-fit: cover; display: block;" loading="lazy">
-                            {% else %}
-                            <div style="width: 50px; height: 75px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white;">📚</div>
-                            {% endif %}
-                            {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
-                            {% if book.parent_id %}<img src="{{ url_for('static', filename='img/bundle-overlay.svg') }}" class="bundle-overlay" alt="Bundle">{% endif %}
-                        </div>
-                    </td>
-                    <td><a href="{{ url_for('books.book_detail', id=book.id) }}">{{ book.title }}</a></td>
-                    <td>{{ book.author_names or 'Unknown' }}</td>
-                    <td>
-                        {% if book.rating_label %}
-                        <span class="rating">{{ book.rating_label }}</span>
-                        {% else %}
-                        -
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    <div class="series-books-cards">
+    <div class="book-grid book-grid--compact">
         {% for book in series.books %}
-        <a href="{{ url_for('books.book_detail', id=book.id) }}" class="series-book-card">
+        <a href="{{ url_for('books.book_detail', id=book.id) }}" class="book-card" style="text-decoration: none; color: inherit;">
             {% set is_read = book.is_completed %}
             <div class="cover-wrapper">
                 {% if book.cover_image %}
                 <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
                 {% else %}
-                <div class="series-book-card-placeholder">📚</div>
+                <div class="placeholder-cover">📚</div>
                 {% endif %}
                 {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
                 {% if book.parent_id %}<img src="{{ url_for('static', filename='img/bundle-overlay.svg') }}" class="bundle-overlay" alt="Bundle">{% endif %}
+                {% if book.series_number %}<span class="series-number-badge">#{{ book.series_number|num }}</span>{% endif %}
             </div>
-            <div class="series-book-card-info">
-                <strong>{% if book.series_number %}#{{ book.series_number|num }} {% endif %}{{ book.title }}</strong>
-                <small>{{ book.author_names or 'Unknown' }}</small>
-                {% if book.rating_label %}<span class="rating">{{ book.rating_label }}</span>{% endif %}
+            <div class="book-card-content">
+                <div class="book-card-title" title="{{ book.title }}">{{ book.title }}</div>
+                <div class="book-card-author" title="{{ book.author_names or 'Unknown' }}">{{ book.author_names or 'Unknown' }}</div>
+                {% if book.rating_label %}
+                <div class="rating">{{ book.rating_label }}</div>
+                {% endif %}
             </div>
         </a>
         {% endfor %}

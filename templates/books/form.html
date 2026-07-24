@@ -6,7 +6,7 @@
 
 {% block content %}
 
-<form method="post" enctype="multipart/form-data">
+<form method="post" enctype="multipart/form-data" class="edit-form">
     {% if prefill_parent is defined and prefill_parent %}
     <p><mark>Adding to bundle: <a href="{{ url_for('books.book_detail', id=prefill_parent.id) }}">{{ prefill_parent.title }}</a></mark></p>
     <input type="hidden" name="parent_id" value="{{ prefill_parent.id }}">
@@ -66,7 +66,7 @@
 
         <details id="quick-add-author">
             <summary role="button" class="outline secondary">+ Add New Author</summary>
-            <div style="margin-top: 1rem; padding: 1rem; background: var(--pico-card-background-color); border-radius: var(--pico-border-radius);">
+            <div class="detail-section" style="margin-top: 0.75rem;">
                 <label>
                     Author Name
                     <input type="text" name="name" id="new-author-name" placeholder="Enter author name...">
@@ -278,7 +278,7 @@
 
         <details id="quick-add-series">
             <summary role="button" class="outline secondary">+ Add New Series</summary>
-            <div style="margin-top: 1rem; padding: 1rem; background: var(--pico-card-background-color); border-radius: var(--pico-border-radius);">
+            <div class="detail-section" style="margin-top: 0.75rem;">
                 <label>
                     Series Name
                     <input type="text" name="series_name" id="new-series-name" placeholder="Enter series name...">
@@ -581,7 +581,7 @@
         </div>
     </fieldset>
 
-    <div class="button-group">
+    <div class="detail-actions">
         <button type="submit">{{ 'Update' if book else 'Add' }} Book</button>
         <a href="{{ url_for('books.book_detail', id=book.id) if book else url_for('books.book_list') }}" role="button" class="secondary">Cancel</a>
     </div>

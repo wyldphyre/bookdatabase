@@ -118,7 +118,7 @@ function changePerPage(value) {
 </script>
 
 {% if books.items %}
-<div class="book-grid">
+<div class="book-grid book-grid--compact">
     {% for book in books.items %}
     <div class="book-card-wrapper">
         <a href="{{ url_for('books.book_detail', id=book.id) }}" class="book-card" style="text-decoration: none; color: inherit;">
