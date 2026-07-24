@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.67",
+    "date": "2026-07-25",
+    "changes": [
+      "Fix the Format/Rating dropdowns on the book edit form rendering 1px taller than the Page Count field beside them — v1.0.66 only floored <select>/date-input height, not plain text/number inputs; all edit-form field types now share the same min-height"
+    ]
+  },
+  {
     "version": "1.0.66",
     "date": "2026-07-25",
     "changes": [
