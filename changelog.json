@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.66",
+    "date": "2026-07-25",
+    "changes": [
+      "Fix the reading-status dropdown on the book detail page (and the Format/Rating dropdowns on the edit forms) rendering slightly shorter than the date fields beside it on wide screens — the v1.0.65 min-height fix only covered date inputs, not <select> elements"
+    ]
+  },
+  {
     "version": "1.0.65",
     "date": "2026-07-25",
     "changes": [
