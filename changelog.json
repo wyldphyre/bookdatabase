@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.65",
+    "date": "2026-07-25",
+    "changes": [
+      "Fix date input fields on the reading-history and book/author/series edit forms rendering shorter than their own calendar-picker icon on mobile when empty — the v1.0.64 compact redesign reset input height to 'auto' with no floor, so give date fields an explicit minimum height instead"
+    ]
+  },
+  {
     "version": "1.0.64",
     "date": "2026-07-24",
     "changes": [

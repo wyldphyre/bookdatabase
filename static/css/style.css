@@ -891,6 +891,13 @@ img.lightbox-trigger {
     height: auto;
 }
 
+/* An empty date input's internal picker icon has its own intrinsic size on
+   mobile browsers that height:auto doesn't account for — without a floor,
+   an empty field can render shorter than the icon it contains. */
+.reading-history input[type="date"] {
+    min-height: 2.25rem;
+}
+
 .reading-history .form-grid {
     gap: 0.75rem;
     margin-bottom: 0.75rem;
@@ -1301,6 +1308,13 @@ img.lightbox-trigger {
     padding: 0.4rem 0.65rem;
     font-size: 0.9rem;
     height: auto;
+}
+
+/* An empty date input's internal picker icon has its own intrinsic size on
+   mobile browsers that height:auto doesn't account for — without a floor,
+   an empty field can render shorter than the icon it contains. */
+.edit-form input[type="date"] {
+    min-height: 2.35rem;
 }
 
 .edit-form fieldset {
