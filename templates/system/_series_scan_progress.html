@@ -1,7 +1,7 @@
 {% if scan.status == 'idle' %}
 <div id="series-scan-controls">
     <button hx-post="{{ url_for('system.scan_series_start') }}"
-            hx-target="#series-scan-area">
+            hx-target="#series-scan-area" class="btn-compact">
         Start Scan
     </button>
 </div>
@@ -31,12 +31,12 @@
     <div class="button-group">
         <button hx-post="{{ url_for('system.scan_series_pause') }}"
                 hx-target="#series-scan-area"
-                class="outline">
+                class="outline btn-compact">
             {{ 'Resume' if scan.status == 'paused' else 'Pause' }}
         </button>
         <button hx-post="{{ url_for('system.scan_series_stop') }}"
                 hx-target="#series-scan-area"
-                class="secondary">
+                class="secondary btn-compact">
             Stop
         </button>
     </div>
@@ -86,7 +86,7 @@
 {% if scan.status in ('complete', 'stopped') %}
 <div style="margin-top: 1rem;">
     <button hx-post="{{ url_for('system.scan_series_start') }}"
-            hx-target="#series-scan-area">
+            hx-target="#series-scan-area" class="btn-compact">
         Start New Scan
     </button>
 </div>

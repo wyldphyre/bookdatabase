@@ -8,7 +8,7 @@
     </fieldset>
     <button hx-post="{{ url_for('system.scan_genres_start') }}"
             hx-target="#scan-area"
-            hx-include="#untagged-only">
+            hx-include="#untagged-only" class="btn-compact">
         Start Scan
     </button>
 </div>
@@ -38,12 +38,12 @@
     <div class="button-group">
         <button hx-post="{{ url_for('system.scan_genres_pause') }}"
                 hx-target="#scan-area"
-                class="outline">
+                class="outline btn-compact">
             {{ 'Resume' if scan.status == 'paused' else 'Pause' }}
         </button>
         <button hx-post="{{ url_for('system.scan_genres_stop') }}"
                 hx-target="#scan-area"
-                class="secondary">
+                class="secondary btn-compact">
             Stop
         </button>
     </div>
@@ -102,7 +102,7 @@
     </fieldset>
     <button hx-post="{{ url_for('system.scan_genres_start') }}"
             hx-target="#scan-area"
-            hx-include="#untagged-only">
+            hx-include="#untagged-only" class="btn-compact">
         Start New Scan
     </button>
 </div>

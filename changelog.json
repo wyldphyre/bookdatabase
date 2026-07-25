@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.68",
+    "date": "2026-07-25",
+    "changes": [
+      "Extend the compact, Grimmory-inspired redesign to the remaining pages: Dashboard (bordered instead of filled active-read cards, fixed another dead '.small' button class), Statistics (stat tiles now match the Dashboard's plain style, chart/table sections use a subtle border instead of filled Pico cards), System (every settings section similarly bordered, and its many scattered buttons — export/import, tag rename/delete, scan start/pause/stop, theme toggle — are now right-sized instead of full Pico scale), plus smaller consistency passes on the Queue, Recommendations, and Price Watch pages"
+    ]
+  },
+  {
     "version": "1.0.67",
     "date": "2026-07-25",
     "changes": [

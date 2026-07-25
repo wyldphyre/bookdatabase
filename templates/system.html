@@ -7,11 +7,11 @@
 {% block content %}
 <p class="secondary">Book Database v{{ version }}</p>
 
-<article>
+<article class="bordered-article">
     <h3>Appearance</h3>
     <div style="display: flex; align-items: center; gap: 1rem;">
         <span>Theme:</span>
-        <button id="theme-toggle" class="outline" style="margin: 0; width: auto;" onclick="toggleTheme()">
+        <button id="theme-toggle" class="outline btn-compact" onclick="toggleTheme()">
         </button>
     </div>
     <script>
@@ -31,16 +31,16 @@
 </article>
 
 {% if pushover_configured %}
-<article>
+<article class="bordered-article">
     <h3>Notifications</h3>
     <p>Pushover is configured. Send a test notification to confirm it's working.</p>
     <form method="post" action="{{ url_for('system.system_pushover_test') }}">
-        <button type="submit" class="outline secondary" style="width: auto;">Send Test Notification</button>
+        <button type="submit" class="outline secondary btn-compact">Send Test Notification</button>
     </form>
 </article>
 {% endif %}
 
-<article id="import-export">
+<article id="import-export" class="bordered-article">
     <h3>Export &amp; Import</h3>
     <p>Export the entire library &mdash; all data plus cover images &mdash; as a zip file,
        or import a previously exported zip to replace this instance's data.</p>
@@ -61,10 +61,10 @@
            The current database will be saved alongside as a pre-import backup first.</p>
         <div style="display: flex; gap: 0.75rem;">
             <form method="post" action="{{ url_for('system.system_import_confirm') }}" style="margin: 0;">
-                <button type="submit" class="danger" style="width: auto; margin: 0;">Replace All Data</button>
+                <button type="submit" class="danger btn-compact">Replace All Data</button>
             </form>
             <form method="post" action="{{ url_for('system.system_import_cancel') }}" style="margin: 0;">
-                <button type="submit" class="outline secondary" style="width: auto; margin: 0;">Cancel</button>
+                <button type="submit" class="outline secondary btn-compact">Cancel</button>
             </form>
         </div>
     </div>
@@ -73,14 +73,14 @@
           enctype="multipart/form-data" style="margin-top: 1rem;">
         <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
             <input type="file" name="file" accept=".zip,application/zip" required style="width: auto; margin: 0;">
-            <button type="submit" class="outline secondary" style="width: auto; margin: 0;">Upload Export File</button>
+            <button type="submit" class="outline secondary btn-compact">Upload Export File</button>
         </div>
         <small class="secondary">You'll be shown what the file contains and asked to confirm before anything is replaced.</small>
     </form>
     {% endif %}
 </article>
 
-<article>
+<article class="bordered-article">
     <h3>Tag Management</h3>
     <p>Search, rename, or delete tags across your library.</p>
 
@@ -96,7 +96,7 @@
     <div id="system-tag-results"></div>
 </article>
 
-<article>
+<article class="bordered-article">
     <h3>Series Book Count Scanner</h3>
     <p>Scan Goodreads and Amazon to update the number of books in each series. Only series with external links will be scanned.</p>
 
@@ -105,7 +105,7 @@
     </div>
 </article>
 
-<article>
+<article class="bordered-article">
     <h3>Goodreads Genre Scanner</h3>
     <p>Scan Goodreads for each book in your library and import genres as tags. Existing tags will be reused.</p>
 
@@ -114,7 +114,7 @@
     </div>
 </article>
 
-<article>
+<article class="bordered-article">
     <h3>Author Gender &amp; Pronoun Scanner</h3>
     <p>Look up gender and pronouns for authors missing them, using their Goodreads bio, Wikipedia, and website.
        Nothing is written automatically &mdash; findings appear below as suggestions with their evidence for you to accept or reject.</p>
@@ -129,7 +129,7 @@
 </div>
 
 {% if changelog %}
-<article id="changelog">
+<article id="changelog" class="bordered-article">
     <h3>Change Log</h3>
     {% for entry in changelog %}
     <details{% if loop.first %} open{% endif %}>

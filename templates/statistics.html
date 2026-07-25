@@ -68,7 +68,7 @@
 </div>
 
 {% if most_read_books %}
-<article>
+<article class="bordered-article">
     <h3>Most Read Books</h3>
     <table>
         <thead>
@@ -92,7 +92,7 @@
 {% endif %}
 
 {% if most_read_authors %}
-<article>
+<article class="bordered-article">
     <h3>Most Read Authors</h3>
     <p class="secondary">Counts every completed read, including re-reads of the same book.</p>
     <table>
@@ -115,7 +115,7 @@
 {% endif %}
 
 {% if most_read_authors_distinct %}
-<article>
+<article class="bordered-article">
     <h3>Most Read Authors (Distinct Books)</h3>
     <p class="secondary">Counts distinct books read; multiple reads of the same book count once.</p>
     <table>
@@ -215,7 +215,7 @@
 </div>
 
 {% if format_spend %}
-<article>
+<article class="bordered-article">
     <h3>Spending by Format — Summary</h3>
     <div style="overflow-x: auto;">
     <table class="format-spend-table">

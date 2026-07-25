@@ -766,6 +766,17 @@ img.lightbox-trigger {
     line-height: 1.4;
 }
 
+/* Reusable right-sizing for standalone buttons that don't sit inside one of
+   the container-scoped classes above (System page and its htmx partials,
+   scattered one-off buttons) */
+.btn-compact {
+    margin: 0 !important;
+    width: auto !important;
+    padding: 0.4rem 0.9rem !important;
+    font-size: 0.85rem !important;
+    line-height: 1.4;
+}
+
 .detail-actions .dropdown-toggle {
     padding: 0.4rem 0.6rem !important;
 }
@@ -959,8 +970,8 @@ img.lightbox-trigger {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    background: var(--pico-card-background-color);
-    padding: 1rem;
+    border: 1px solid var(--pico-muted-border-color);
+    padding: 0.85rem;
     border-radius: var(--pico-border-radius);
     scroll-snap-align: start;
 }
@@ -1325,6 +1336,7 @@ img.lightbox-trigger {
 .edit-form summary[role="button"] {
     padding: 0.4rem 0.9rem;
     font-size: 0.85rem;
+    width: auto;
 }
 
 .selected-authors {
@@ -1674,9 +1686,6 @@ button.ellipsis-btn:focus {
 .stats-summary .stat {
     flex: 1 1 auto;
     min-width: 140px;
-    background: var(--pico-card-background-color);
-    padding: 1rem;
-    border-radius: var(--pico-border-radius);
     text-align: center;
 }
 
@@ -1701,8 +1710,19 @@ button.ellipsis-btn:focus {
     }
 }
 
-.chart-container {
+.chart-container,
+.bordered-article {
+    background: none;
+    box-shadow: none;
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: var(--pico-border-radius);
     padding: 1rem;
+}
+
+.bordered-article h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem 0;
 }
 
 .chart-container--wide {
@@ -1717,7 +1737,7 @@ button.ellipsis-btn:focus {
 .format-spend-table td:first-child {
     position: sticky;
     left: 0;
-    background: var(--pico-card-background-color);
+    background: var(--pico-background-color);
     z-index: 1;
 }
 

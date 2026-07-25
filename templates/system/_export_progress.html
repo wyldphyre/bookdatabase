@@ -2,7 +2,7 @@
 <div>
     <button hx-post="{{ url_for('system.system_export_start') }}"
             hx-target="#export-area"
-            class="outline" style="width: auto;">
+            class="outline btn-compact">
         Export Library
     </button>
 </div>
@@ -32,12 +32,12 @@
         Kept until the next export or app restart.
     </div>
     <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
-        <a href="{{ url_for('system.system_export_download') }}" role="button" style="width: auto; margin: 0;">
+        <a href="{{ url_for('system.system_export_download') }}" role="button" class="btn-compact">
             Download Export
         </a>
         <button hx-post="{{ url_for('system.system_export_start') }}"
                 hx-target="#export-area"
-                class="outline secondary" style="width: auto; margin: 0;">
+                class="outline secondary btn-compact">
             Build New Export
         </button>
     </div>
@@ -48,7 +48,7 @@
     <div class="flash flash-error">Export failed: {{ export.error }}</div>
     <button hx-post="{{ url_for('system.system_export_start') }}"
             hx-target="#export-area"
-            class="outline" style="width: auto;">
+            class="outline btn-compact">
         Try Again
     </button>
 </div>

@@ -1,11 +1,11 @@
 {% if suggestions %}
-<article id="author-suggestions">
+<article id="author-suggestions" class="bordered-article">
     <h3>Author Info Suggestions ({{ suggestions|length }})</h3>
     <p>Review each suggestion against its evidence. Accept applies it to the author; reject discards it.</p>
 
     <form method="post" action="{{ url_for('system.author_suggestion_accept_all') }}"
           onsubmit="return confirm('Apply all {{ suggestions|length }} suggestions?');">
-        <button type="submit" class="outline" style="width: auto;">Accept All</button>
+        <button type="submit" class="outline btn-compact">Accept All</button>
     </form>
 
     <div class="author-suggestions">

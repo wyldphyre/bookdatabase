@@ -8,7 +8,8 @@
 <div class="queue-header">
     <details class="queue-add-external">
         <summary>+ Add External Book</summary>
-        <form hx-post="{{ url_for('queue.queue_add_external') }}"
+        <form class="edit-form"
+              hx-post="{{ url_for('queue.queue_add_external') }}"
               hx-target="#queue-list"
               hx-swap="beforeend"
               hx-on::after-request="if(event.detail.successful){ this.reset(); this.closest('details').removeAttribute('open'); var e=document.querySelector('.queue-empty'); if(e) e.remove(); }">

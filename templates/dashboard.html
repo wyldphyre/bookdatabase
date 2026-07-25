@@ -61,11 +61,11 @@
         </div>
         <div class="active-read-actions">
             <form method="post" action="{{ url_for('books.read_complete', id=read.id) }}">
-                <button type="submit" class="outline small">Mark Complete</button>
+                <button type="submit" class="outline">Mark Complete</button>
             </form>
             <form method="post" action="{{ url_for('books.read_abandon', id=read.id) }}"
                   onsubmit="return confirm('Abandon reading {{ read.book.title|e }}?');">
-                <button type="submit" class="outline secondary small">Abandon</button>
+                <button type="submit" class="outline secondary">Abandon</button>
             </form>
         </div>
     </div>

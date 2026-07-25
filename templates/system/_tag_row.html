@@ -7,8 +7,8 @@
               hx-swap="outerHTML">
             <div style="display: flex; gap: 0.5rem; align-items: center;">
                 <input type="text" name="name" value="{{ tag.name }}">
-                <button type="submit" class="outline" style="white-space: nowrap;">Save</button>
-                <button type="button" class="outline secondary" style="white-space: nowrap;"
+                <button type="submit" class="outline btn-compact" style="white-space: nowrap;">Save</button>
+                <button type="button" class="outline secondary btn-compact" style="white-space: nowrap;"
                         onclick="cancelRename({{ tag.id }})">Cancel</button>
             </div>
             {% if error %}
@@ -21,9 +21,9 @@
     <td>{{ tag.series|length }}</td>
     <td>
         <div style="display: flex; gap: 0.5rem;">
-            <button class="outline" style="white-space: nowrap;"
+            <button class="outline btn-compact" style="white-space: nowrap;"
                     onclick="startRename({{ tag.id }})">Rename</button>
-            <button class="outline secondary" style="white-space: nowrap;"
+            <button class="outline secondary btn-compact" style="white-space: nowrap;"
                     hx-delete="{{ url_for('system.system_tag_delete', id=tag.id) }}"
                     hx-confirm="Delete tag '{{ tag.name }}'? It will be removed from {{ tag.books|length }} book(s), {{ tag.authors|length }} author(s), and {{ tag.series|length }} series."
                     hx-target="#tag-row-{{ tag.id }}"
