@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Tags - Book Database{% endblock %}
+
+{% block page_heading %}Tags{% endblock %}
+
+{% block content %}
+{% set selected_ids = selected_tags|map(attribute='id')|list %}
+
+{% if selected_tags %}
+<div class="tags-row">
+    {% for tag in selected_tags %}
+    {% set remaining = selected_ids|reject('equalto', tag.id)|list %}
+    <span class="detail-chip">
+        {{ tag.name }}
+        <a href="{{ url_for('books.tag_browse', ids=(remaining|join(',') if remaining else none)) }}" class="chip-remove" aria-label="Remove {{ tag.name }} filter">&times;</a>
+    </span>
+    {% endfor %}
+    <a href="{{ url_for('books.tag_browse') }}" class="secondary tags-clear-all">Clear all</a>
+</div>
+
+<div class="tag-picker tags-add-picker">
+    <input type="text"
+           id="tag-add-search"
+           placeholder="Add another tag to narrow the results..."
+           autocomplete="off"
+           hx-get="{{ url_for('system.tag_search') }}"
+           hx-trigger="input changed delay:200ms, focus"
+           hx-target="#tag-add-results"
+           hx-vals='{"exclude": "{{ selected_ids|join(',') }}"}'
+           name="q">
+    <div id="tag-add-results"></div>
+</div>
+
+{% if books and books.items %}
+<p class="secondary">{{ books.total }} book{{ 's' if books.total != 1 else '' }} matching all selected tags</p>
+<div class="book-grid book-grid--compact">
+    {% for book in books.items %}
+    <div class="book-card-wrapper">
+        <a href="{{ url_for('books.book_detail', id=book.id) }}" class="book-card" style="text-decoration: none; color: inherit;">
+            {% set is_read = book.is_completed %}
+            <div class="cover-wrapper">
+                {% if book.cover_image %}
+                <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
+                {% else %}
+                <div class="placeholder-cover">📚</div>
+                {% endif %}
+                {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
+                {% if book.parent_id %}<img src="{{ url_for('static', filename='img/bundle-overlay.svg') }}" class="bundle-overlay" alt="Bundle">{% endif %}
+            </div>
+            <div class="book-card-content">
+                <div class="book-card-title" title="{{ book.title }}">{{ book.title }}</div>
+                <div class="book-card-author" title="{{ book.author_names or 'Unknown Author' }}">{{ book.author_names or 'Unknown Author' }}</div>
+                {% if book.rating_label %}
+                <div class="rating">{{ book.rating_label }}</div>
+                {% endif %}
+            </div>
+        </a>
+        <div class="book-card-footer">
+            {% set in_queue = book.queue_items | length > 0 %}
+            {% include 'queue/_button.html' %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if books.pages > 1 %}
+<nav class="pagination">
+    {% if books.has_prev %}
+    <a href="{{ url_for('books.tag_browse', page=books.prev_num, ids=selected_ids|join(',')) }}">Previous</a>
+    {% endif %}
+
+    {% for page in books.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if page %}
+            {% if page == books.page %}
+            <span class="current">{{ page }}</span>
+            {% else %}
+            <a href="{{ url_for('books.tag_browse', page=page, ids=selected_ids|join(',')) }}">{{ page }}</a>
+            {% endif %}
+        {% else %}
+        <span>...</span>
+        {% endif %}
+    {% endfor %}
+
+    {% if books.has_next %}
+    <a href="{{ url_for('books.tag_browse', page=books.next_num, ids=selected_ids|join(',')) }}">Next</a>
+    {% endif %}
+</nav>
+{% endif %}
+
+{% elif books %}
+<div class="detail-section">
+    <p style="margin: 0;">No books match all of these tags.</p>
+</div>
+{% endif %}
+
+<h2 class="section-title">All Tags</h2>
+{% else %}
+<p class="secondary">Select one or more tags below to see matching books.</p>
+{% endif %}
+
+{% if tag_counts %}
+<div class="tags-row">
+    {% for tag, count in tag_counts %}
+    {% if tag.id in selected_ids %}
+    <a href="{{ url_for('books.tag_browse', ids=(selected_ids|reject('equalto', tag.id)|list)|join(',') if (selected_ids|length > 1) else none) }}" class="detail-chip detail-chip--active">{{ tag.name }} <span class="tag-count">{{ count }}</span></a>
+    {% else %}
+    <a href="{{ url_for('books.tag_browse', ids=(selected_ids + [tag.id])|join(',')) }}" class="detail-chip">{{ tag.name }} <span class="tag-count">{{ count }}</span></a>
+    {% endif %}
+    {% endfor %}
+</div>
+{% else %}
+<p class="secondary">No tags yet — add tags to books to browse them here.</p>
+{% endif %}
+
+<script>
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.tag-picker')) {
+        const r = document.getElementById('tag-add-results');
+        if (r) r.innerHTML = '';
+    }
+});
+
+function addTag(id, name) {
+    const params = new URLSearchParams(window.location.search);
+    const ids = (params.get('ids') || '').split(',').filter(Boolean);
+    if (!ids.includes(String(id))) ids.push(String(id));
+    window.location.href = '{{ url_for("books.tag_browse") }}?ids=' + ids.join(',');
+}
+</script>
+{% endblock %}

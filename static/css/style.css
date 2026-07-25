@@ -705,6 +705,34 @@ img.lightbox-trigger {
     font-weight: 600;
     letter-spacing: 0.01em;
     white-space: nowrap;
+    text-decoration: none;
+}
+
+a.detail-chip:hover {
+    opacity: 1;
+    text-decoration: none;
+}
+
+.detail-chip--active {
+    opacity: 1;
+    box-shadow: 0 0 0 2px var(--pico-color);
+}
+
+.tag-count {
+    margin-left: 0.35rem;
+    opacity: 0.75;
+    font-weight: 400;
+}
+
+/* Tag browse page */
+.tags-clear-all {
+    font-size: 0.8rem;
+    align-self: center;
+}
+
+.tags-add-picker {
+    max-width: 340px;
+    margin: 0.75rem 0 1.5rem;
 }
 
 .tags-row .ellipsis-btn {
@@ -1349,6 +1377,7 @@ img.lightbox-trigger {
     background: none;
     border: none;
     color: inherit;
+    text-decoration: none;
     cursor: pointer;
     padding: 0 0.25rem;
     font-size: 1.1rem;

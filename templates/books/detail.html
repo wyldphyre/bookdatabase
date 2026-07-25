@@ -105,7 +105,7 @@
 
         <div class="tags-row">
             {% for tag in book.tags %}
-            <span class="detail-chip">{{ tag.name }}</span>
+            <a href="{{ url_for('books.tag_browse', ids=tag.id) }}" class="detail-chip">{{ tag.name }}</a>
             {% endfor %}
             <div class="tag-options-dropdown" style="position: relative; display: inline-block;">
                 <button type="button" class="ellipsis-btn" onclick="toggleDropdownMenu(this)" aria-label="Tag options">&#8230;</button>

@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.75",
+    "date": "2026-07-25",
+    "changes": [
+      "Add a Tags page (sidebar, above Statistics) for browsing books by one or more tags — pick tags from the full tag cloud (each showing its book count) to narrow the results to books with all of the selected tags, add more via a search box, or remove them individually. Tag chips on the book detail page are now clickable links straight into this filtered view"
+    ]
+  },
+  {
     "version": "1.0.74",
     "date": "2026-07-25",
     "changes": [

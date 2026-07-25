@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload, subqueryload
-from models import db, Book, Author, Read, ReadingQueue, BookFormat, Tag, RATING_LABELS
+from models import db, Book, Author, Read, ReadingQueue, BookFormat, Tag, book_tags, RATING_LABELS
 from utils import (allowed_file, parse_date, parse_float, validate_rating, fetch_cover_image,
                    clean_external_url, generate_thumbnail, delete_thumbnail,
                    MAX_COVER_DOWNLOAD_BYTES)
@@ -98,6 +98,33 @@ def book_list():
         page=page, per_page=per_page, error_out=False
     )
     return render_template('books/list.html', books=books, per_page=per_page, filter_status=filter_status, pages_filter=pages_filter)
+
+
+@books_bp.route('/tags', endpoint='tag_browse')
+def tag_browse():
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+
+    tag_ids = [int(x) for x in request.args.get('ids', '').split(',') if x.strip().isdigit()]
+    selected_tags = Tag.query.filter(Tag.id.in_(tag_ids)).order_by(Tag.name).all() if tag_ids else []
+
+    books = None
+    if selected_tags:
+        query = Book.query.options(
+            subqueryload(Book.authors),
+            subqueryload(Book.reads),
+            subqueryload(Book.bundle_children)
+        )
+        for tag in selected_tags:
+            query = query.filter(Book.tags.any(Tag.id == tag.id))
+        books = query.order_by(Book.title).paginate(page=page, per_page=per_page, error_out=False)
+
+    # Only tags actually applied to at least one book are worth browsing here
+    tag_counts = db.session.query(Tag, db.func.count(book_tags.c.book_id)) \
+        .join(book_tags, Tag.id == book_tags.c.tag_id) \
+        .group_by(Tag.id).order_by(Tag.name).all()
+
+    return render_template('tags.html', tag_counts=tag_counts, selected_tags=selected_tags, books=books)
 
 
 @books_bp.route('/books/<int:id>', endpoint='book_detail')
