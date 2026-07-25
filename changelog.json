@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.72",
+    "date": "2026-07-25",
+    "changes": [
+      "Remove CSS left over from the v1.0.64-71 UI overhaul: the old boxed .meta-info/.meta-item/.meta-label/.meta-value card (replaced by .detail-facts), .dropdown-divider (the book detail page's options menu no longer has an Edit/Delete section to divide), and .detail-tags (replaced by .tags-row/.detail-chip). No visual change — these rules were no longer referenced by any template"
+    ]
+  },
+  {
     "version": "1.0.71",
     "date": "2026-07-25",
     "changes": [

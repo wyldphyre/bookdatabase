@@ -835,30 +835,6 @@ img.lightbox-trigger {
     text-decoration: underline;
 }
 
-/* Meta info */
-.meta-info {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-    margin: 1rem 0;
-}
-
-.meta-item {
-    background: var(--pico-card-background-color);
-    padding: 0.75rem;
-    border-radius: var(--pico-border-radius);
-}
-
-.meta-label {
-    font-size: 0.8rem;
-    color: var(--pico-muted-color);
-    text-transform: uppercase;
-}
-
-.meta-value {
-    font-weight: bold;
-}
-
 /* Read entries — plain divided rows instead of filled Pico cards, to match
    the rest of the compact book detail page */
 .read-entry {
@@ -1608,11 +1584,6 @@ img.lightbox-trigger {
     cursor: pointer;
 }
 
-.dropdown-menu .dropdown-divider {
-    border-top: 1px solid var(--pico-muted-border-color);
-    margin: 0.4rem 0;
-}
-
 /* Small ellipsis (…) trigger button for option menus — flat icon button,
    not a Pico outline/secondary button */
 button.ellipsis-btn {
@@ -1953,13 +1924,6 @@ ul.tag-search-results {
     margin: 0;
 }
 
-/* Tags on detail pages */
-.detail-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
 .tag-label {
     border-radius: var(--pico-border-radius);
     padding: 0.25rem 0.5rem;
@@ -2167,11 +2131,6 @@ ul.tag-search-results {
     .pagination a, .pagination span {
         padding: 0.4rem 0.7rem;
         font-size: 0.85rem;
-    }
-
-    /* Book detail meta: single column */
-    .meta-info {
-        grid-template-columns: 1fr;
     }
 
     /* Button groups wrap */
