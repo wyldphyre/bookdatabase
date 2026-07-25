@@ -812,6 +812,29 @@ img.lightbox-trigger {
     margin: 1.5rem 0 0.75rem 0;
 }
 
+/* Per-series sub-groups within the author detail page's book grid */
+.author-book-group {
+    margin-top: 1.5rem;
+}
+
+.author-book-group:first-of-type {
+    margin-top: 0.5rem;
+}
+
+.author-book-group-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0 0 0.6rem 0;
+}
+
+.author-book-group-title a {
+    text-decoration: none;
+}
+
+.author-book-group-title a:hover {
+    text-decoration: underline;
+}
+
 /* Meta info */
 .meta-info {
     display: grid;

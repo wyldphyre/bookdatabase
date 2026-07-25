@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.71",
+    "date": "2026-07-25",
+    "changes": [
+      "Group the author detail page's book grid by series (alphabetical, linked to the series page, with a #N badge on each cover), with a 'Standalone' group for books with no series at the end. Authors with no series at all keep the plain flat grid — no redundant heading"
+    ]
+  },
+  {
     "version": "1.0.70",
     "date": "2026-07-25",
     "changes": [

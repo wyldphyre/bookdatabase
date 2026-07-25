@@ -1,3 +1,5 @@
+from itertools import groupby
+
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from sqlalchemy.orm import subqueryload
 from models import db, Book, Author, AuthorGender, AuthorInfoSuggestion, Tag
@@ -43,7 +45,11 @@ def author_detail(id):
         b.series_number or 0,
         b.title.lower()
     ))
-    return render_template('authors/detail.html', author=author, sorted_books=sorted_books)
+    book_groups = []
+    for _, group_iter in groupby(sorted_books, key=lambda b: b.series_id):
+        group_books = list(group_iter)
+        book_groups.append((group_books[0].series, group_books))
+    return render_template('authors/detail.html', author=author, book_groups=book_groups)
 
 
 @authors_bp.route('/authors/new', methods=['GET', 'POST'], endpoint='author_new')
