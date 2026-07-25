@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.73",
+    "date": "2026-07-25",
+    "changes": [
+      "Tighten the sidebar's vertical spacing to match the rest of the compact redesign — less padding around the header, nav links, section labels, and footer/theme toggle, in both the expanded and collapsed (icon-only) states"
+    ]
+  },
+  {
     "version": "1.0.72",
     "date": "2026-07-25",
     "changes": [
