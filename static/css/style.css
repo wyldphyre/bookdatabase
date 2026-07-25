@@ -644,18 +644,6 @@ img.lightbox-trigger {
     margin-top: 0.15rem;
 }
 
-/* Tighter dropdown menus on this page — the shared .dropdown-menu component
-   is also used on the books list and reading queue, so scope the reduced
-   padding here rather than changing it everywhere. */
-.book-detail-page .dropdown-menu {
-    padding: 0.3rem 0;
-}
-
-.book-detail-page .dropdown-menu a,
-.book-detail-page .dropdown-menu button.menu-item {
-    padding: 0.4rem 1rem;
-}
-
 /* Subtitle / byline / series — plain compact text instead of boxed rows */
 .book-subtitle {
     color: var(--pico-muted-color);
@@ -1547,7 +1535,7 @@ img.lightbox-trigger {
     z-index: 100;
     min-width: 180px;
     margin: 0.25rem 0 0 0;
-    padding: 0.5rem 0;
+    padding: 0.3rem 0;
     padding-left: 0;
     list-style: none;
     list-style-type: none;
@@ -1570,7 +1558,7 @@ img.lightbox-trigger {
 
 .dropdown-menu a {
     display: block;
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 1rem;
     color: var(--pico-color);
     text-decoration: none;
 }
@@ -1584,7 +1572,7 @@ img.lightbox-trigger {
     display: block;
     width: 100%;
     margin: 0;
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 1rem;
     background: none;
     border: none;
     box-shadow: none;

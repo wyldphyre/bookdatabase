@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.70",
+    "date": "2026-07-25",
+    "changes": [
+      "Fix the Queue page's reorder menu (First/Previous/Next/Last) still showing the old, roomier padding — the shared dropdown-menu component only had its spacing tightened for the book detail page; the fix now lives in the shared base rule so every dropdown menu in the app (Queue's reorder menu, the Books list 'Add New Book' options menu, and book detail's menus) is consistently compact"
+    ]
+  },
+  {
     "version": "1.0.69",
     "date": "2026-07-25",
     "changes": [
