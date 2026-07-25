@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.74",
+    "date": "2026-07-25",
+    "changes": [
+      "Change the Price Watch icon from a price tag to a dollar sign, in both the sidebar and the page header"
+    ]
+  },
+  {
     "version": "1.0.73",
     "date": "2026-07-25",
     "changes": [
