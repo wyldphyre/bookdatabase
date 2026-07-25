@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.69",
+    "date": "2026-07-25",
+    "changes": [
+      "Shorten the Dashboard's 'Mark Complete' button to 'Complete' — the longer label was wrapping to two lines, making it taller than the 'Abandon' button beside it"
+    ]
+  },
+  {
     "version": "1.0.68",
     "date": "2026-07-25",
     "changes": [
