@@ -877,7 +877,10 @@ a.detail-chip:hover {
 }
 
 .tab-btn:hover {
-    color: var(--pico-color);
+    /* inherit, not var(--pico-color): Pico redefines --pico-color to the
+       inverse (white) on button :hover, which would make the text
+       disappear against this button's transparent background */
+    color: inherit;
 }
 
 .tab-btn.active {

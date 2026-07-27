@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.77",
+    "date": "2026-07-27",
+    "changes": [
+      "Fix the inactive tab on the book detail page's new tab bar becoming invisible on hover in light mode — Pico redefines its --pico-color variable to white on button hover states, so the fix uses `inherit` instead of reading that variable directly"
+    ]
+  },
+  {
     "version": "1.0.76",
     "date": "2026-07-27",
     "changes": [
