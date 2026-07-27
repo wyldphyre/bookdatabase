@@ -467,5 +467,80 @@ document.addEventListener('click', function(e) {
     });
 });
 </script>
+
+{% macro related_book_card(b, badge_text=none) %}
+<a href="{{ url_for('books.book_detail', id=b.id) }}" class="book-card" style="text-decoration: none; color: inherit;">
+    {% set is_read = b.is_completed %}
+    <div class="cover-wrapper">
+        {% if b.cover_image %}
+        <img src="{{ cover_thumb_url(b.cover_image) }}" alt="{{ b.title }}" loading="lazy">
+        {% else %}
+        <div class="placeholder-cover">📚</div>
+        {% endif %}
+        {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
+        {% if b.parent_id %}<img src="{{ url_for('static', filename='img/bundle-overlay.svg') }}" class="bundle-overlay" alt="Bundle">{% endif %}
+        {% if badge_text %}<span class="cover-badge">{{ badge_text }}</span>{% endif %}
+    </div>
+    <div class="book-card-content">
+        <div class="book-card-title" title="{{ b.title }}">{{ b.title }}</div>
+        <div class="book-card-author" title="{{ b.author_names or 'Unknown' }}">{{ b.author_names or 'Unknown' }}</div>
+        {% if b.rating_label %}
+        <div class="rating">{{ b.rating_label }}</div>
+        {% endif %}
+    </div>
+</a>
+{% endmacro %}
+
+{% if series_books or similar_books %}
+<section class="detail-tabs">
+    {% if series_books and similar_books %}
+    <div class="tab-bar" role="tablist">
+        <button type="button" class="tab-btn active" data-tab="series" role="tab" aria-selected="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            More in Series
+        </button>
+        <button type="button" class="tab-btn" data-tab="similar" role="tab" aria-selected="false">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Similar Books
+        </button>
+    </div>
+    <div class="tab-panel" data-tab-panel="series">
+        <div class="book-grid book-grid--compact">
+            {% for b in series_books %}{{ related_book_card(b, ('#' ~ (b.series_number|num)) if b.series_number else none) }}{% endfor %}
+        </div>
+    </div>
+    <div class="tab-panel" data-tab-panel="similar" hidden>
+        <div class="book-grid book-grid--compact">
+            {% for b, count in similar_books %}{{ related_book_card(b, count|string ~ ' tag' ~ ('s' if count != 1 else '')) }}{% endfor %}
+        </div>
+    </div>
+    {% elif series_books %}
+    <h2 class="section-title">More in Series</h2>
+    <div class="book-grid book-grid--compact">
+        {% for b in series_books %}{{ related_book_card(b, ('#' ~ (b.series_number|num)) if b.series_number else none) }}{% endfor %}
+    </div>
+    {% else %}
+    <h2 class="section-title">Similar Books</h2>
+    <div class="book-grid book-grid--compact">
+        {% for b, count in similar_books %}{{ related_book_card(b, count|string ~ ' tag' ~ ('s' if count != 1 else '')) }}{% endfor %}
+    </div>
+    {% endif %}
+</section>
+
+<script>
+document.querySelectorAll('.detail-tabs .tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.detail-tabs .tab-btn').forEach(function(b) {
+            b.classList.remove('active');
+            b.setAttribute('aria-selected', 'false');
+        });
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+        document.querySelectorAll('.detail-tabs .tab-panel').forEach(function(p) { p.hidden = true; });
+        document.querySelector('.detail-tabs .tab-panel[data-tab-panel="' + btn.dataset.tab + '"]').hidden = false;
+    });
+});
+</script>
+{% endif %}
 </div>
 {% endblock %}

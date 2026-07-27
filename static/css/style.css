@@ -845,6 +845,50 @@ a.detail-chip:hover {
     margin-top: 1.5rem;
 }
 
+/* Tabbed "More in Series" / "Similar Books" section on the book detail page */
+.detail-tabs {
+    margin-top: 2rem;
+}
+
+.tab-bar {
+    display: flex;
+    gap: 1.5rem;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+    margin-bottom: 1rem;
+    overflow-x: auto;
+}
+
+.tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    padding: 0.5rem 0.1rem;
+    margin: 0 0 -1px 0;
+    width: auto;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--pico-muted-color);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.tab-btn:hover {
+    color: var(--pico-color);
+}
+
+.tab-btn.active {
+    color: var(--pico-primary);
+    border-bottom-color: var(--pico-primary);
+}
+
+.tab-panel[hidden] {
+    display: none;
+}
+
 .author-book-group:first-of-type {
     margin-top: 0.5rem;
 }
@@ -2075,8 +2119,9 @@ ul.tag-search-results {
     color: #d48f8f;
 }
 
-/* Series number overlay on the book grid covers (Series detail page) */
-.series-number-badge {
+/* Small overlay badge on a book-grid cover — series number, shared-tag
+   count, etc. */
+.cover-badge {
     position: absolute;
     bottom: 0;
     right: 0;

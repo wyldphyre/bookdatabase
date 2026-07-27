@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.76",
+    "date": "2026-07-27",
+    "changes": [
+      "Add a tabbed 'More in Series' / 'Similar Books' section to the bottom of the book detail page. Similar Books is ranked by number of shared tags and excludes any book already in the same series. Only shows a tab bar when both sections have content; shows a plain heading for whichever one does when only one applies, and nothing at all when neither does"
+    ]
+  },
+  {
     "version": "1.0.75",
     "date": "2026-07-25",
     "changes": [

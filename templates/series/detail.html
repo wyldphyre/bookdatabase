@@ -68,7 +68,7 @@
                 {% endif %}
                 {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
                 {% if book.parent_id %}<img src="{{ url_for('static', filename='img/bundle-overlay.svg') }}" class="bundle-overlay" alt="Bundle">{% endif %}
-                {% if book.series_number %}<span class="series-number-badge">#{{ book.series_number|num }}</span>{% endif %}
+                {% if book.series_number %}<span class="cover-badge">#{{ book.series_number|num }}</span>{% endif %}
             </div>
             <div class="book-card-content">
                 <div class="book-card-title" title="{{ book.title }}">{{ book.title }}</div>

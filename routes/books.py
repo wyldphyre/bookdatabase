@@ -132,7 +132,38 @@ def book_detail(id):
     from datetime import date
     book = db.get_or_404(Book, id)
     suggest_queue_id = request.args.get('suggest_queue', type=int)
-    return render_template('books/detail.html', book=book, today=date.today().isoformat(), suggest_queue_id=suggest_queue_id)
+
+    eager_opts = (
+        subqueryload(Book.authors),
+        subqueryload(Book.reads),
+        subqueryload(Book.bundle_children)
+    )
+
+    # "More in Series" — other books in the same series, ordered as usual.
+    # Also doubles as the exclusion set for "Similar Books" below, so a
+    # series entry never shows up twice on the page.
+    series_books = []
+    exclude_ids = {book.id}
+    if book.series_id:
+        same_series = Book.query.filter(Book.series_id == book.series_id) \
+            .options(*eager_opts).order_by(Book.series_number).all()
+        exclude_ids = {b.id for b in same_series}
+        series_books = [b for b in same_series if b.id != book.id]
+
+    # "Similar Books" — ranked by how many tags they share with this book.
+    similar_books = []
+    tag_ids = [t.id for t in book.tags]
+    if tag_ids:
+        shared_count = db.func.count(book_tags.c.tag_id).label('shared_count')
+        similar_books = db.session.query(Book, shared_count) \
+            .join(book_tags, Book.id == book_tags.c.book_id) \
+            .filter(book_tags.c.tag_id.in_(tag_ids), ~Book.id.in_(exclude_ids)) \
+            .group_by(Book.id).order_by(shared_count.desc(), Book.title) \
+            .options(*eager_opts).limit(20).all()
+
+    return render_template('books/detail.html', book=book, today=date.today().isoformat(),
+                            suggest_queue_id=suggest_queue_id,
+                            series_books=series_books, similar_books=similar_books)
 
 
 @books_bp.route('/books/new', methods=['GET', 'POST'], endpoint='book_new')
