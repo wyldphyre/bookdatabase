@@ -134,6 +134,14 @@
             <span class="detail-fact"><span class="detail-fact-label">Purchased</span> {{ book.date_purchased.strftime('%Y-%m-%d') }}</span>
             {% endif %}
             <span class="detail-fact"><span class="detail-fact-label">Added</span> {{ book.date_added.strftime('%Y-%m-%d') }}</span>
+            {% if book.active_read and book.active_read.start_date %}
+            <span class="detail-fact"><span class="detail-fact-label">Reading since</span> {{ book.active_read.start_date.strftime('%Y-%m-%d') }}</span>
+            {% elif read_stats.last_finish %}
+            <span class="detail-fact"><span class="detail-fact-label">Last read</span> {{ read_stats.last_finish.strftime('%Y-%m-%d') }}</span>
+            {% endif %}
+            {% if read_stats.times_read > 1 %}
+            <span class="detail-fact"><span class="detail-fact-label">Read</span> {{ read_stats.times_read }}&times;</span>
+            {% endif %}
         </div>
 
         {% if book.cost or book.paid or book.discounts %}
@@ -203,6 +211,20 @@
     </div>
 </div>
 
+{% set active_tab = request.args.get('tab', 'details') %}
+<section class="tab-group book-tabs">
+    <div class="tab-bar" role="tablist">
+        <button type="button" class="tab-btn{% if active_tab != 'reads' %} active{% endif %}" data-tab="details" role="tab" aria-selected="{{ 'false' if active_tab == 'reads' else 'true' }}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            Book Details
+        </button>
+        <button type="button" class="tab-btn{% if active_tab == 'reads' %} active{% endif %}" data-tab="reads" role="tab" aria-selected="{{ 'true' if active_tab == 'reads' else 'false' }}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Reading History{% if read_stats.total %} <span class="tab-count">{{ read_stats.total }}</span>{% endif %}
+        </button>
+    </div>
+
+<div class="tab-panel" data-tab-panel="details"{% if active_tab == 'reads' %} hidden{% endif %}>
 {% if book.description %}
 <div class="detail-section">
     <h3>Description</h3>
@@ -215,6 +237,10 @@
     <h3>Notes</h3>
     <p style="white-space: pre-line;">{{ book.comment }}</p>
 </div>
+{% endif %}
+
+{% if not book.description and not book.comment and not (book.bundle_children or book.is_book_bundle) %}
+<p class="secondary">No description or notes for this book. <a href="{{ url_for('books.book_edit', id=book.id) }}">Edit the book</a> to add some.</p>
 {% endif %}
 
 {% if book.bundle_children or book.is_book_bundle %}
@@ -252,7 +278,130 @@
         {% endif %}
     </div>
 </section>
+{% endif %}
+</div>
 
+<div class="tab-panel reading-history" data-tab-panel="reads"{% if active_tab != 'reads' %} hidden{% endif %}>
+    <div class="reads-summary">
+        <div class="detail-facts">
+            {% if read_stats.times_read %}
+            <span class="detail-fact"><span class="detail-fact-label">Read</span> {{ read_stats.times_read }}&times;</span>
+            {% endif %}
+            {% if read_stats.first_start %}
+            <span class="detail-fact"><span class="detail-fact-label">First</span> {{ read_stats.first_start.strftime('%Y-%m-%d') }}</span>
+            {% endif %}
+            {% if read_stats.last_finish %}
+            <span class="detail-fact"><span class="detail-fact-label">Last</span> {{ read_stats.last_finish.strftime('%Y-%m-%d') }}</span>
+            {% endif %}
+            {% if read_stats.avg_days is not none %}
+            <span class="detail-fact"><span class="detail-fact-label">Avg</span> {{ read_stats.avg_days }} {{ 'day' if read_stats.avg_days == 1 else 'days' }}</span>
+            {% endif %}
+        </div>
+        {% if not book.bundle_children %}
+        <button type="button" class="btn-compact outline" onclick="toggleAddRead()">+ Add Read</button>
+        {% endif %}
+    </div>
+
+    {% if not book.bundle_children %}
+    <form method="post" action="{{ url_for('books.read_add', book_id=book.id) }}" class="read-form" id="add-read-form" hidden>
+        <input type="hidden" name="tab" value="reads">
+        <div class="form-grid">
+            <label>
+                Status
+                <select name="status" required>
+                    <option value="Reading">Reading</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Abandoned">Abandoned</option>
+                </select>
+            </label>
+            <label>
+                Start Date
+                <input type="date" name="start_date" oninput="warnBadDate(this)">
+                <small class="date-warning" style="display:none; color: var(--pico-del-color);">⚠ Date looks wrong — check the year</small>
+            </label>
+            <label>
+                Finish Date
+                <input type="date" name="finish_date" oninput="warnBadDate(this)">
+                <small class="date-warning" style="display:none; color: var(--pico-del-color);">⚠ Date looks wrong — check the year</small>
+            </label>
+        </div>
+        <div class="read-form-actions">
+            <button type="submit" class="btn-compact">Add Read</button>
+            <button type="button" class="btn-compact outline secondary" onclick="toggleAddRead()">Cancel</button>
+        </div>
+    </form>
+    {% endif %}
+
+    {% if read_entries %}
+    <ul class="reads-list">
+        {% for entry in read_entries %}
+        {% set read = entry.read %}
+        <li class="read-item" id="read-item-{{ read.id }}">
+            <div class="read-row">
+                <span class="read-num">#{{ entry.number }}</span>
+                <span class="read-status status-{{ read.status.lower() }}">{{ read.status }}</span>
+                <span class="read-dates">
+                    {% if entry.child %}<a href="{{ url_for('books.book_detail', id=entry.child.id) }}">{{ entry.child.title }}</a> &middot; {% endif %}
+                    {{ read.start_date.strftime('%Y-%m-%d') if read.start_date else '—' }}
+                    &rarr;
+                    {{ read.finish_date.strftime('%Y-%m-%d') if read.finish_date else '—' }}
+                </span>
+                {% if read.status == 'Completed' and read.start_date and read.finish_date %}
+                {% set days = read.start_date|days_between(read.finish_date) %}
+                <span class="read-duration">{{ days }} {{ 'day' if days == 1 else 'days' }}</span>
+                {% elif read.status == 'Reading' and read.start_date %}
+                {% set days = read.start_date|days_since %}
+                <span class="read-duration">{{ days }} {{ 'day' if days == 1 else 'days' }} so far</span>
+                {% endif %}
+                {% if not entry.child %}
+                <div class="read-row-actions">
+                    <button type="button" class="btn-compact outline secondary" onclick="toggleReadEdit({{ read.id }})">Edit</button>
+                    <button type="button" class="btn-compact outline secondary"
+                            hx-delete="{{ url_for('books.read_delete', id=read.id, tab='reads') }}"
+                            hx-confirm="Delete this read entry?"
+                            aria-label="Delete read">&times;</button>
+                </div>
+                {% endif %}
+            </div>
+            {% if not entry.child %}
+            <form method="post" action="{{ url_for('books.read_update', id=read.id) }}" class="read-form" id="read-edit-{{ read.id }}" hidden>
+                <input type="hidden" name="tab" value="reads">
+                <div class="form-grid">
+                    <label>
+                        Status
+                        <select name="status" required>
+                            <option value="Reading" {% if read.status == 'Reading' %}selected{% endif %}>Reading</option>
+                            <option value="Completed" {% if read.status == 'Completed' %}selected{% endif %}>Completed</option>
+                            <option value="Abandoned" {% if read.status == 'Abandoned' %}selected{% endif %}>Abandoned</option>
+                        </select>
+                    </label>
+                    <label>
+                        Start Date
+                        <input type="date" name="start_date" value="{{ read.start_date.strftime('%Y-%m-%d') if read.start_date else '' }}" oninput="warnBadDate(this)">
+                        <small class="date-warning" style="display:none; color: var(--pico-del-color);">⚠ Date looks wrong — check the year</small>
+                    </label>
+                    <label>
+                        Finish Date
+                        <input type="date" name="finish_date" value="{{ read.finish_date.strftime('%Y-%m-%d') if read.finish_date else '' }}" oninput="warnBadDate(this)">
+                        <small class="date-warning" style="display:none; color: var(--pico-del-color);">⚠ Date looks wrong — check the year</small>
+                    </label>
+                </div>
+                <div class="read-form-actions">
+                    <button type="submit" class="btn-compact">Update Read</button>
+                    <button type="button" class="btn-compact outline secondary" onclick="toggleReadEdit({{ read.id }})">Cancel</button>
+                </div>
+            </form>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="secondary">{% if book.bundle_children %}No reading history for books in this bundle.{% else %}No reading history for this book yet.{% endif %}</p>
+    {% endif %}
+</div>
+</section>
+
+{% if book.bundle_children or book.is_book_bundle %}
 <dialog id="bundle-add-modal">
     <article>
         <header>
@@ -291,123 +440,6 @@ document.getElementById('bundle-add-url').addEventListener('keydown', function(e
 });
 </script>
 {% endif %}
-
-<section class="reading-history">
-    <h2 class="section-title">Reading History</h2>
-
-    {% if book.bundle_children %}
-        {# For bundle books, derive history from children #}
-        {% set all_child_reads = [] %}
-        {% for child in book.bundle_children %}
-            {% for read in child.reads %}
-                {% set _ = all_child_reads.append({'read': read, 'book': child}) %}
-            {% endfor %}
-        {% endfor %}
-        {% set all_child_reads = all_child_reads|selectattr('read.start_date')|sort(attribute='read.start_date', reverse=True)|list +
-                                 all_child_reads|rejectattr('read.start_date')|list %}
-
-        {% if all_child_reads %}
-            {% for entry in all_child_reads %}
-            {% set read = entry.read %}
-            {% set child = entry.book %}
-            <div class="read-entry">
-                <div>
-                    <span class="read-status status-{{ read.status.lower() }}">{{ read.status }}</span>
-                    <a href="{{ url_for('books.book_detail', id=child.id) }}" class="secondary"><small>{{ child.title }}</small></a>
-                    {% if read.start_date %} — Started: {{ read.start_date.strftime('%Y-%m-%d') }}{% endif %}
-                    {% if read.finish_date %} | Finished: {{ read.finish_date.strftime('%Y-%m-%d') }}{% endif %}
-                    {% if read.status == 'Completed' and read.start_date and read.finish_date %}
-                    {% set days = read.start_date|days_between(read.finish_date) %}
-                    <small class="secondary"> ({{ days }} {{ 'day' if days == 1 else 'days' }})</small>
-                    {% elif read.status == 'Reading' and read.start_date %}
-                    {% set days = read.start_date|days_since %}
-                    <small class="secondary"> ({{ days }} {{ 'day' if days == 1 else 'days' }})</small>
-                    {% endif %}
-                </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <p>No reading history for books in this bundle.</p>
-        {% endif %}
-    {% elif book.reads %}
-        {% for read in book.reads %}
-        <div class="read-entry">
-            <div>
-                <span class="read-status status-{{ read.status.lower() }}">{{ read.status }}</span>
-                {% if read.start_date %}Started: {{ read.start_date.strftime('%Y-%m-%d') }}{% endif %}
-                {% if read.finish_date %} | Finished: {{ read.finish_date.strftime('%Y-%m-%d') }}{% endif %}
-                {% if read.status == 'Completed' and read.start_date and read.finish_date %}
-                {% set days = read.start_date|days_between(read.finish_date) %}
-                <small class="secondary"> ({{ days }} {{ 'day' if days == 1 else 'days' }})</small>
-                {% elif read.status == 'Reading' and read.start_date %}
-                {% set days = read.start_date|days_since %}
-                <small class="secondary"> ({{ days }} {{ 'day' if days == 1 else 'days' }})</small>
-                {% endif %}
-            </div>
-            <div class="button-group">
-                <details>
-                    <summary role="button" class="outline secondary">Edit</summary>
-                    <form method="post" action="{{ url_for('books.read_update', id=read.id) }}">
-                        <label>
-                            Status
-                            <select name="status" required>
-                                <option value="Reading" {% if read.status == 'Reading' %}selected{% endif %}>Reading</option>
-                                <option value="Completed" {% if read.status == 'Completed' %}selected{% endif %}>Completed</option>
-                                <option value="Abandoned" {% if read.status == 'Abandoned' %}selected{% endif %}>Abandoned</option>
-                            </select>
-                        </label>
-                        <label>
-                            Start Date
-                            <input type="date" name="start_date" value="{{ read.start_date.strftime('%Y-%m-%d') if read.start_date else '' }}" oninput="warnBadDate(this)">
-                            <small class="date-warning" style="display:none; color: var(--pico-del-color);">⚠ Date looks wrong — check the year</small>
-                        </label>
-                        <label>
-                            Finish Date
-                            <input type="date" name="finish_date" value="{{ read.finish_date.strftime('%Y-%m-%d') if read.finish_date else '' }}" oninput="warnBadDate(this)">
-                            <small class="date-warning" style="display:none; color: var(--pico-del-color);">⚠ Date looks wrong — check the year</small>
-                        </label>
-                        <button type="submit">Update Read</button>
-                    </form>
-                </details>
-                <button class="outline secondary"
-                        hx-delete="{{ url_for('books.read_delete', id=read.id) }}"
-                        hx-confirm="Delete this read entry?">
-                    Delete
-                </button>
-            </div>
-        </div>
-        {% endfor %}
-    {% else %}
-        <p>No reading history for this book.</p>
-    {% endif %}
-
-    <details class="add-read-details">
-        <summary role="button" class="outline add-read-toggle">Add New Read</summary>
-        <form method="post" action="{{ url_for('books.read_add', book_id=book.id) }}">
-            <div class="form-grid">
-                <label>
-                    Status
-                    <select name="status" required>
-                        <option value="Reading">Reading</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Abandoned">Abandoned</option>
-                    </select>
-                </label>
-                <label>
-                    Start Date
-                    <input type="date" name="start_date" oninput="warnBadDate(this)">
-                    <small class="date-warning" style="display:none; color: var(--pico-del-color);">⚠ Date looks wrong — check the year</small>
-                </label>
-                <label>
-                    Finish Date
-                    <input type="date" name="finish_date" oninput="warnBadDate(this)">
-                    <small class="date-warning" style="display:none; color: var(--pico-del-color);">⚠ Date looks wrong — check the year</small>
-                </label>
-            </div>
-            <button type="submit">Add Read</button>
-        </form>
-    </details>
-</section>
 
 <script>
 (function() {
@@ -492,7 +524,7 @@ document.addEventListener('click', function(e) {
 {% endmacro %}
 
 {% if series_books or similar_books %}
-<section class="detail-tabs">
+<section class="detail-tabs tab-group">
     {% if series_books and similar_books %}
     <div class="tab-bar" role="tablist">
         <button type="button" class="tab-btn active" data-tab="series" role="tab" aria-selected="true">
@@ -527,20 +559,50 @@ document.addEventListener('click', function(e) {
     {% endif %}
 </section>
 
+{% endif %}
+
 <script>
-document.querySelectorAll('.detail-tabs .tab-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-        document.querySelectorAll('.detail-tabs .tab-btn').forEach(function(b) {
-            b.classList.remove('active');
-            b.setAttribute('aria-selected', 'false');
+// Each .tab-group manages its own bar/panels, so the two independent tab bars
+// on this page (Details/Reading History up top, Series/Similar at the bottom)
+// don't interfere with each other.
+document.querySelectorAll('.tab-group').forEach(function(group) {
+    var btns = Array.from(group.querySelectorAll(':scope > .tab-bar .tab-btn'));
+    var panels = Array.from(group.querySelectorAll(':scope > .tab-panel'));
+    btns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            btns.forEach(function(b) {
+                b.classList.remove('active');
+                b.setAttribute('aria-selected', 'false');
+            });
+            btn.classList.add('active');
+            btn.setAttribute('aria-selected', 'true');
+            panels.forEach(function(p) { p.hidden = p.dataset.tabPanel !== btn.dataset.tab; });
+
+            // Keep the top tabs' selection in the URL so a refresh — or the
+            // redirect after adding/editing a read — comes back to the same tab.
+            if (group.classList.contains('book-tabs')) {
+                var url = new URL(window.location);
+                if (btn.dataset.tab === 'details') url.searchParams.delete('tab');
+                else url.searchParams.set('tab', btn.dataset.tab);
+                history.replaceState(null, '', url);
+            }
         });
-        btn.classList.add('active');
-        btn.setAttribute('aria-selected', 'true');
-        document.querySelectorAll('.detail-tabs .tab-panel').forEach(function(p) { p.hidden = true; });
-        document.querySelector('.detail-tabs .tab-panel[data-tab-panel="' + btn.dataset.tab + '"]').hidden = false;
     });
 });
+
+function toggleAddRead() {
+    var form = document.getElementById('add-read-form');
+    form.hidden = !form.hidden;
+    if (!form.hidden) form.querySelector('select, input:not([type=hidden])').focus();
+}
+
+function toggleReadEdit(id) {
+    var form = document.getElementById('read-edit-' + id);
+    var row = document.querySelector('#read-item-' + id + ' .read-row');
+    var opening = form.hidden;
+    form.hidden = !opening;
+    row.hidden = opening;
+}
 </script>
-{% endif %}
 </div>
 {% endblock %}

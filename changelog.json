@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.78",
+    "date": "2026-07-27",
+    "changes": [
+      "Rework the book detail page around a Book Details / Reading History tab bar below the cover, and redesign the reading history itself: a summary strip (times read, first/last read, average duration), numbered read entries showing status, date range and duration, inline edit that swaps the row in place instead of expanding a nested form, and a compact Add Read button. A last-read (or 'reading since') date now also appears with the other book facts up top. Adding, editing or deleting a read returns you to the Reading History tab, while Start Reading / Mark Complete from the header stays on Book Details"
+    ]
+  },
+  {
     "version": "1.0.77",
     "date": "2026-07-27",
     "changes": [

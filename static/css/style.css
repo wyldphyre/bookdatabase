@@ -910,40 +910,82 @@ a.detail-chip:hover {
     text-decoration: underline;
 }
 
-/* Read entries — plain divided rows instead of filled Pico cards, to match
-   the rest of the compact book detail page */
-.read-entry {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    padding: 0.55rem 0;
-    border-top: 1px solid var(--pico-muted-border-color);
-    font-size: 0.88rem;
-}
-
-.read-entry .button-group button,
-.read-entry .button-group summary {
-    padding: 0.3rem 0.7rem !important;
-    font-size: 0.8rem;
-    margin: 0;
-    width: auto;
-}
-
 .read-status {
     padding: 0.2rem 0.55rem;
     border-radius: 999px;
     font-size: 0.7rem;
     font-weight: bold;
+    white-space: nowrap;
 }
 
-/* "Add New Read" / per-entry "Edit" disclosure triggers, right-sized
-   instead of full Pico summary[role=button] scale */
-.add-read-toggle {
-    padding: 0.5rem 1rem !important;
-    font-size: 0.9rem;
+/* Reading History tab — summary strip above the list of reads */
+.reads-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.reads-summary .detail-facts {
     margin: 0;
+}
+
+.reads-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.read-item {
+    border-top: 1px solid var(--pico-muted-border-color);
+}
+
+.read-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding: 0.55rem 0;
+    font-size: 0.88rem;
+}
+
+.read-num {
+    color: var(--pico-muted-color);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.8rem;
+    min-width: 1.75rem;
+}
+
+.read-duration {
+    color: var(--pico-muted-color);
+    font-size: 0.8rem;
+}
+
+/* Pushes the row's Edit/delete buttons to the far right */
+.read-row-actions {
+    display: flex;
+    gap: 0.4rem;
+    margin-left: auto;
+}
+
+.read-row-actions button {
+    padding: 0.25rem 0.6rem !important;
+    font-size: 0.78rem !important;
+}
+
+/* Inline add/edit form, shown in place of the row it belongs to */
+.read-form {
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: var(--pico-border-radius);
+    padding: 0.85rem 1rem 0.6rem;
+    margin: 0.6rem 0;
+}
+
+.read-form-actions {
+    display: flex;
+    gap: 0.5rem;
 }
 
 /* Edit/Add-read forms — Pico's default select/date-input/label sizing is
@@ -977,17 +1019,6 @@ a.detail-chip:hover {
 .reading-history .form-grid {
     gap: 0.75rem;
     margin-bottom: 0.75rem;
-}
-
-.add-read-details form button[type="submit"] {
-    padding: 0.4rem 0.9rem;
-    font-size: 0.85rem;
-    margin: 0;
-    width: auto;
-}
-
-.add-read-details {
-    margin-top: 0.75rem;
 }
 
 .status-reading {
@@ -2230,20 +2261,13 @@ ul.tag-search-results {
         width: auto !important;
     }
 
-    /* Read entry stacks */
-    .read-entry {
-        flex-direction: column;
-        align-items: flex-start;
+    /* Read rows: let the dates wrap rather than squeezing the actions off-row */
+    .read-row {
+        row-gap: 0.3rem;
     }
 
-    .read-entry .button-group {
-        flex-direction: row;
-        width: 100%;
-    }
-
-    .read-entry .button-group button,
-    .read-entry .button-group details {
-        flex: 1;
+    .read-row-actions {
+        margin-left: 0;
     }
 }
 

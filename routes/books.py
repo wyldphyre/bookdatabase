@@ -127,11 +127,45 @@ def tag_browse():
     return render_template('tags.html', tag_counts=tag_counts, selected_tags=selected_tags, books=books)
 
 
+def _reading_history(book):
+    """Reads for the book detail page, newest first, plus summary stats.
+
+    A bundle has no reads of its own — its history is the union of its
+    children's reads, each attributed back to the child it belongs to."""
+    if book.bundle_children:
+        pairs = [(r, child) for child in book.bundle_children for r in child.reads]
+    else:
+        pairs = [(r, None) for r in book.reads]
+
+    # Number oldest-first so #1 is the earliest read, but display newest-first.
+    # Reads with no start date can't be ordered, so they sort/number last.
+    dated = sorted((p for p in pairs if p[0].start_date), key=lambda p: p[0].start_date)
+    undated = [p for p in pairs if not p[0].start_date]
+    numbered = [{'read': r, 'child': c, 'number': i}
+                for i, (r, c) in enumerate(dated + undated, start=1)]
+    entries = list(reversed(numbered[:len(dated)])) + numbered[len(dated):]
+
+    completed = [r for r, _ in pairs if r.status == 'Completed']
+    durations = [(r.finish_date - r.start_date).days
+                 for r in completed if r.start_date and r.finish_date]
+    starts = [r.start_date for r, _ in pairs if r.start_date]
+    finishes = [r.finish_date for r in completed if r.finish_date]
+    stats = {
+        'total': len(pairs),
+        'times_read': len(completed),
+        'first_start': min(starts) if starts else None,
+        'last_finish': max(finishes) if finishes else None,
+        'avg_days': round(sum(durations) / len(durations)) if durations else None,
+    }
+    return entries, stats
+
+
 @books_bp.route('/books/<int:id>', endpoint='book_detail')
 def book_detail(id):
     from datetime import date
     book = db.get_or_404(Book, id)
     suggest_queue_id = request.args.get('suggest_queue', type=int)
+    read_entries, read_stats = _reading_history(book)
 
     eager_opts = (
         subqueryload(Book.authors),
@@ -163,7 +197,8 @@ def book_detail(id):
 
     return render_template('books/detail.html', book=book, today=date.today().isoformat(),
                             suggest_queue_id=suggest_queue_id,
-                            series_books=series_books, similar_books=similar_books)
+                            series_books=series_books, similar_books=similar_books,
+                            read_entries=read_entries, read_stats=read_stats)
 
 
 @books_bp.route('/books/new', methods=['GET', 'POST'], endpoint='book_new')
@@ -534,21 +569,28 @@ def book_update_tags(id):
     return redirect(url_for('books.book_detail', id=id))
 
 
+def _active_tab():
+    """Which book-detail tab the request came from, so the redirect afterwards
+    lands back on it. Absent for actions fired from the always-visible hero."""
+    return request.form.get('tab') or request.args.get('tab') or None
+
+
 @books_bp.route('/books/<int:book_id>/reads', methods=['POST'], endpoint='read_add')
 def read_add(book_id):
     book = db.get_or_404(Book, book_id)
+    tab = _active_tab()
 
     # Check for active read
     status = request.form.get('status', 'Reading')
     if status == 'Reading' and book.active_read:
         flash('This book already has an active read', 'error')
-        return redirect(url_for('books.book_detail', id=book_id))
+        return redirect(url_for('books.book_detail', id=book_id, tab=tab))
 
     start_date = parse_date(request.form.get('start_date'))
     finish_date = parse_date(request.form.get('finish_date'))
     if start_date and finish_date and finish_date < start_date:
         flash('Finish date cannot be before the start date', 'error')
-        return redirect(url_for('books.book_detail', id=book_id))
+        return redirect(url_for('books.book_detail', id=book_id, tab=tab))
 
     read = Read(
         book_id=book_id,
@@ -565,47 +607,48 @@ def read_add(book_id):
     db.session.commit()
     flash('Read added successfully', 'success')
 
-    if request.headers.get('HX-Request'):
-        return redirect(url_for('books.book_detail', id=book_id))
-    return redirect(url_for('books.book_detail', id=book_id))
+    return redirect(url_for('books.book_detail', id=book_id, tab=tab))
 
 
 @books_bp.route('/reads/<int:id>', methods=['POST'], endpoint='read_update')
 def read_update(id):
     read = db.get_or_404(Read, id)
+    tab = _active_tab()
 
     new_status = request.form.get('status', read.status)
     # Check for active read if changing to Reading
     if new_status == 'Reading' and read.status != 'Reading':
         if read.book.active_read:
             flash('This book already has an active read', 'error')
-            return redirect(url_for('books.book_detail', id=read.book_id))
+            return redirect(url_for('books.book_detail', id=read.book_id, tab=tab))
 
     start_date = parse_date(request.form.get('start_date'))
     finish_date = parse_date(request.form.get('finish_date'))
     if start_date and finish_date and finish_date < start_date:
         flash('Finish date cannot be before the start date', 'error')
-        return redirect(url_for('books.book_detail', id=read.book_id))
+        return redirect(url_for('books.book_detail', id=read.book_id, tab=tab))
 
     read.start_date = start_date
     read.finish_date = finish_date
     read.status = new_status
     db.session.commit()
     flash('Read updated successfully', 'success')
-    return redirect(url_for('books.book_detail', id=read.book_id))
+    return redirect(url_for('books.book_detail', id=read.book_id, tab=tab))
 
 
 @books_bp.route('/reads/<int:id>/delete', methods=['DELETE', 'POST'], endpoint='read_delete')
 def read_delete(id):
     read = db.get_or_404(Read, id)
     book_id = read.book_id
+    tab = _active_tab()
     db.session.delete(read)
     db.session.commit()
     flash('Read deleted successfully', 'success')
 
+    target = url_for('books.book_detail', id=book_id, tab=tab)
     if request.headers.get('HX-Request'):
-        return '', 200, {'HX-Redirect': url_for('books.book_detail', id=book_id)}
-    return redirect(url_for('books.book_detail', id=book_id))
+        return '', 200, {'HX-Redirect': target}
+    return redirect(target)
 
 
 @books_bp.route('/reads/<int:id>/complete', methods=['POST'], endpoint='read_complete')
@@ -615,7 +658,7 @@ def read_complete(id):
     read.finish_date = datetime.now()
     db.session.commit()
     flash('Read marked as completed!', 'success')
-    return redirect(url_for('books.book_detail', id=read.book_id))
+    return redirect(url_for('books.book_detail', id=read.book_id, tab=_active_tab()))
 
 
 @books_bp.route('/reads/<int:id>/abandon', methods=['POST'], endpoint='read_abandon')
@@ -625,4 +668,4 @@ def read_abandon(id):
     read.finish_date = datetime.now()
     db.session.commit()
     flash('Read marked as abandoned', 'success')
-    return redirect(url_for('books.book_detail', id=read.book_id))
+    return redirect(url_for('books.book_detail', id=read.book_id, tab=_active_tab()))
