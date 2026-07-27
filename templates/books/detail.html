@@ -340,12 +340,19 @@
             <div class="read-row">
                 <span class="read-num">#{{ entry.number }}</span>
                 <span class="read-status status-{{ read.status.lower() }}">{{ read.status }}</span>
+                {# A read with neither date has nothing to show here — rendering
+                   "— → —" just adds noise, so drop the span entirely. #}
+                {% if entry.child or read.start_date or read.finish_date %}
                 <span class="read-dates">
-                    {% if entry.child %}<a href="{{ url_for('books.book_detail', id=entry.child.id) }}">{{ entry.child.title }}</a> &middot; {% endif %}
+                    {% if entry.child %}<a href="{{ url_for('books.book_detail', id=entry.child.id) }}">{{ entry.child.title }}</a>{% endif %}
+                    {% if read.start_date or read.finish_date %}
+                    {% if entry.child %}&middot;{% endif %}
                     {{ read.start_date.strftime('%Y-%m-%d') if read.start_date else '—' }}
                     &rarr;
                     {{ read.finish_date.strftime('%Y-%m-%d') if read.finish_date else '—' }}
+                    {% endif %}
                 </span>
+                {% endif %}
                 {% if read.status == 'Completed' and read.start_date and read.finish_date %}
                 {% set days = read.start_date|days_between(read.finish_date) %}
                 <span class="read-duration">{{ days }} {{ 'day' if days == 1 else 'days' }}</span>

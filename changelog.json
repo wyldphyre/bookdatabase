@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.79",
+    "date": "2026-07-27",
+    "changes": [
+      "Hide the empty '— → —' date range on reads that have no start or finish date recorded — those rows now show just the read number and status. Bundle rows keep their child book link"
+    ]
+  },
+  {
     "version": "1.0.78",
     "date": "2026-07-27",
     "changes": [
