@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.80",
+    "date": "2026-07-30",
+    "changes": [
+      "Make the calendar icon on date fields actually open the date picker. Pico hides the browser's real picker button and paints its own decorative calendar icon in its place, relying on the invisible button lining up underneath — which only works in Chromium-style layout, leaving the field type-only elsewhere. Date inputs now show the browser's real picker button instead"
+    ]
+  },
+  {
     "version": "1.0.79",
     "date": "2026-07-27",
     "changes": [
