@@ -3,7 +3,7 @@
     "version": "1.0.80",
     "date": "2026-07-30",
     "changes": [
-      "Make the calendar icon on date fields actually open the date picker. Pico hides the browser's real picker button and paints its own decorative calendar icon in its place, relying on the invisible button lining up underneath — which only works in Chromium-style layout, leaving the field type-only elsewhere. Date inputs now show the browser's real picker button instead"
+      "Make the calendar icon on date fields actually open the date picker. Pico hides the browser's real picker button and paints its own decorative calendar icon in its place, relying on the invisible button lining up underneath — but that alignment depends on the right-hand padding Pico reserves, which the compact form padding added in v1.0.64 collapsed. That left the clickable area sitting beside the icon instead of under it (about 5% overlap), so clicking the icon did nothing and the field became keyboard-entry only. Date inputs now show the browser's real picker button, so the icon you see is the control you click"
     ]
   },
   {
