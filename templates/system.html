@@ -34,6 +34,20 @@
 <article class="bordered-article">
     <h3>Notifications</h3>
     <p>Pushover is configured. Send a test notification to confirm it's working.</p>
+
+    <form method="post" action="{{ url_for('system.system_pushover_priority') }}" class="edit-form pushover-priority-form">
+        <label for="pushover-priority">Priority</label>
+        <div class="pushover-priority-row">
+            <select name="priority" id="pushover-priority">
+                {% for value, label in pushover_priorities %}
+                <option value="{{ value }}" {% if value == pushover_priority %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn-compact">Save</button>
+        </div>
+        <small class="secondary">Applies to price-drop alerts and the test notification below.</small>
+    </form>
+
     <form method="post" action="{{ url_for('system.system_pushover_test') }}">
         <button type="submit" class="outline secondary btn-compact">Send Test Notification</button>
     </form>

@@ -1821,6 +1821,28 @@ button.ellipsis-btn:focus {
     }
 }
 
+/* Pushover priority setting (System page) */
+.pushover-priority-form {
+    margin-bottom: 1rem;
+}
+
+.pushover-priority-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: 420px;
+}
+
+.pushover-priority-row select {
+    flex: 1;
+    margin: 0;
+}
+
+.pushover-priority-form small {
+    display: block;
+    margin-top: 0.35rem;
+}
+
 .chart-container,
 .bordered-article {
     background: none;

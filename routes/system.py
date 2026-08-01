@@ -5,10 +5,11 @@ import threading
 from datetime import date, datetime
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, send_file
 from sqlalchemy.orm import joinedload
-from models import db, Book, Series, Tag, Author, AuthorGender, AuthorInfoSuggestion
+from models import db, Book, Series, Tag, Author, AuthorGender, AuthorInfoSuggestion, set_setting
 from scrapers import search_goodreads_for_book, scrape_goodreads, scrape_goodreads_series, scrape_amazon_series
 from author_info import lookup_author_info
-from notifications import send_pushover_notification
+from notifications import (send_pushover_notification, get_pushover_priority,
+                           PUSHOVER_PRIORITIES, VALID_PRIORITIES, PRIORITY_SETTING_KEY)
 from utils import start_thumbnail_backfill
 from data_transfer import (build_export_zip, validate_import_zip, apply_import,
                            ImportValidationError, ImportCoverError, PRE_IMPORT_BACKUP_NAME)
@@ -91,6 +92,8 @@ def system():
                            version=current_app.config['APP_VERSION'],
                            changelog=changelog,
                            pushover_configured=pushover_configured,
+                           pushover_priority=get_pushover_priority(),
+                           pushover_priorities=PUSHOVER_PRIORITIES,
                            export=_export_snapshot(),
                            pending_import=_pending_import_manifest(),
                            current_book_count=Book.query.count())
@@ -247,6 +250,22 @@ def author_suggestions_partial():
     suggestions' button works without a page reload (the section may not have
     existed when the page was first rendered)."""
     return render_template('system/_author_suggestions.html', suggestions=_load_suggestions())
+
+
+@system_bp.route('/system/pushover-priority', methods=['POST'], endpoint='system_pushover_priority')
+def system_pushover_priority():
+    try:
+        priority = int(request.form.get('priority', ''))
+    except ValueError:
+        priority = None
+    if priority not in VALID_PRIORITIES:
+        flash('Invalid notification priority', 'error')
+        return redirect(url_for('system.system'))
+
+    set_setting(PRIORITY_SETTING_KEY, priority)
+    label = dict(PUSHOVER_PRIORITIES)[priority]
+    flash(f'Notification priority set to {label}', 'success')
+    return redirect(url_for('system.system'))
 
 
 @system_bp.route('/system/pushover-test', methods=['POST'], endpoint='system_pushover_test')

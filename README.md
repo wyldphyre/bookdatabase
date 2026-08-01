@@ -112,6 +112,8 @@ Paste an Amazon Kindle URL on the Price Watch page to start tracking it - no nee
 
 Requires `PUSHOVER_USER_KEY`/`PUSHOVER_APP_TOKEN` to be set (see [Environment Variables](#environment-variables)) for notifications to actually be sent - without them, price drops are still detected and shown on the page, just not pushed to your phone.
 
+The notification priority is set on the System page under Notifications (Lowest, Low, Normal, or High - High bypasses your device's quiet hours). It defaults to Normal and applies to both price-drop alerts and the test notification. Pushover's Emergency priority is not offered: it re-alerts until acknowledged on the device and needs retry/expire values, which is more than a price drop warrants.
+
 ## Docker Deployment
 
 ### Environment Variables

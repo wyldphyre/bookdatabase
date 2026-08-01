@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.81",
+    "date": "2026-08-01",
+    "changes": [
+      "Add a Pushover notification priority setting on the System page (Lowest, Low, Normal or High — High bypasses your device's quiet hours). Defaults to Normal and applies to both price-drop alerts and the test notification. Emergency priority is deliberately not offered, since it re-alerts until acknowledged and needs retry/expire values"
+    ]
+  },
+  {
     "version": "1.0.80",
     "date": "2026-07-30",
     "changes": [

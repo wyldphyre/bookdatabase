@@ -22,7 +22,7 @@ from datetime import datetime
 from sqlalchemy import DateTime
 
 from models import (db, Tag, BookFormat, AuthorGender, Series, Author, Book, Read,
-                    ReadingQueue, AuthorInfoSuggestion, PriceWatch,
+                    ReadingQueue, AuthorInfoSuggestion, PriceWatch, AppSetting,
                     book_authors, book_tags, author_tags, series_tags)
 from database import CURRENT_SCHEMA_VERSION
 from utils import THUMB_SUBFOLDER
@@ -36,6 +36,7 @@ EXPORT_TMP_PREFIX = 'bookdb-export-build-'
 # below, so a new model that isn't added here fails at startup instead of
 # being silently left out of exports.
 EXPORT_TABLES = [
+    ('app_setting', AppSetting.__table__),
     ('book_format', BookFormat.__table__),
     ('author_gender', AuthorGender.__table__),
     ('tag', Tag.__table__),

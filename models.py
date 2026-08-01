@@ -246,6 +246,32 @@ class AuthorInfoSuggestion(db.Model):
     suggested_gender = db.relationship('AuthorGender')
 
 
+class AppSetting(db.Model):
+    """Key/value store for user-configurable settings that don't warrant a
+    table of their own (e.g. the Pushover notification priority)."""
+    __tablename__ = 'app_setting'
+    key = db.Column(db.String(50), primary_key=True)
+    value = db.Column(db.String(200))
+
+
+def get_setting(key, default=None):
+    """Read a setting, or `default` when unset. Requires an app context."""
+    row = db.session.get(AppSetting, key)
+    if row is None or row.value is None:
+        return default
+    return row.value
+
+
+def set_setting(key, value):
+    """Create or update a setting. Requires an app context."""
+    row = db.session.get(AppSetting, key)
+    if row is None:
+        db.session.add(AppSetting(key=key, value=str(value)))
+    else:
+        row.value = str(value)
+    db.session.commit()
+
+
 class PriceWatch(db.Model):
     __tablename__ = 'price_watch'
     id = db.Column(db.Integer, primary_key=True)
