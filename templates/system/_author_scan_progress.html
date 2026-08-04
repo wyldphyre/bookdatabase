@@ -56,6 +56,9 @@
         {% endif %}
     </div>
     <progress value="{{ scan.progress }}" max="{{ scan.total }}"></progress>
+    {% if scan.stop_reason %}
+    <div class="flash flash-warning scan-stop-reason">{{ scan.stop_reason }}</div>
+    {% endif %}
     {% if scan.suggestions_found > 0 %}
     <p><button class="outline btn-compact"
                hx-get="{{ url_for('system.author_suggestions_partial') }}"
@@ -78,6 +81,8 @@
             &mdash; <em>copied from alias/primary record</em>
             {% elif entry.status == 'not_found' %}
             &mdash; <em>no clear evidence found</em>
+            {% elif entry.status == 'blocked' %}
+            &mdash; <em>{{ entry.message }}</em>
             {% elif entry.status == 'error' %}
             &mdash; <em>error: {{ entry.message }}</em>
             {% endif %}

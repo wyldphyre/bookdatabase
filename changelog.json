@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.82",
+    "date": "2026-08-04",
+    "changes": [
+      "Detect when Goodreads or Amazon serve an anti-bot challenge instead of the page, and say so. Previously these came back as HTTP 202 with a tiny challenge body, which passed the success check and then failed to parse — so a temporary block was reported as the same vague 'Could not fetch tags from Goodreads' as a bad URL or a changed page layout. Blocks now report themselves as such (and suggest retrying later), and the Goodreads genre, series count and author info scans stop when they hit one instead of grinding through every remaining item and hammering a site that is already turning them away"
+    ]
+  },
+  {
     "version": "1.0.81",
     "date": "2026-08-01",
     "changes": [

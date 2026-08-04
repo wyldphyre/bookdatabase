@@ -4,8 +4,59 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 
 
+class ScrapeBlockedError(Exception):
+    """The site served an anti-bot challenge or rate-limit response instead of
+    the page we asked for.
+
+    Worth distinguishing from an ordinary parse failure: nothing is wrong with
+    the URL or our selectors, and it is usually transient — the same request
+    typically succeeds again a few minutes later."""
+
+
+# Tokens unique to challenge/captcha interstitials, safe to match anywhere.
+_BLOCK_TOKENS = (
+    'awswafcookiedomainlist',       # AWS WAF (Goodreads and Amazon are both behind it)
+    'aws-waf-token',
+    'cf-browser-verification',      # Cloudflare
+    'cf_chl_opt',
+    '/errors/validatecaptcha',      # Amazon's captcha wall
+)
+
+# Weaker phrases that do appear in ordinary page text, so they only count when
+# the body is far too small to be a real book/search page.
+_BLOCK_PHRASES = ('just a moment', 'enable javascript and cookies', 'are you a robot',
+                  'type the characters you see', 'unusual traffic')
+_CHALLENGE_MAX_BYTES = 6000
+
+# Statuses sites use to turn away automated traffic (as opposed to a genuine
+# 404 for a book that doesn't exist).
+_BLOCK_STATUSES = {403, 429, 503}
+
+
+def _detect_block(response, host):
+    """Raise ScrapeBlockedError if this response is a challenge/refusal rather
+    than the page. Returns None otherwise."""
+    if response.status_code in _BLOCK_STATUSES:
+        raise ScrapeBlockedError(
+            f'{host} refused the request (HTTP {response.status_code}) — it is rate-limiting '
+            f'or blocking automated requests. This is usually temporary; try again later.')
+
+    # A challenge page is served with a 2xx, so the status alone won't reveal it.
+    body = response.text[:_CHALLENGE_MAX_BYTES].lower()
+    hit = next((t for t in _BLOCK_TOKENS if t in body), None)
+    if hit is None and len(response.text) < _CHALLENGE_MAX_BYTES:
+        hit = next((p for p in _BLOCK_PHRASES if p in body), None)
+    if hit:
+        raise ScrapeBlockedError(
+            f'{host} returned an anti-bot challenge instead of the page — it is temporarily '
+            f'blocking automated requests. This is usually temporary; try again later.')
+
+
 def fetch_page(url):
-    """Fetch a page with appropriate headers."""
+    """Fetch a page with appropriate headers.
+
+    Raises ScrapeBlockedError when the site serves a bot challenge or refuses
+    the request, so callers can say so rather than reporting a parse failure."""
     # Parse the URL to get the host for Referer header
     parsed = urlparse(url)
     base_url = f"{parsed.scheme}://{parsed.netloc}"
@@ -24,6 +75,7 @@ def fetch_page(url):
         'Referer': base_url,
     }
     response = http_requests.get(url, headers=headers, timeout=15, allow_redirects=True)
+    _detect_block(response, parsed.netloc)
     response.raise_for_status()
     return BeautifulSoup(response.text, 'html.parser')
 
@@ -273,6 +325,8 @@ def scrape_amazon_series(url):
             return len(items)
 
         return None
+    except ScrapeBlockedError:
+        raise
     except Exception:
         return None
 
@@ -308,6 +362,8 @@ def scrape_goodreads_series(url):
             return len(items)
 
         return None
+    except ScrapeBlockedError:
+        raise
     except Exception:
         return None
 
@@ -336,6 +392,8 @@ def search_amazon_for_book(title, author):
                     if href.startswith('/'):
                         return f"https://www.{domain}{href}"
                     return href
+        except ScrapeBlockedError:
+            raise
         except Exception:
             continue
 
@@ -395,6 +453,8 @@ def search_goodreads_for_book(title, author):
             if href.startswith('/'):
                 return f"https://www.goodreads.com{href}"
             return href
+    except ScrapeBlockedError:
+        raise
     except Exception:
         pass
 

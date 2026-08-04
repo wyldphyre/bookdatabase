@@ -58,6 +58,9 @@
         &mdash; <strong>{{ scan.updated }}</strong> updated
     </div>
     <progress value="{{ scan.progress }}" max="{{ scan.total }}"></progress>
+    {% if scan.stop_reason %}
+    <div class="flash flash-warning scan-stop-reason">{{ scan.stop_reason }}</div>
+    {% endif %}
 </div>
 {% endif %}
 
@@ -74,6 +77,8 @@
             &mdash; {{ entry.count }} books, up to date ({{ entry.source }})
             {% elif entry.status == 'not_found' %}
             &mdash; <em>could not determine count</em>
+            {% elif entry.status == 'blocked' %}
+            &mdash; <em>{{ entry.message }}</em>
             {% elif entry.status == 'error' %}
             &mdash; <em>error: {{ entry.message }}</em>
             {% endif %}

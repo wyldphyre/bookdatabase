@@ -9,7 +9,8 @@ from models import db, Book, Author, Read, ReadingQueue, BookFormat, Tag, book_t
 from utils import (allowed_file, parse_date, parse_float, validate_rating, fetch_cover_image,
                    clean_external_url, generate_thumbnail, delete_thumbnail,
                    MAX_COVER_DOWNLOAD_BYTES)
-from scrapers import scrape_amazon, scrape_goodreads, search_amazon_for_book, search_goodreads_for_book
+from scrapers import (scrape_amazon, scrape_goodreads, search_amazon_for_book,
+                      search_goodreads_for_book, ScrapeBlockedError)
 
 books_bp = Blueprint('books', __name__)
 
@@ -305,6 +306,8 @@ def book_import():
             flash('Book data imported. Please review and save.', 'success')
         else:
             flash('Could not extract book data from URL', 'warning')
+    except ScrapeBlockedError as e:
+        flash(str(e), 'error')
     except Exception as e:
         flash(f'Error importing book: {str(e)}', 'error')
 
@@ -344,6 +347,8 @@ def search_description():
         else:
             return jsonify({'error': 'Found book but could not extract description', 'source_url': book_url}), 404
 
+    except ScrapeBlockedError as e:
+        return jsonify({'error': str(e)}), 503
     except Exception as e:
         return jsonify({'error': f'Failed to search: {str(e)}'}), 500
 
@@ -540,9 +545,17 @@ def book_update_tags(id):
         flash('This book has no Goodreads URL', 'error')
         return redirect(url_for('books.book_detail', id=id))
 
-    data = scrape_goodreads(book.goodreads_url)
-    if not data or not data.get('genres'):
-        flash('Could not fetch tags from Goodreads', 'error')
+    try:
+        data = scrape_goodreads(book.goodreads_url)
+    except ScrapeBlockedError as e:
+        flash(str(e), 'error')
+        return redirect(url_for('books.book_detail', id=id))
+
+    if not data:
+        flash('Could not read the Goodreads page for this book — check the Goodreads URL is still valid', 'error')
+        return redirect(url_for('books.book_detail', id=id))
+    if not data.get('genres'):
+        flash('No genres listed on this book\'s Goodreads page', 'error')
         return redirect(url_for('books.book_detail', id=id))
 
     existing_tag_names = {t.name.lower() for t in book.tags}

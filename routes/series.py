@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from sqlalchemy import func
 from sqlalchemy.orm import subqueryload
 from models import db, Book, Series, Read, Tag
-from scrapers import scrape_goodreads_series, scrape_amazon_series
+from scrapers import scrape_goodreads_series, scrape_amazon_series, ScrapeBlockedError
 from utils import clean_external_url
 
 series_bp = Blueprint('series', __name__)
@@ -146,14 +146,18 @@ def series_delete(id):
 def series_update_count(id):
     series = db.get_or_404(Series, id)
     counts = []
-    if series.goodreads_url:
-        gr = scrape_goodreads_series(series.goodreads_url)
-        if gr is not None:
-            counts.append(gr)
-    if series.amazon_url:
-        az = scrape_amazon_series(series.amazon_url)
-        if az is not None:
-            counts.append(az)
+    try:
+        if series.goodreads_url:
+            gr = scrape_goodreads_series(series.goodreads_url)
+            if gr is not None:
+                counts.append(gr)
+        if series.amazon_url:
+            az = scrape_amazon_series(series.amazon_url)
+            if az is not None:
+                counts.append(az)
+    except ScrapeBlockedError as e:
+        flash(str(e), 'error')
+        return redirect(url_for('series.series_detail', id=id))
 
     if counts:
         count = max(counts)

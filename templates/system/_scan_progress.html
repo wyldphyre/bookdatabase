@@ -65,6 +65,9 @@
         &mdash; <strong>{{ scan.tags_added }}</strong> tags added
     </div>
     <progress value="{{ scan.progress }}" max="{{ scan.total }}"></progress>
+    {% if scan.stop_reason %}
+    <div class="flash flash-warning scan-stop-reason">{{ scan.stop_reason }}</div>
+    {% endif %}
 </div>
 {% endif %}
 
@@ -83,6 +86,8 @@
             &mdash; <em>not found on Goodreads</em>
             {% elif entry.status == 'no_genres' %}
             &mdash; <em>no genres listed</em>
+            {% elif entry.status == 'blocked' %}
+            &mdash; <em>{{ entry.message }}</em>
             {% elif entry.status == 'error' %}
             &mdash; <em>error: {{ entry.message }}</em>
             {% endif %}

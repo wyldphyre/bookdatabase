@@ -2122,6 +2122,18 @@ ul.tag-search-results {
     border-bottom: none;
 }
 
+/* A blocked entry is the reason a scan aborted — make it stand out from the
+   ordinary per-item failures around it. */
+.scan-log-entry.blocked em {
+    color: var(--pico-del-color);
+    font-style: normal;
+    font-weight: 600;
+}
+
+.scan-stop-reason {
+    margin-top: 0.75rem;
+}
+
 .scan-log-entry.not_found em,
 .scan-log-entry.error em {
     color: var(--pico-del-color);

@@ -4,7 +4,7 @@ import threading
 from datetime import datetime
 
 from models import db, PriceWatch
-from scrapers import scrape_amazon
+from scrapers import scrape_amazon, ScrapeBlockedError
 from notifications import send_pushover_notification
 
 CHECK_INTERVAL_SECONDS = 24 * 60 * 60
@@ -16,6 +16,14 @@ def run_price_checks(app):
         for watch in PriceWatch.query.all():
             try:
                 data = scrape_amazon(watch.amazon_url)
+            except ScrapeBlockedError as e:
+                # Amazon is turning us away; the remaining watches would all hit
+                # the same wall, so record why and leave the rest for next run.
+                watch.last_error = str(e)[:300]
+                watch.last_checked_at = datetime.now()
+                db.session.commit()
+                logging.warning('Price check aborted — %s', e)
+                return
             except Exception as e:
                 watch.last_error = f'Fetch failed: {e}'[:300]
                 watch.last_checked_at = datetime.now()

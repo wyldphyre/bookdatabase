@@ -6,7 +6,8 @@ from datetime import date, datetime
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, send_file
 from sqlalchemy.orm import joinedload
 from models import db, Book, Series, Tag, Author, AuthorGender, AuthorInfoSuggestion, set_setting
-from scrapers import search_goodreads_for_book, scrape_goodreads, scrape_goodreads_series, scrape_amazon_series
+from scrapers import (search_goodreads_for_book, scrape_goodreads, scrape_goodreads_series,
+                      scrape_amazon_series, ScrapeBlockedError)
 from author_info import lookup_author_info
 from notifications import (send_pushover_notification, get_pushover_priority,
                            PUSHOVER_PRIORITIES, VALID_PRIORITIES, PRIORITY_SETTING_KEY)
@@ -25,6 +26,7 @@ genre_scan = {
     'results': [],
     'paused': False,
     'stop_requested': False,
+    'stop_reason': '',
 }
 genre_scan_lock = threading.Lock()
 
@@ -37,6 +39,7 @@ series_scan = {
     'results': [],
     'paused': False,
     'stop_requested': False,
+    'stop_reason': '',
 }
 series_scan_lock = threading.Lock()
 
@@ -50,6 +53,7 @@ author_scan = {
     'results': [],
     'paused': False,
     'stop_requested': False,
+    'stop_reason': '',
 }
 author_scan_lock = threading.Lock()
 
@@ -295,6 +299,7 @@ def scan_genres_start():
                 'results': [],
                 'paused': False,
                 'stop_requested': False,
+                'stop_reason': '',
             })
 
     if not already_active:
@@ -415,6 +420,18 @@ def run_genre_scan(app, untagged_only):
                         'tags': new_tags if new_tags else book_data['genres'],
                     })
 
+            except ScrapeBlockedError as e:
+                # No point walking the rest of the library: the site is turning
+                # us away, so every remaining book would fail the same way.
+                with genre_scan_lock:
+                    genre_scan['results'].append({
+                        'book': book.title,
+                        'status': 'blocked',
+                        'message': str(e),
+                    })
+                    genre_scan['stop_reason'] = str(e)
+                    genre_scan['stop_requested'] = True
+                break
             except Exception as e:
                 with genre_scan_lock:
                     genre_scan['results'].append({
@@ -448,6 +465,7 @@ def scan_series_start():
                 'results': [],
                 'paused': False,
                 'stop_requested': False,
+                'stop_reason': '',
             })
 
     if not already_active:
@@ -553,6 +571,18 @@ def run_series_scan(app):
                             'status': 'not_found',
                         })
 
+            except ScrapeBlockedError as e:
+                # The site is turning us away — the rest of the run would fail
+                # identically, so stop rather than hammering it.
+                with series_scan_lock:
+                    series_scan['results'].append({
+                        'series': series.name,
+                        'status': 'blocked',
+                        'message': str(e),
+                    })
+                    series_scan['stop_reason'] = str(e)
+                    series_scan['stop_requested'] = True
+                break
             except Exception as e:
                 with series_scan_lock:
                     series_scan['results'].append({
@@ -586,6 +616,7 @@ def scan_authors_start():
                 'results': [],
                 'paused': False,
                 'stop_requested': False,
+                'stop_reason': '',
             })
 
     if not already_active:
@@ -745,6 +776,18 @@ def _run_author_scan(app):
                             'status': 'not_found',
                         })
 
+            except ScrapeBlockedError as e:
+                # The site is turning us away — the rest of the run would fail
+                # identically, so stop rather than hammering it.
+                with author_scan_lock:
+                    author_scan['results'].append({
+                        'author': author.name,
+                        'status': 'blocked',
+                        'message': str(e),
+                    })
+                    author_scan['stop_reason'] = str(e)
+                    author_scan['stop_requested'] = True
+                break
             except Exception as e:
                 with author_scan_lock:
                     author_scan['results'].append({
