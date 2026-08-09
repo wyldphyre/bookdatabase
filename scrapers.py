@@ -1,7 +1,53 @@
 import re
+import time
+import threading
 import requests as http_requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
+
+
+# Worth refreshing every so often: claiming a long-obsolete browser is one of
+# the cheaper signals sites use to pick out automated traffic. This is the
+# "reduced" form modern Chrome sends, where the minor version parts are frozen.
+BROWSER_USER_AGENT = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
+                      '(KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36')
+
+# Smallest gap allowed between two requests to the same host.
+#
+# The batch scanners already paced themselves, but one-off lookups didn't:
+# importing a book and then fetching its tags fired several requests at
+# goodreads.com within seconds, which is the shape rate-based bot rules watch
+# for. Pacing every request through one place gives ad-hoc lookups the same
+# courtesy, and costs nothing when the caller has already waited.
+MIN_REQUEST_INTERVAL_SECONDS = 2.0
+
+_last_request_at = {}          # host -> time.monotonic() of its last request
+_host_locks = {}               # host -> Lock serialising that host's callers
+_host_locks_guard = threading.Lock()
+
+
+def _host_lock(host):
+    with _host_locks_guard:
+        lock = _host_locks.get(host)
+        if lock is None:
+            lock = _host_locks[host] = threading.Lock()
+        return lock
+
+
+def _throttle(host):
+    """Block until this host may be contacted again.
+
+    The wait happens while holding that host's lock, so simultaneous callers
+    (a background scan and a click, say) queue up instead of all deciding at
+    once that enough time has passed. Locking per host means a slow crawl of
+    one site doesn't hold up another."""
+    with _host_lock(host):
+        last = _last_request_at.get(host)
+        if last is not None:
+            wait = MIN_REQUEST_INTERVAL_SECONDS - (time.monotonic() - last)
+            if wait > 0:
+                time.sleep(wait)
+        _last_request_at[host] = time.monotonic()
 
 
 class ScrapeBlockedError(Exception):
@@ -57,12 +103,15 @@ def fetch_page(url):
 
     Raises ScrapeBlockedError when the site serves a bot challenge or refuses
     the request, so callers can say so rather than reporting a parse failure."""
-    # Parse the URL to get the host for Referer header
     parsed = urlparse(url)
-    base_url = f"{parsed.scheme}://{parsed.netloc}"
 
+    # These describe a plain top-level navigation — someone opening the URL
+    # directly, with no page linking to it. Note there is deliberately no
+    # Referer: 'Sec-Fetch-Site: none' means exactly "no initiator", so sending
+    # one alongside it is a combination no real browser produces, and
+    # self-contradictory headers are themselves a bot signal.
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': BROWSER_USER_AGENT,
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
         'Connection': 'keep-alive',
@@ -72,8 +121,8 @@ def fetch_page(url):
         'Sec-Fetch-Site': 'none',
         'Sec-Fetch-User': '?1',
         'Cache-Control': 'max-age=0',
-        'Referer': base_url,
     }
+    _throttle(parsed.netloc)
     response = http_requests.get(url, headers=headers, timeout=15, allow_redirects=True)
     _detect_block(response, parsed.netloc)
     response.raise_for_status()
