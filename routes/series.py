@@ -2,7 +2,7 @@ import html
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from sqlalchemy import func
 from sqlalchemy.orm import subqueryload
-from models import db, Book, Series, Read, Tag
+from models import db, Book, Series, Read, Tag, SeriesRelease
 from scrapers import scrape_goodreads_series, scrape_amazon_series, ScrapeBlockedError
 from utils import clean_external_url
 
@@ -20,7 +20,9 @@ def series_list():
     query = Series.query.options(subqueryload(Series.books))
     if search:
         query = query.filter(Series.name.ilike(f'%{search}%'))
-    if filter_type == 'no_links':
+    if filter_type == 'monitored':
+        query = query.filter(Series.monitored.is_(True))
+    elif filter_type == 'no_links':
         query = query.filter(
             (Series.goodreads_url.is_(None) | (Series.goodreads_url == '')),
             (Series.amazon_url.is_(None) | (Series.amazon_url == '')),
@@ -198,3 +200,33 @@ def series_quick_add():
         db.session.commit()
 
     return jsonify({'id': series.id, 'name': series.name})
+
+
+@series_bp.route('/series/<int:id>/monitor', methods=['POST'], endpoint='series_toggle_monitor')
+def series_toggle_monitor(id):
+    """Opt a series in or out of weekly new-release checks."""
+    series = db.get_or_404(Series, id)
+    series.monitored = not series.monitored
+    if not series.monitored:
+        series.last_check_error = None
+    db.session.commit()
+
+    if series.monitored:
+        flash(f'Now monitoring "{series.name}" for new books. The first check records '
+              f'what is already out; you will only hear about releases after that.', 'success')
+    else:
+        flash(f'Stopped monitoring "{series.name}"', 'success')
+    return redirect(url_for('series.series_detail', id=id))
+
+
+@series_bp.route('/releases/<int:id>/dismiss', methods=['POST'], endpoint='release_dismiss')
+def release_dismiss(id):
+    """Hide a discovered release. Series pages list box sets, foreign editions
+    and the like, so there needs to be a way to say 'not a real new book'
+    without it reappearing on the next check."""
+    from datetime import datetime
+    release = db.get_or_404(SeriesRelease, id)
+    release.dismissed_at = datetime.now()
+    db.session.commit()
+    flash(f'Dismissed "{release.title}"', 'success')
+    return redirect(request.referrer or url_for('books.dashboard'))

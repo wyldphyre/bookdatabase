@@ -22,7 +22,7 @@ from datetime import datetime
 from sqlalchemy import DateTime
 
 from models import (db, Tag, BookFormat, AuthorGender, Series, Author, Book, Read,
-                    ReadingQueue, AuthorInfoSuggestion, PriceWatch, AppSetting,
+                    ReadingQueue, AuthorInfoSuggestion, PriceWatch, AppSetting, SeriesRelease,
                     book_authors, book_tags, author_tags, series_tags)
 from database import CURRENT_SCHEMA_VERSION
 from utils import THUMB_SUBFOLDER
@@ -47,6 +47,7 @@ EXPORT_TABLES = [
     ('reading_queue', ReadingQueue.__table__),
     ('author_info_suggestion', AuthorInfoSuggestion.__table__),
     ('price_watch', PriceWatch.__table__),
+    ('series_release', SeriesRelease.__table__),
     ('book_authors', book_authors),
     ('book_tags', book_tags),
     ('author_tags', author_tags),

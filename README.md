@@ -15,6 +15,7 @@ A personal book database web application for tracking books, authors, series, an
 - **Statistics**: Charts and summaries of your reading history
 - **Search**: Find books, authors, and series quickly
 - **Price Watch**: Track Amazon Kindle book prices and get a [Pushover](https://pushover.net/) notification when the price drops
+- **Series Monitoring**: Opt a series in to weekly checks and get notified when a new book is released
 
 ## Tech Stack
 
@@ -47,12 +48,13 @@ A personal book database web application for tracking books, authors, series, an
 
 ```
 book-database/
-├── app.py              # Flask app factory; registers blueprints, starts the price watch scheduler
+├── app.py              # Flask app factory; registers blueprints, starts background schedulers
 ├── models.py           # SQLAlchemy ORM models
 ├── database.py         # Database initialization, migrations, and seed data
 ├── scrapers.py         # Amazon/Goodreads page scraping (book data, prices, series counts)
 ├── notifications.py    # Pushover notification helper
 ├── price_watch.py      # Daily background price check + manual "Check Now" logic
+├── series_monitor.py   # Weekly background check of monitored series for new releases
 ├── utils.py            # Shared helpers (URL cleaning, validation, parsing)
 ├── requirements.txt    # Python dependencies
 ├── README.md
@@ -113,6 +115,18 @@ Paste an Amazon Kindle URL on the Price Watch page to start tracking it - no nee
 Requires `PUSHOVER_USER_KEY`/`PUSHOVER_APP_TOKEN` to be set (see [Environment Variables](#environment-variables)) for notifications to actually be sent - without them, price drops are still detected and shown on the page, just not pushed to your phone.
 
 The notification priority is set on the System page under Notifications (Lowest, Low, Normal, or High - High bypasses your device's quiet hours). It defaults to Normal and applies to both price-drop alerts and the test notification. Pushover's Emergency priority is not offered: it re-alerts until acknowledged on the device and needs retry/expire values, which is more than a price drop warrants.
+
+## Series Monitoring
+
+Series you opt into are checked once a week for newly released books. Turn it on with the **Monitor for New Books** button on a series page; the Series list has a **Monitored** filter and marks monitored series with a badge. It's opt-in on purpose - nothing is checked unless you ask for it.
+
+The first check of a series records what's already published without notifying you, so switching monitoring on for a long-running series doesn't announce its entire backlist. Only books that appear *after* that produce a [Pushover](#price-watch) notification, at whatever priority you've set on the System page. Novellas and in-between instalments (#2.5) count as releases too.
+
+Books found this way are **not** added to your library - the library stays a record of books you actually have. They're listed under **Newly Released** on the dashboard, separate from Recently Added, each with a Dismiss button for the box sets, omnibuses and foreign editions that series pages tend to mix in. If you later add the book yourself, the entry links itself to it and drops off the list.
+
+A series doesn't need a Goodreads URL configured: if one is missing, the app works it out once from a book you already own in that series, then reuses it. The weekly check also refreshes the series' book count while it's there.
+
+Checking is deliberately slow - one series a minute, and each series only revisited weekly - to stay well clear of the rate limits described under [Price Watch](#price-watch). If a site blocks the app mid-run, checking backs off rather than continuing.
 
 ## Docker Deployment
 

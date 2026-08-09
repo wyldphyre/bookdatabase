@@ -38,8 +38,28 @@
 </div>
 {% endif %}
 
+{% if series.monitored %}
+<div class="detail-facts monitor-status">
+    <span class="detail-fact"><span class="detail-fact-label">Monitoring</span> weekly for new books</span>
+    {% if series.last_checked_at %}
+    <span class="detail-fact"><span class="detail-fact-label">Last checked</span> {{ series.last_checked_at.strftime('%Y-%m-%d') }}</span>
+    {% else %}
+    <span class="detail-fact secondary">Not checked yet</span>
+    {% endif %}
+</div>
+{% if series.last_check_error %}
+<div class="flash flash-warning">Last check failed: {{ series.last_check_error }}</div>
+{% endif %}
+{% endif %}
+
 <div class="detail-actions">
     <a href="{{ url_for('series.series_edit', id=series.id) }}" role="button">Edit Series</a>
+    <form method="post" action="{{ url_for('series.series_toggle_monitor', id=series.id) }}">
+        <button type="submit" class="outline{% if not series.monitored %} secondary{% endif %}"
+                title="{% if series.monitored %}Stop checking this series weekly{% else %}Check weekly for newly released books{% endif %}">
+            {% if series.monitored %}&#10003; Monitored{% else %}Monitor for New Books{% endif %}
+        </button>
+    </form>
     {% if series.goodreads_url or series.amazon_url %}
     <form method="post" action="{{ url_for('series.series_update_count', id=series.id) }}">
         <button type="submit" class="outline">Update Book Count</button>

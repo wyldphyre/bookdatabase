@@ -326,6 +326,13 @@ def scrape_goodreads(url):
     # Series
     series_el = soup.select_one('h3.Text__italic a, div[data-testid="bookSeries"] a')
     if series_el:
+        # The href is the series' own page — the cheapest way to learn a series'
+        # Goodreads URL when it hasn't got one recorded yet.
+        series_href = series_el.get('href')
+        if series_href:
+            if series_href.startswith('/'):
+                series_href = f'https://www.goodreads.com{series_href}'
+            data['series_url'] = series_href
         series_text = series_el.get_text(strip=True)
         # Parse "Series Name #1" format
         match = re.match(r'(.+?)\s*#(\d+(?:\.\d+)?)', series_text)
@@ -378,6 +385,54 @@ def scrape_amazon_series(url):
         raise
     except Exception:
         return None
+
+
+def _parse_series_books(soup):
+    """Every entry listed on a Goodreads series page, in page order.
+
+    Returns [{'title', 'series_number', 'url'}]. series_number is None for
+    entries Goodreads doesn't number; those are kept, since novellas and
+    in-between instalments (#2.5) are still releases worth hearing about."""
+    books = []
+    for item in soup.select('.listWithDividers__item'):
+        link = item.select_one('a[itemprop="url"]')
+        name = item.select_one('[itemprop="name"]')
+        title = (name or link).get_text(strip=True) if (name or link) else ''
+        if not title:
+            continue
+
+        # The entry's position sits in its own heading, e.g. "Book 1", "Book 2.5".
+        # Anything unparseable (omnibus ranges, "Books 1-3") leaves it unset.
+        series_number = None
+        heading = item.find('h3')
+        if heading:
+            match = re.search(r'Book\s+(\d+(?:\.\d+)?)\s*$', heading.get_text(' ', strip=True), re.IGNORECASE)
+            if match:
+                series_number = float(match.group(1))
+
+        href = link.get('href') if link else None
+        if href and href.startswith('/'):
+            href = f'https://www.goodreads.com{href}'
+
+        books.append({'title': title, 'series_number': series_number, 'url': href})
+    return books
+
+
+def scrape_goodreads_series_detail(url):
+    """Both halves of a series page in one request: the headline work count and
+    the list of entries. Used by the series monitor, which needs the titles to
+    spot new releases and the count to keep the series record up to date."""
+    soup = fetch_page(url)
+    return {'count': _parse_series_count(soup), 'books': _parse_series_books(soup)}
+
+
+def _parse_series_count(soup):
+    count_el = soup.select_one('.responsiveSeriesHeader__subtitle, .seriesDesc')
+    if count_el:
+        match = re.search(r'(\d+)\s*(?:primary\s+)?works?', count_el.get_text(), re.IGNORECASE)
+        if match:
+            return int(match.group(1))
+    return None
 
 
 def scrape_goodreads_series(url):

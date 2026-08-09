@@ -5,7 +5,8 @@ from urllib.parse import urlparse
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload, subqueryload
-from models import db, Book, Author, Read, ReadingQueue, BookFormat, Tag, book_tags, RATING_LABELS
+from models import (db, Book, Author, Read, ReadingQueue, BookFormat, Tag, SeriesRelease,
+                    book_tags, RATING_LABELS)
 from utils import (allowed_file, parse_date, parse_float, validate_rating, fetch_cover_image,
                    clean_external_url, generate_thumbnail, delete_thumbnail,
                    MAX_COVER_DOWNLOAD_BYTES)
@@ -40,7 +41,17 @@ def dashboard():
         last_finished_sq, Book.id == last_finished_sq.c.book_id
     ).order_by(last_finished_sq.c.last_finished.desc()).limit(10).all()
 
+    # Books spotted on monitored series pages that aren't in the library yet.
+    # Kept out of "Recently Added", which is for books you actually have.
+    new_releases = (SeriesRelease.query
+                    .filter(SeriesRelease.is_baseline.is_(False),
+                            SeriesRelease.dismissed_at.is_(None),
+                            SeriesRelease.book_id.is_(None))
+                    .order_by(SeriesRelease.discovered_at.desc())
+                    .limit(12).all())
+
     return render_template('dashboard.html',
+                         new_releases=new_releases,
                          active_reads=active_reads,
                          total_books=total_books,
                          total_reads=total_reads,

@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.1.0",
+    "date": "2026-08-09",
+    "changes": [
+      "Add series monitoring: opt a series in with the 'Monitor for New Books' button and it's checked weekly for newly released books, with a Pushover notification when one appears. The first check quietly records what's already published, so turning it on for a long-running series doesn't announce its whole backlist. Novellas and in-between instalments (#2.5) count as releases. Found books are listed under 'Newly Released' on the dashboard rather than added to the library, each with a Dismiss button for the box sets and foreign editions series pages mix in; if you later add the book yourself the entry links to it and drops off. A series doesn't need a Goodreads URL configured - one is worked out from a book you already own and reused thereafter - and the weekly check refreshes the series' book count while it's there. Checks run one series a minute and back off if a site blocks them"
+    ]
+  },
+  {
     "version": "1.0.83",
     "date": "2026-08-04",
     "changes": [

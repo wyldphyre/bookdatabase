@@ -66,8 +66,49 @@ class Series(db.Model):
     amazon_url = db.Column(db.String(500))
     storygraph_url = db.Column(db.String(500))
 
+    # Opt-in: only series flagged here are checked for new releases.
+    monitored = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    last_checked_at = db.Column(db.DateTime)
+    last_check_error = db.Column(db.String(300))
+
     books = db.relationship('Book', backref='series', lazy=True, order_by='Book.series_number')
     tags = db.relationship('Tag', secondary=series_tags, back_populates='series')
+    releases = db.relationship('SeriesRelease', backref='series', lazy=True,
+                               cascade='all, delete-orphan')
+
+
+class SeriesRelease(db.Model):
+    """A book seen on a monitored series' page.
+
+    Deliberately separate from Book, which means "a book I have" throughout the
+    app. Keeping discovered-but-unowned titles here means none of the book
+    counts, statistics or exports have to learn about a second kind of book.
+
+    Rows recorded on a series' first check are marked is_baseline, so enabling
+    monitoring on a long-running series doesn't announce its whole backlist —
+    they exist only to diff against on later checks."""
+    __tablename__ = 'series_release'
+    id = db.Column(db.Integer, primary_key=True)
+    series_id = db.Column(db.Integer, db.ForeignKey('series.id'), nullable=False, index=True)
+    title = db.Column(db.String(300), nullable=False)
+    # Normalised title, so a later check doesn't re-announce the same book
+    # because of punctuation or capitalisation drift.
+    match_key = db.Column(db.String(300), nullable=False, index=True)
+    series_number = db.Column(db.Float)
+    external_url = db.Column(db.String(500))
+    discovered_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    is_baseline = db.Column(db.Boolean, nullable=False, default=False)
+    notified_at = db.Column(db.DateTime)
+    dismissed_at = db.Column(db.DateTime)
+    # Set when the title matches a book already in the library, or once you add it.
+    book_id = db.Column(db.Integer, db.ForeignKey('book.id'), index=True)
+
+    book = db.relationship('Book')
+
+    @property
+    def is_outstanding(self):
+        """Shown on the dashboard: genuinely new, still unowned, not dismissed."""
+        return not self.is_baseline and self.dismissed_at is None and self.book_id is None
 
 
 class Author(db.Model):

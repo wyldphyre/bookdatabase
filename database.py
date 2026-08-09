@@ -1,6 +1,6 @@
 from models import db, BookFormat, AuthorGender
 
-CURRENT_SCHEMA_VERSION = 9
+CURRENT_SCHEMA_VERSION = 10
 
 
 def _get_schema_version(cursor):
@@ -105,6 +105,19 @@ def run_migrations():
             columns = [row[1] for row in cursor.fetchall()]
             if 'notes' not in columns:
                 cursor.execute("ALTER TABLE author ADD COLUMN notes TEXT")
+            conn.commit()
+
+        if version < 10:
+            # Series monitoring. The series_release table itself is created by
+            # db.create_all(); only added columns need handling here.
+            cursor.execute("PRAGMA table_info(series)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'monitored' not in columns:
+                cursor.execute("ALTER TABLE series ADD COLUMN monitored BOOLEAN NOT NULL DEFAULT 0")
+            if 'last_checked_at' not in columns:
+                cursor.execute("ALTER TABLE series ADD COLUMN last_checked_at DATETIME")
+            if 'last_check_error' not in columns:
+                cursor.execute("ALTER TABLE series ADD COLUMN last_check_error VARCHAR(300)")
             conn.commit()
 
         if version < CURRENT_SCHEMA_VERSION:

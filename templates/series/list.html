@@ -14,6 +14,7 @@
             <a href="{{ url_for('series.series_list', per_page=per_page, search=search, filter='no_links') }}" class="filter-btn{% if filter_type == 'no_links' %} active{% endif %}">No Links</a>
             <a href="{{ url_for('series.series_list', per_page=per_page, search=search, filter='incomplete') }}" class="filter-btn{% if filter_type == 'incomplete' %} active{% endif %}">Incomplete</a>
             <a href="{{ url_for('series.series_list', per_page=per_page, search=search, filter='complete') }}" class="filter-btn{% if filter_type == 'complete' %} active{% endif %}">Complete</a>
+            <a href="{{ url_for('series.series_list', per_page=per_page, search=search, filter='monitored') }}" class="filter-btn{% if filter_type == 'monitored' %} active{% endif %}">Monitored</a>
         </div>
         <label class="per-page-label">
             <span>Per page:</span>
@@ -47,6 +48,7 @@
         <div class="series-card">
             <div class="series-info">
                 <a href="{{ url_for('series.series_detail', id=series.id) }}"><strong>{{ series.name }}</strong></a>
+                {% if series.monitored %}<span class="detail-chip monitor-chip" title="Checked weekly for new books">Monitored</span>{% endif %}
                 {% if series.number_in_series %}
                 <br><small class="secondary">{{ series.number_in_series }} books in series</small>
                 {% endif %}

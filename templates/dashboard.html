@@ -21,6 +21,32 @@
     </div>
 </div>
 
+{% if new_releases %}
+<h2>Newly Released</h2>
+<p class="secondary">Spotted on series you monitor. These aren't in your library yet.</p>
+<ul class="release-list">
+    {% for r in new_releases %}
+    <li class="release-item">
+        <div class="release-info">
+            <span class="release-title">
+                {% if r.external_url %}
+                <a href="{{ r.external_url }}" target="_blank" rel="noopener">{{ r.title }}</a>
+                {% else %}{{ r.title }}{% endif %}
+            </span>
+            <small class="secondary">
+                <a href="{{ url_for('series.series_detail', id=r.series.id) }}">{{ r.series.name }}</a>{% if r.series_number is not none %} #{{ r.series_number|num }}{% endif %}
+                &middot; found {{ r.discovered_at.strftime('%Y-%m-%d') }}
+            </small>
+        </div>
+        <form method="post" action="{{ url_for('series.release_dismiss', id=r.id) }}">
+            <button type="submit" class="btn-compact outline secondary"
+                    title="Not a new book — hide it">Dismiss</button>
+        </form>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
 <h2>Currently Reading</h2>
 
 {% if active_reads %}

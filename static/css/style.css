@@ -1821,6 +1821,49 @@ button.ellipsis-btn:focus {
     }
 }
 
+/* Newly released books found by the series monitor (dashboard) */
+.release-list {
+    list-style: none;
+    margin: 0 0 1.5rem 0;
+    padding: 0;
+}
+
+.release-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.55rem 0;
+    border-top: 1px solid var(--pico-muted-border-color);
+}
+
+.release-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.release-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+.release-item form {
+    margin: 0;
+    flex-shrink: 0;
+}
+
+/* "Monitored" marker on the series list */
+.monitor-chip {
+    margin-left: 0.4rem;
+    vertical-align: middle;
+}
+
+.monitor-status {
+    margin-bottom: 0.5rem;
+}
+
 /* Pushover priority setting (System page) */
 .pushover-priority-form {
     margin-bottom: 1rem;

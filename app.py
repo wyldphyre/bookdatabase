@@ -4,9 +4,10 @@ from flask import Flask, request, url_for
 from models import db
 from database import init_db
 from price_watch import start_price_watch_scheduler
+from series_monitor import start_series_monitor_scheduler
 from utils import THUMB_SUBFOLDER, start_thumbnail_backfill
 
-APP_VERSION = '1.0.83'
+APP_VERSION = '1.1.0'
 
 
 def create_app():
@@ -125,9 +126,11 @@ if __name__ == '__main__':
     # otherwise price checks run twice.
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         start_price_watch_scheduler(app)
+        start_series_monitor_scheduler(app)
         start_thumbnail_backfill(app.config['UPLOAD_FOLDER'])
     app.run(debug=True, port=5001)
 else:
     # Production (gunicorn, single worker): imported exactly once.
     start_price_watch_scheduler(app)
+    start_series_monitor_scheduler(app)
     start_thumbnail_backfill(app.config['UPLOAD_FOLDER'])
