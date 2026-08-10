@@ -1,6 +1,9 @@
 services:
   bookdatabase:
     image: bookdatabase-bookdatabase:latest
+    # Stated so a wrong-architecture image is rejected with a clear message,
+    # rather than starting and dying on an unreadable binary.
+    platform: linux/amd64
     ports:
       - "5001:5001"
     volumes:
