@@ -1860,6 +1860,13 @@ button.ellipsis-btn:focus {
     vertical-align: middle;
 }
 
+/* A monitored series whose last check failed — otherwise the only place the
+   failure shows is the series' own page, which is easy never to revisit. */
+.monitor-chip--error {
+    background: var(--pico-del-color);
+    opacity: 1;
+}
+
 .monitor-status {
     margin-bottom: 0.5rem;
 }

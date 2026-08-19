@@ -48,7 +48,13 @@
         <div class="series-card">
             <div class="series-info">
                 <a href="{{ url_for('series.series_detail', id=series.id) }}"><strong>{{ series.name }}</strong></a>
-                {% if series.monitored %}<span class="detail-chip monitor-chip" title="Checked weekly for new books">Monitored</span>{% endif %}
+                {% if series.monitored %}
+                    {% if series.last_check_error %}
+                    <span class="detail-chip monitor-chip monitor-chip--error" title="{{ series.last_check_error }}">Monitor error</span>
+                    {% else %}
+                    <span class="detail-chip monitor-chip" title="Checked weekly for new books">Monitored</span>
+                    {% endif %}
+                {% endif %}
                 {% if series.number_in_series %}
                 <br><small class="secondary">{{ series.number_in_series }} books in series</small>
                 {% endif %}

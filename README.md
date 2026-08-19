@@ -140,7 +140,7 @@ PUSHOVER_USER_KEY=your-pushover-user-key
 PUSHOVER_APP_TOKEN=your-pushover-application-token
 ```
 
-- `SECRET_KEY` - used to sign Flask session cookies. Falls back to an insecure development default (with a startup warning) if unset.
+- `SECRET_KEY` - used to sign Flask session cookies. Falls back to an insecure development default (with a startup warning) if unset. **Set this on the production host**: generate one with `python -c "import secrets; print(secrets.token_hex(32))"` and put it in `.env`. Until v1.1.1 the compose files hardcoded a placeholder, which meant the `.env` value was ignored and the startup warning never fired.
 - `PUSHOVER_USER_KEY` / `PUSHOVER_APP_TOKEN` - optional. Required only for [Price Watch](#price-watch) notifications. Get both from [pushover.net](https://pushover.net/) (the user key from your dashboard, the app token by creating an application). When unset, price drops are detected but no notification is sent, and the "Send Test Notification" button on the System page is hidden.
 
 `docker-compose.yml`/`docker-compose.prod.yml` read these via `${VARNAME}` substitution, which Docker Compose resolves automatically from a `.env` file in the same directory - the compose files themselves never contain real secrets.

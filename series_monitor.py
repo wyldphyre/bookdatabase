@@ -72,6 +72,19 @@ def check_series(series):
         series.goodreads_url = found
 
     detail = scrape_goodreads_series_detail(series.goodreads_url)
+    entries = detail.get('books') or []
+
+    # A page we can't read any books from is a failure, not an empty series.
+    # Treating it as success would be doubly bad: the breakage would be silent,
+    # and the series would never get baselined, so the next book to appear
+    # would be filed as backlist and never announced. Goodreads' markup does
+    # drift — the selectors this replaced had already gone stale.
+    if not entries:
+        series.last_check_error = ('Could not read any books from the series page — the page layout '
+                                   'may have changed, or the URL may not point at a series.')
+        series.last_checked_at = datetime.now()
+        db.session.commit()
+        return []
 
     # Keep the series' book count current, as part of the same visit. Only ever
     # revise upwards: a partial parse shouldn't quietly shrink a known count.
@@ -80,15 +93,13 @@ def check_series(series):
         series.number_in_series = count
 
     known = {r.match_key for r in series.releases}
-    # No releases recorded yet means this is the first look at the series, so
-    # everything on the page is backlist rather than news.
-    is_baseline_run = not known
+    is_baseline_run = not series.baseline_done
 
     owned_by_key = {match_key(b.title): b for b in series.books}
     now = datetime.now()
     newly_found = []
 
-    for entry in detail.get('books') or []:
+    for entry in entries:
         key = match_key(entry['title'])
         if not key or key in known:
             continue
@@ -112,6 +123,7 @@ def check_series(series):
 
     series.last_checked_at = now
     series.last_check_error = None
+    series.baseline_done = True
     db.session.commit()
     return newly_found
 

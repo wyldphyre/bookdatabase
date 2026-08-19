@@ -539,6 +539,12 @@ def book_delete(id):
     # Delete associated reads and reading queue entries
     Read.query.filter_by(book_id=id).delete()
     ReadingQueue.query.filter_by(book_id=id).delete()
+    # Unlink any monitored-series release that pointed at this book. SQLite
+    # doesn't enforce the foreign key, so leaving it would keep a non-null
+    # book_id referring to nothing — and since the dashboard treats a linked
+    # release as "already owned", the entry would be hidden forever despite
+    # the book being gone. Unlinking puts it back on the list.
+    SeriesRelease.query.filter_by(book_id=id).update({'book_id': None})
     db.session.delete(book)
     db.session.commit()
     flash('Book deleted successfully', 'success')

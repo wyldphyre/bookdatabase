@@ -70,6 +70,11 @@ class Series(db.Model):
     monitored = db.Column(db.Boolean, nullable=False, default=False, index=True)
     last_checked_at = db.Column(db.DateTime)
     last_check_error = db.Column(db.String(300))
+    # Set once a check has successfully read the series page. Tracked explicitly
+    # rather than inferred from "no releases recorded yet": a failed parse also
+    # records nothing, and inferring would make the next book to appear look
+    # like backlist and be swallowed silently.
+    baseline_done = db.Column(db.Boolean, nullable=False, default=False)
 
     books = db.relationship('Book', backref='series', lazy=True, order_by='Book.series_number')
     tags = db.relationship('Tag', secondary=series_tags, back_populates='series')

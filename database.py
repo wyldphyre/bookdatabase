@@ -1,6 +1,6 @@
 from models import db, BookFormat, AuthorGender
 
-CURRENT_SCHEMA_VERSION = 10
+CURRENT_SCHEMA_VERSION = 11
 
 
 def _get_schema_version(cursor):
@@ -118,6 +118,16 @@ def run_migrations():
                 cursor.execute("ALTER TABLE series ADD COLUMN last_checked_at DATETIME")
             if 'last_check_error' not in columns:
                 cursor.execute("ALTER TABLE series ADD COLUMN last_check_error VARCHAR(300)")
+            conn.commit()
+
+        if version < 11:
+            cursor.execute("PRAGMA table_info(series)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'baseline_done' not in columns:
+                cursor.execute("ALTER TABLE series ADD COLUMN baseline_done BOOLEAN NOT NULL DEFAULT 0")
+                # Any series that already has releases recorded has been baselined.
+                cursor.execute("UPDATE series SET baseline_done = 1 WHERE id IN "
+                               "(SELECT DISTINCT series_id FROM series_release)")
             conn.commit()
 
         if version < CURRENT_SCHEMA_VERSION:

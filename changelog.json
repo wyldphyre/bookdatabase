@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.1.1",
+    "date": "2026-08-13",
+    "changes": [
+      "Fix three problems found in a project scan. A failed read of a series page was treated as an empty series: it recorded no error, so monitoring looked healthy while doing nothing, and because 'no releases recorded' was what marked a series as un-baselined, the next book to appear was filed as backlist and never announced. Series now track baselining explicitly, an unreadable page is reported as an error, and monitored series whose last check failed are flagged on the Series list. Deleting a book now also unlinks any series release pointing at it — the stale link made the release count as owned and hid it from the dashboard permanently. The compose files also no longer hardcode a placeholder SECRET_KEY, which overrode the value from .env and stopped the app's 'not set' startup warning from ever firing; set SECRET_KEY in .env on the production host"
+    ]
+  },
+  {
     "version": "1.1.0",
     "date": "2026-08-09",
     "changes": [
