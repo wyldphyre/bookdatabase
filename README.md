@@ -128,6 +128,12 @@ A series doesn't need a Goodreads URL configured: if one is missing, the app wor
 
 Checking is deliberately slow - one series a minute, and each series only revisited weekly - to stay well clear of the rate limits described under [Price Watch](#price-watch). If a site blocks the app mid-run, checking backs off rather than continuing.
 
+## A Note on Access Control
+
+The app has no login: anyone who can reach it on your network can use it. It's built for a single user on a private network, and adding accounts would be the change to make if that ever stops being true.
+
+State-changing requests (anything that isn't a GET) are checked to make sure they came from a page of this app rather than another site. Without that, a malicious page open in your browser could quietly POST to the app's address - deleting books, or triggering the import that replaces the whole database - without the attacker needing any access to your network. Requests that send no `Origin` or `Referer` at all, such as `curl` or a script, are allowed through: a browser can't be made to omit both on a cross-site write, so refusing them would only break local tooling.
+
 ## Docker Deployment
 
 ### Environment Variables

@@ -1,5 +1,6 @@
 import os
 import logging
+from urllib.parse import urlparse
 from flask import Flask, request, url_for
 from models import db
 from database import init_db
@@ -7,7 +8,7 @@ from price_watch import start_price_watch_scheduler
 from series_monitor import start_series_monitor_scheduler
 from utils import THUMB_SUBFOLDER, start_thumbnail_backfill
 
-APP_VERSION = '1.1.1'
+APP_VERSION = '1.1.2'
 
 
 def create_app():
@@ -61,6 +62,44 @@ def create_app():
         if filename and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], THUMB_SUBFOLDER, filename)):
             return url_for('static', filename=f'uploads/{THUMB_SUBFOLDER}/{filename}')
         return url_for('static', filename=f'uploads/{filename}')
+
+    # Anything that changes state must have been triggered from a page of this
+    # app, not from some other site the browser happens to have open.
+    #
+    # The app has no login, so this isn't protecting one user's data from
+    # another — anyone who can reach it on the network can use it directly.
+    # What it stops is a drive-by: a malicious page can otherwise POST to this
+    # app's address from your browser without the attacker having any access to
+    # your network at all, and several endpoints here delete data or replace
+    # the whole database. Checking the origin is enough for that, and avoids
+    # putting a token in ~30 forms plus every htmx call.
+    SAFE_METHODS = {'GET', 'HEAD', 'OPTIONS'}
+
+    @app.before_request
+    def reject_cross_site_writes():
+        if request.method in SAFE_METHODS:
+            return None
+        # Browsers send Origin on every POST, same-origin included, so a
+        # mismatch is a genuine cross-site request. Referer is the fallback for
+        # the DELETEs htmx issues.
+        stated = request.headers.get('Origin') or request.headers.get('Referer')
+        if not stated:
+            # curl, scripts and the like send neither. A browser can't be made
+            # to omit both on a cross-site write, so refusing here would only
+            # break local tooling without closing anything.
+            return None
+        if urlparse(stated).netloc != request.host:
+            logging.warning('Blocked cross-site %s to %s (origin %r)',
+                            request.method, request.path, stated)
+            return ('This request came from another site and was blocked.', 403)
+        return None
+
+    @app.errorhandler(OverflowError)
+    def integer_out_of_range(error):
+        """SQLite stores 64-bit integers; Python's have no such limit, so an
+        oversized id or page number in a URL reaches the driver and raises.
+        That's malformed input, not a server fault."""
+        return ('A number in that request was out of range.', 400)
 
     # After-request hook
     @app.after_request

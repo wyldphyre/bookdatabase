@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.1.2",
+    "date": "2026-08-20",
+    "changes": [
+      "Block state-changing requests that come from another website. The app has no login, so this isn't about separating users — it stops a malicious page open in your browser from POSTing to the app's address and deleting data or triggering the database-replacing import, which it could previously do without any access to your network. Requests from curl or scripts, which send no Origin or Referer, still work. Also fixes nine endpoints returning a 500 when given an absurdly large number in the URL (SQLite integers are 64-bit, Python's are not); these now return a 400"
+    ]
+  },
+  {
     "version": "1.1.1",
     "date": "2026-08-13",
     "changes": [
