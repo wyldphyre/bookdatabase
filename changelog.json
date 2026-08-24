@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.2.0",
+    "date": "2026-08-24",
+    "changes": [
+      "Added a second tab to the dashboard showing how the current year has gone: books, series and authors read, pages read, reading pace, the gender split of the authors you read, and what you spent on books bought this year. Each figure is compared against the same stretch of the previous year — its first N days, not the whole year — so a part-finished year isn't held up against a complete one. Aliases count as the author behind them. The year figures are only calculated when that tab is open, so the normal dashboard is unaffected"
+    ]
+  },
+  {
     "version": "1.1.2",
     "date": "2026-08-20",
     "changes": [

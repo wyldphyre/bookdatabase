@@ -6,6 +6,15 @@
 
 {% block content %}
 
+<div class="filter-tabs dashboard-tabs">
+    <a href="{{ url_for('books.dashboard') }}" class="filter-btn{% if tab != 'year' %} active{% endif %}">Overview</a>
+    <a href="{{ url_for('books.dashboard', tab='year') }}" class="filter-btn{% if tab == 'year' %} active{% endif %}">{{ year }} Stats</a>
+</div>
+
+{% if tab == 'year' %}
+{% include 'dashboard_year.html' %}
+{% else %}
+
 <div class="stats">
     <div class="stat">
         <div class="stat-value">{{ total_books }}</div>
@@ -158,5 +167,7 @@
 </div>
 {% else %}
     <p>No completed reads yet.</p>
+{% endif %}
+
 {% endif %}
 {% endblock %}

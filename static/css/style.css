@@ -1254,6 +1254,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     scroll-snap-type: x mandatory;
 }
 
+/* Wrapping variant: for a full-year list the covers are the point of the
+   section, so let them fill the page rather than hiding most of them off the
+   right edge. */
+.recently-added-scroll--wrap {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    scroll-snap-type: none;
+    row-gap: 1.25rem;
+    align-items: flex-start;
+}
+
 .recently-added-scroll::-webkit-scrollbar {
     height: 6px;
 }
@@ -2018,6 +2029,24 @@ mark {
 
 .filter-tabs .filter-btn:hover:not(.active) {
     background: var(--pico-primary-focus);
+}
+
+/* Dashboard year tab */
+.dashboard-tabs {
+    display: flex;
+    margin-bottom: 1.5rem;
+}
+
+.stat-delta {
+    color: var(--pico-muted-color);
+    font-size: 0.75rem;
+    margin-top: 0.15rem;
+}
+
+/* Two- and three-column figure tables read badly stretched across a wide
+   screen — the numbers end up an inch from their labels. */
+.year-table {
+    max-width: 34rem;
 }
 
 /* Tag picker */

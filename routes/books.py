@@ -18,6 +18,9 @@ books_bp = Blueprint('books', __name__)
 
 @books_bp.route('/', endpoint='dashboard')
 def dashboard():
+    if request.args.get('tab') == 'year':
+        return dashboard_year()
+
     active_reads = Read.query.options(
         joinedload(Read.book).subqueryload(Book.authors),
         joinedload(Read.book).joinedload(Book.series)
@@ -51,12 +54,34 @@ def dashboard():
                     .limit(12).all())
 
     return render_template('dashboard.html',
+                         tab='overview',
+                         year=datetime.now().year,
                          new_releases=new_releases,
                          active_reads=active_reads,
                          total_books=total_books,
                          total_reads=total_reads,
                          recently_added=recently_added,
                          recently_read=recently_read)
+
+
+def dashboard_year():
+    """The dashboard's other tab: how this year has gone so far.
+
+    The previous year is measured over the same number of elapsed days, so the
+    comparisons don't hold a part-finished year up against a complete one.
+    """
+    from stats import year_reading_stats, days_elapsed_in_year
+
+    year = datetime.now().year
+    elapsed = days_elapsed_in_year()
+    current = year_reading_stats(year, include_books=True)
+    previous = year_reading_stats(year - 1, days_elapsed=elapsed)
+
+    return render_template('dashboard.html',
+                         tab='year',
+                         year=year,
+                         current=current,
+                         previous=previous)
 
 
 @books_bp.route('/books', endpoint='book_list')
