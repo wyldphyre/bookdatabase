@@ -124,7 +124,7 @@ The first check of a series records what's already published without notifying y
 
 Books found this way are **not** added to your library - the library stays a record of books you actually have. They're listed under **Newly Released** on the dashboard, separate from Recently Added, each with a Dismiss button for the box sets, omnibuses and foreign editions that series pages tend to mix in. If you later add the book yourself, the entry links itself to it and drops off the list.
 
-A series doesn't need a Goodreads URL configured: if one is missing, the app works it out once from a book you already own in that series, then reuses it. The weekly check also refreshes the series' book count while it's there.
+Checks read whichever series page you've recorded - Goodreads first, then Amazon - and try the other if one can't be read, so a site changing its markup or blocking the app doesn't stop a series listed on both. A series doesn't need either URL configured: if neither is set, the app works one out once from a book you already own in that series - reading the series straight off that book's Goodreads or Amazon page when the book has a link, and searching by title otherwise - then reuses it. The weekly check also refreshes the series' book count while it's there.
 
 Checking is deliberately slow - one series a minute, and each series only revisited weekly - to stay well clear of the rate limits described under [Price Watch](#price-watch). If a site blocks the app mid-run, checking backs off rather than continuing.
 

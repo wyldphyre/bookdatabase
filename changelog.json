@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.3.0",
+    "date": "2026-08-30",
+    "changes": [
+      "Series monitoring now reads Amazon series pages as well as Goodreads ones. A series with only an Amazon link was previously unmonitorable: the check needed a Goodreads URL, and failing to work one out reported 'Could not work out a Goodreads URL for this series' even though a perfectly readable Amazon series page was recorded. Checks now try every URL on the series, Goodreads first, and fall back to the other if one can't be read or is blocking requests, so one site's markup drifting doesn't stop a series listed on both. Working a URL out from a book you own is still the fallback when no URL is set at all. New-release notifications link to whichever site the series is listed on rather than always Goodreads",
+      "Matching is no longer confused by how a site writes an instalment number: Amazon's 'Title: Book 2' and Goodreads' 'Title #2' are now recognised as the same book. Previously a book you already owned could be announced as a new release purely because the two sites punctuated its title differently. Existing recorded releases are re-keyed on upgrade so nothing is announced twice",
+      "Working out a series URL when none is recorded now starts from books you already have a Goodreads or Amazon link for, reading the series straight off that book's page in one request. Previously it always searched Goodreads by title, which depends on the top search result being the right book and quietly finds nothing for anything obscure — even when a book in the series already carried a link naming the series. Searching remains the fallback for books with no link, and a resolved Amazon series page is saved as the series' Amazon URL"
+    ]
+  },
+  {
     "version": "1.2.0",
     "date": "2026-08-24",
     "changes": [

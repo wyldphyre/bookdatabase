@@ -12,8 +12,9 @@ import threading
 from datetime import datetime, timedelta
 
 from models import db, Series, SeriesRelease
-from scrapers import (scrape_goodreads_series_detail, scrape_goodreads,
-                      search_goodreads_for_book, ScrapeBlockedError)
+from scrapers import (scrape_goodreads_series_detail, scrape_amazon_series_detail,
+                      scrape_goodreads, scrape_amazon, search_goodreads_for_book,
+                      ScrapeBlockedError)
 from notifications import send_pushover_notification
 
 # How stale a series' last check must be before it's due again.
@@ -26,35 +27,122 @@ BLOCKED_BACKOFF_SECONDS = 30 * 60
 URL_RESOLUTION_ATTEMPTS = 2
 
 
+# "Book 2" (Amazon), "#2" (Goodreads) and a bare "2" all name the same
+# instalment. Applied before punctuation is flattened, so that a novella's
+# ".5" survives; only matched at the end, where the numbering lives, and only
+# with a real title in front of it, so a book actually called "Book 1" keeps
+# its name.
+_INSTALMENT_NOISE = re.compile(r'(?<=\w)\W+(?:book|bk|volume|vol|part)\s*(\d+(?:\.\d+)?)\s*$',
+                               re.IGNORECASE)
+
+
 def match_key(title):
     """Normalised title, used to tell whether we've already seen an entry.
 
     Punctuation and case drift between listings, so comparing raw titles would
-    re-announce the same book."""
-    return re.sub(r'[^a-z0-9]+', ' ', (title or '').lower()).strip()
+    re-announce the same book. Sites also disagree about how to write the
+    instalment number: Amazon ships "Title: Book 2" where Goodreads has
+    "Title #2". The noise word is dropped but the number is kept — collapsing
+    it away entirely would give every instalment the same key as book 1, and
+    new releases would then be silently taken for books already seen."""
+    raw = _INSTALMENT_NOISE.sub(r' \1', (title or '').strip())
+    return re.sub(r'[^a-z0-9]+', ' ', raw.lower()).strip()
+
+
+def _series_url_from_book_page(book):
+    """(field, series_url) read straight off a book's own page, or (None, None).
+
+    Both sites name the series on a book's page, so a book we already hold a
+    link for answers the question in one request — no search, and nothing to
+    mis-identify."""
+    if book.goodreads_url:
+        data = scrape_goodreads(book.goodreads_url)
+        if data and data.get('series_url'):
+            return 'goodreads_url', data['series_url']
+    if book.amazon_url:
+        data = scrape_amazon(book.amazon_url)
+        if data and data.get('series_url'):
+            return 'amazon_url', data['series_url']
+    return None, None
 
 
 def resolve_series_url(series):
-    """Find a series' Goodreads URL using a book we already own from it.
+    """Work out a series URL from the books we already own, as (field, url).
 
-    Lets monitoring work on series with no external link recorded: search for
-    one of its books, open that book's page, and take the series link from it.
-    Costs two requests, once — the result is saved to the series."""
-    for book in list(series.books)[:URL_RESOLUTION_ATTEMPTS]:
-        if not book.title:
-            continue
+    Lets monitoring work on series with no external link recorded. Books whose
+    own page we already have a link to are tried first: that path is one
+    request and can't pick the wrong book, whereas searching by title depends
+    on a search result being right, and quietly finds nothing for anything
+    obscure. Searching stays as the fallback for books with no link at all.
+    Both passes are capped, so this stays a couple of requests, once — the
+    result is saved to the series."""
+    linked = [b for b in series.books if b.goodreads_url or b.amazon_url]
+    for book in linked[:URL_RESOLUTION_ATTEMPTS]:
+        try:
+            field, url = _series_url_from_book_page(book)
+            if url:
+                return field, url
+        except ScrapeBlockedError:
+            raise
+        except Exception:
+            logging.warning('Series URL lookup failed for %r via %r', series.name, book.title,
+                            exc_info=True)
+
+    for book in [b for b in series.books if b.title][:URL_RESOLUTION_ATTEMPTS]:
         try:
             book_url = search_goodreads_for_book(book.title, book.author_names)
             if not book_url:
                 continue
             data = scrape_goodreads(book_url)
             if data and data.get('series_url'):
-                return data['series_url']
+                return 'goodreads_url', data['series_url']
         except ScrapeBlockedError:
             raise
         except Exception:
             logging.warning('Series URL lookup failed for %r', series.name, exc_info=True)
-    return None
+    return None, None
+
+
+def series_sources(series):
+    """The pages that can be read for this series, richest first.
+
+    Goodreads leads because its listing carries the whole series including
+    novellas; Amazon covers series that were never on Goodreads, or that no
+    URL could be worked out for."""
+    sources = []
+    if series.goodreads_url:
+        sources.append(('Goodreads', series.goodreads_url, scrape_goodreads_series_detail))
+    if series.amazon_url:
+        sources.append(('Amazon', series.amazon_url, scrape_amazon_series_detail))
+    return sources
+
+
+def read_series_page(series):
+    """First source that yields a readable listing, as (detail, failures).
+
+    Every recorded URL is tried before giving up, so one site's markup drifting
+    doesn't stop a series that's also listed elsewhere. A block is remembered
+    rather than raised on the spot: the other host may well answer, and only if
+    nothing does is it re-raised, so the scheduler still backs off."""
+    blocked = None
+    failures = []
+    for name, url, scrape in series_sources(series):
+        try:
+            detail = scrape(url)
+        except ScrapeBlockedError as e:
+            blocked = e
+            failures.append(f'{name} is blocking automated requests')
+            continue
+        except Exception:
+            logging.warning('Series page fetch failed for %r at %s', series.name, url, exc_info=True)
+            failures.append(f'{name} page could not be fetched')
+            continue
+        if detail.get('books'):
+            return detail, failures
+        failures.append(f'no books could be read from the {name} page')
+    if blocked is not None:
+        raise blocked
+    return None, failures
 
 
 def check_series(series):
@@ -62,29 +150,33 @@ def check_series(series):
 
     Returns the releases worth telling the user about — empty on the first
     check of a series, which only establishes what was already out."""
-    if not series.goodreads_url:
-        found = resolve_series_url(series)
+    if not series_sources(series):
+        field, found = resolve_series_url(series)
         if not found:
-            series.last_check_error = 'Could not work out a Goodreads URL for this series'
+            series.last_check_error = ('No series page to check: no Goodreads or Amazon URL is '
+                                       'recorded for this series, and one could not be worked out '
+                                       'from its books.')
             series.last_checked_at = datetime.now()
             db.session.commit()
             return []
-        series.goodreads_url = found
+        setattr(series, field, found)
 
-    detail = scrape_goodreads_series_detail(series.goodreads_url)
-    entries = detail.get('books') or []
+    detail, failures = read_series_page(series)
 
     # A page we can't read any books from is a failure, not an empty series.
     # Treating it as success would be doubly bad: the breakage would be silent,
     # and the series would never get baselined, so the next book to appear
     # would be filed as backlist and never announced. Goodreads' markup does
     # drift — the selectors this replaced had already gone stale.
-    if not entries:
-        series.last_check_error = ('Could not read any books from the series page — the page layout '
-                                   'may have changed, or the URL may not point at a series.')
+    if detail is None:
+        reason = '; '.join(failures) or 'no usable series URL'
+        series.last_check_error = (f'Could not read the series: {reason}. The page layout may have '
+                                   f'changed, or a URL may not point at a series.')[:300]
         series.last_checked_at = datetime.now()
         db.session.commit()
         return []
+
+    entries = detail['books']
 
     # Keep the series' book count current, as part of the same visit. Only ever
     # revise upwards: a partial parse shouldn't quietly shrink a known count.
@@ -137,10 +229,12 @@ def notify_new_releases(series, releases):
         number = f'#{r.series_number:g} ' if r.series_number is not None else ''
         lines.append(f'{number}{r.title}')
     plural = 'book' if len(releases) == 1 else 'books'
+    # Link to whichever site this series is actually listed on — an
+    # Amazon-only series would otherwise get a notification with no link.
     sent = send_pushover_notification(
         title=f'New {plural} in {series.name}',
         message='\n'.join(lines),
-        url=series.goodreads_url,
+        url=series.goodreads_url or series.amazon_url,
     )
     if sent:
         stamp = datetime.now()

@@ -1,6 +1,6 @@
 from models import db, BookFormat, AuthorGender
 
-CURRENT_SCHEMA_VERSION = 11
+CURRENT_SCHEMA_VERSION = 12
 
 
 def _get_schema_version(cursor):
@@ -128,6 +128,18 @@ def run_migrations():
                 # Any series that already has releases recorded has been baselined.
                 cursor.execute("UPDATE series SET baseline_done = 1 WHERE id IN "
                                "(SELECT DISTINCT series_id FROM series_release)")
+            conn.commit()
+
+        if version < 12:
+            # match_key now normalises "Title: Book 2" and "Title #2" to the
+            # same key, so keys recorded by the old rule no longer match what a
+            # check computes. Left alone, every affected book would read as
+            # newly released and be announced a second time.
+            from series_monitor import match_key
+            cursor.execute("SELECT id, title FROM series_release")
+            for release_id, title in cursor.fetchall():
+                cursor.execute("UPDATE series_release SET match_key = ? WHERE id = ?",
+                               (match_key(title), release_id))
             conn.commit()
 
         if version < CURRENT_SCHEMA_VERSION:

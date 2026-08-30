@@ -1,9 +1,10 @@
 import re
+import logging
 import time
 import threading
 import requests as http_requests
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 
 # Worth refreshing every so often: claiming a long-obsolete browser is one of
@@ -216,6 +217,11 @@ def scrape_amazon(url):
     # Series info from title or breadcrumb
     series_el = soup.select_one('#seriesBulletWidget_feature_div a')
     if series_el:
+        # The href is the series' own page — the cheapest way to learn a
+        # series' Amazon URL when it hasn't got one recorded yet.
+        series_href = series_el.get('href')
+        if series_href:
+            data['series_url'] = urljoin(url, series_href).split('?')[0]
         series_text = series_el.get_text(strip=True)
         # Handle "Book 1 of 16: The Good Guys" → series_name="The Good Guys", series_number=1
         m = re.match(r'^Book\s+(\d+(?:\.\d+)?)\s+of\s+\d+\s*:\s*(.+)$', series_text, re.IGNORECASE)
@@ -385,6 +391,65 @@ def scrape_amazon_series(url):
         raise
     except Exception:
         return None
+
+
+def _parse_amazon_series_books(soup, base_url):
+    """Every entry listed on an Amazon Kindle series page, in page order.
+
+    Same shape as _parse_series_books so the monitor doesn't care which site a
+    series came from."""
+    books = []
+    for item in soup.select('.series-childAsin-item'):
+        link = item.select_one('a.itemBookTitle')
+        heading = item.select_one('a.itemBookTitle h3')
+        source = heading or link
+        title = source.get_text(strip=True) if source else ''
+        if not title:
+            continue
+
+        # The position sits in its own label, e.g. aria-label="Book 1".
+        series_number = None
+        position = item.select_one('.itemPositionLabel')
+        if position:
+            text = position.get('aria-label') or position.get_text(' ', strip=True)
+            match = re.search(r'(\d+(?:\.\d+)?)', text)
+            if match:
+                series_number = float(match.group(1))
+
+        href = link.get('href') if link else None
+        if href:
+            # Marketplace hosts differ (.com, .com.au), so resolve against the
+            # page rather than assuming one. The ref_ tracking query is noise.
+            href = urljoin(base_url, href).split('?')[0]
+
+        books.append({'title': title, 'series_number': series_number, 'url': href})
+    return books
+
+
+def _parse_amazon_series_count(soup):
+    """The headline "(N book series)" count, if the page states one."""
+    for el in soup.select('.a-size-extra-large, #collection-masthead, .series-childAsin-count'):
+        match = re.search(r'(\d+)\s*book series', el.get_text(' ', strip=True), re.IGNORECASE)
+        if match:
+            return int(match.group(1))
+    return None
+
+
+def scrape_amazon_series_detail(url):
+    """An Amazon series page in the same shape as its Goodreads counterpart, so
+    either can drive series monitoring.
+
+    Note this reads only what the page ships in its HTML. If Amazon ever holds
+    part of a long series back for lazy loading, the tail — where new releases
+    live — would be missing, so a stated count higher than the number of
+    entries parsed is logged rather than passed over."""
+    soup = fetch_page(url)
+    books = _parse_amazon_series_books(soup, url)
+    count = _parse_amazon_series_count(soup)
+    if count is not None and books and count > len(books):
+        logging.warning('Amazon series page %s says %d books but only %d are listed in the page',
+                        url, count, len(books))
+    return {'count': count, 'books': books}
 
 
 def _parse_series_books(soup):
