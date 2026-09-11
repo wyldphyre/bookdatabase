@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Book Database">
+  <rect width="64" height="64" rx="14" fill="#0b3f5f"/>
+  <rect x="11" y="14" width="11" height="34" rx="2.5" fill="#ffffff"/>
+  <rect x="26.5" y="21" width="11" height="27" rx="2.5" fill="#5cc8f5"/>
+  <rect x="42" y="17" width="11" height="31" rx="2.5" fill="#fbbf24"/>
+  <rect x="8" y="48" width="48" height="5" rx="2.5" fill="#5cc8f5"/>
+</svg>

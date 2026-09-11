@@ -69,6 +69,7 @@ book-database/
 │   └── price_watch.py
 ├── static/
 │   ├── css/style.css   # Custom CSS overrides
+│   ├── img/            # App icons (favicon, home-screen) + UI overlays
 │   └── uploads/        # Book cover images
 └── templates/
     ├── base.html       # Base template with sidebar navigation
