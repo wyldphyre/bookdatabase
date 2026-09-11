@@ -34,7 +34,7 @@
     {% if filter_type != 'all' %}<input type="hidden" name="filter" value="{{ filter_type }}">{% endif %}
     <input type="search" name="search" id="series-list-search" placeholder="Search series..." value="{{ search }}" autofocus
            hx-get="{{ url_for('series.series_list', filter=filter_type) }}"
-           hx-trigger="keyup changed delay:300ms"
+           hx-trigger="input changed delay:300ms"
            hx-target="#series-results"
            hx-select="#series-results"
            hx-push-url="true">

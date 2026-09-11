@@ -8,7 +8,7 @@ from price_watch import start_price_watch_scheduler
 from series_monitor import start_series_monitor_scheduler
 from utils import THUMB_SUBFOLDER, start_thumbnail_backfill
 
-APP_VERSION = '1.3.0'
+APP_VERSION = '1.3.1'
 
 
 def create_app():

@@ -31,7 +31,7 @@
     {% if filter_type != 'all' %}<input type="hidden" name="filter" value="{{ filter_type }}">{% endif %}
     <input type="search" name="search" id="author-list-search" placeholder="Search authors..." value="{{ search }}" autofocus
            hx-get="{{ url_for('authors.author_list', filter=filter_type) }}"
-           hx-trigger="keyup changed delay:300ms"
+           hx-trigger="input changed delay:300ms"
            hx-target="#author-results"
            hx-select="#author-results"
            hx-push-url="true">

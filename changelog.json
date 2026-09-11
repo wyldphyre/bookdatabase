@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.3.1",
+    "date": "2026-09-11",
+    "changes": [
+      "Fix search fields not updating when text arrives any way other than typed keystrokes. The Search page and the Authors and Series list searches listened for key-up events, so swipe typing on a phone, dictation, an autocomplete suggestion and paste-from-menu all filled the box while leaving the results untouched — the search only ran if you went back and typed another character. They now listen for input events, as the rest of the app's search boxes already did. The clear (×) button in those fields now refreshes the results too, where before it emptied the box and left the old results on screen"
+    ]
+  },
+  {
     "version": "1.3.0",
     "date": "2026-08-30",
     "changes": [

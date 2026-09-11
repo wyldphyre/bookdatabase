@@ -261,7 +261,10 @@ if (localStorage.getItem('sidebar-collapsed') === 'true') {
                 e.preventDefault();
                 this.value = '';
                 escapeClearPending = true;
-                this.dispatchEvent(new Event('keyup', { bubbles: true }));
+                // Must match the fields' hx-trigger. They listen for 'input'
+                // rather than 'keyup' so that swipe typing, dictation and
+                // autocomplete — none of which fire key events — still search.
+                this.dispatchEvent(new Event('input', { bubbles: true }));
             }
         });
         document.addEventListener('htmx:afterSwap', function() {

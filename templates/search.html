@@ -10,7 +10,7 @@
     <input type="search" name="q" placeholder="Search books, authors, or series..."
            value="{{ query }}" autofocus
            hx-get="{{ url_for('search.search') }}"
-           hx-trigger="keyup changed delay:300ms"
+           hx-trigger="input changed delay:300ms"
            hx-target="#search-results"
            hx-push-url="true"
            hx-include="[name=tags]">
