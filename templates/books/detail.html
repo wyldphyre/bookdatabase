@@ -166,6 +166,12 @@
         {% endif %}
 
         <div class="detail-actions">
+            {# A bundle is read through its children, so it takes no reads of
+               its own — the Reads tab hides its Add Read button for the same
+               reason. A read recorded against the parent would never show in
+               _reading_history (which unions the children's reads) while
+               still pinning the bundle to the dashboard. #}
+            {% if not book.bundle_children %}
             {% if book.active_read %}
             <form method="post" action="{{ url_for('books.read_complete', id=book.active_read.id) }}">
                 <button type="submit">Mark Complete</button>
@@ -180,6 +186,7 @@
                 <input type="hidden" name="start_date" value="{{ today }}">
                 <button type="submit">Start Reading</button>
             </form>
+            {% endif %}
             {% endif %}
             <a href="{{ url_for('books.book_edit', id=book.id) }}" role="button" class="outline">Edit Book</a>
             {% set in_queue = book.queue_items | length > 0 %}

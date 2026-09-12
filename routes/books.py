@@ -418,22 +418,32 @@ def save_book(book):
         flash('Format is required', 'error')
         return redirect(request.url)
 
+    # A book that belongs to a bundle is bought and priced as part of its
+    # parent, so form.html hides the purchase, price and bundle fields for one
+    # (its has_parent). Those keys therefore never arrive for a child, and
+    # assigning them anyway would blank the child's real values on every save
+    # — silently destroying the price and purchase date of a book that had
+    # them recorded before it was attached to the bundle.
+    form_parent_id = request.form.get('parent_id', type=int)
+    has_parent = form_parent_id is not None or book.parent_id is not None
+
     book.subtitle = request.form.get('subtitle', '').strip() or None
     book.description = request.form.get('description', '').strip() or None
     book.page_count = request.form.get('page_count', type=int) or None
     book.format_id = format_id
     book.series_id = request.form.get('series_id', type=int) or None
     book.series_number = parse_float(request.form.get('series_number'))
-    book.cost = parse_float(request.form.get('cost'))
-    book.paid = parse_float(request.form.get('paid'))
-    book.discounts = parse_float(request.form.get('discounts'))
-    book.is_book_bundle = request.form.get('is_book_bundle') == 'on'
-    book.bundled_books = request.form.get('bundled_books', '').strip() or None
+    if not has_parent:
+        book.cost = parse_float(request.form.get('cost'))
+        book.paid = parse_float(request.form.get('paid'))
+        book.discounts = parse_float(request.form.get('discounts'))
+        book.date_purchased = parse_date(request.form.get('date_purchased'))
+        book.is_book_bundle = request.form.get('is_book_bundle') == 'on'
+        book.bundled_books = request.form.get('bundled_books', '').strip() or None
     book.rating = validate_rating(parse_float(request.form.get('rating')))
     book.comment = request.form.get('comment', '').strip() or None
     book.goodreads_url = clean_external_url(request.form.get('goodreads_url', '').strip()) or None
     book.amazon_url = clean_external_url(request.form.get('amazon_url', '').strip()) or None
-    book.date_purchased = parse_date(request.form.get('date_purchased'))
 
     # Handle authors
     author_ids = request.form.getlist('authors')
@@ -444,7 +454,6 @@ def save_book(book):
     book.tags = Tag.query.filter(Tag.id.in_(tag_ids)).all() if tag_ids else []
 
     # Set parent_id if provided in form (e.g. from import flow)
-    form_parent_id = request.form.get('parent_id', type=int)
     if form_parent_id is not None:
         book.parent_id = form_parent_id
 
@@ -460,9 +469,18 @@ def save_book(book):
             if upload_size > MAX_COVER_DOWNLOAD_BYTES:
                 flash('Cover image is too large (over 10MB) — it was not saved', 'warning')
             else:
-                filename = secure_filename(file.filename)
+                # secure_filename() strips non-ASCII, so "封面.jpg" reduces to
+                # "jpg" and splitting *that* yields no extension at all — the
+                # cover would save extensionless, serve as the wrong content
+                # type and never get a thumbnail. Take the extension from the
+                # original name, which allowed_file() has already checked
+                # against ALLOWED_EXTENSIONS.
+                # Split the way allowed_file() does, so the extension it
+                # approved is the one used; os.path.splitext disagrees on
+                # names like "...jpg".
+                ext = '.' + file.filename.rsplit('.', 1)[1].lower()
+                base = os.path.splitext(secure_filename(file.filename))[0] or 'cover'
                 # Add timestamp to avoid conflicts
-                base, ext = os.path.splitext(filename)
                 filename = f"{base}_{int(datetime.now().timestamp())}{ext}"
                 file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
                 generate_thumbnail(current_app.config['UPLOAD_FOLDER'], filename)
@@ -634,6 +652,12 @@ def _active_tab():
 def read_add(book_id):
     book = db.get_or_404(Book, book_id)
     tab = _active_tab()
+
+    if book.bundle_children:
+        # A bundle's reading history is its children's; a read on the parent
+        # would be invisible in _reading_history and unreachable from the UI.
+        flash('Record the read against a book in the bundle, not the bundle itself', 'error')
+        return redirect(url_for('books.book_detail', id=book_id, tab=tab))
 
     # Check for active read
     status = request.form.get('status', 'Reading')

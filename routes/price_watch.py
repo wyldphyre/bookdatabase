@@ -2,7 +2,7 @@ from flask import Blueprint, current_app, render_template, request, redirect, ur
 from sqlalchemy.exc import IntegrityError
 from models import db, PriceWatch
 from utils import clean_external_url
-from scrapers import scrape_amazon
+from scrapers import scrape_amazon, ScrapeBlockedError
 from price_watch import run_price_checks
 
 price_watch_bp = Blueprint('price_watch', __name__)
@@ -21,7 +21,12 @@ def price_watch_add():
         flash('An Amazon URL is required', 'error')
         return redirect(url_for('price_watch.price_watch_list'))
 
-    data = scrape_amazon(url)
+    try:
+        data = scrape_amazon(url)
+    except ScrapeBlockedError as e:
+        flash(str(e), 'error')
+        return redirect(url_for('price_watch.price_watch_list'))
+
     if not data or data.get('price') is None:
         flash('Could not read a price from that page', 'error')
         return redirect(url_for('price_watch.price_watch_list'))

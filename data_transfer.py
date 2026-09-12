@@ -11,6 +11,7 @@ covers. The database is backed up to books_pre_import.db first.
 """
 import glob
 import json
+import logging
 import os
 import shutil
 import sqlite3
@@ -24,7 +25,7 @@ from sqlalchemy import DateTime
 from models import (db, Tag, BookFormat, AuthorGender, Series, Author, Book, Read,
                     ReadingQueue, AuthorInfoSuggestion, PriceWatch, AppSetting, SeriesRelease,
                     book_authors, book_tags, author_tags, series_tags)
-from database import CURRENT_SCHEMA_VERSION
+from database import CURRENT_SCHEMA_VERSION, migrate_imported_data
 from utils import THUMB_SUBFOLDER
 
 EXPORT_FORMAT = 'bookdb-export'
@@ -258,7 +259,7 @@ def apply_import(zip_path, upload_folder):
     rows stand and ImportCoverError is raised so the caller can say so.
     """
     with zipfile.ZipFile(zip_path) as zf:
-        _load_manifest(zf)
+        manifest = _load_manifest(zf)
         data = json.loads(zf.read('data.json'))
         covers = _cover_members(zf)
 
@@ -278,7 +279,16 @@ def apply_import(zip_path, upload_folder):
                     rows = _deserialize_rows(data.get(name, []), table)
                     if rows:
                         db.session.execute(table.insert(), rows)
+                # An older export's rows predate some of this schema's data
+                # rules — most importantly the match_key normalisation, which
+                # left unfixed makes the next series check read the whole
+                # backlist as newly released and announce it. Inside the
+                # transaction, so a failure here rolls the import back too.
+                migrated = migrate_imported_data(manifest.get('schema_version', 0))
                 db.session.commit()
+                if migrated:
+                    logging.info('Import: applied data migrations %s to the imported rows',
+                                 ', '.join(f'v{v}' for v in migrated))
             except Exception:
                 db.session.rollback()
                 raise

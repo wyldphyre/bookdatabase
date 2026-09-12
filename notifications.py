@@ -1,5 +1,7 @@
 import os
 import logging
+from urllib.parse import urlparse
+
 import requests
 
 from models import get_setting
@@ -46,7 +48,15 @@ def send_pushover_notification(title, message, url=None):
     }
     if url:
         payload['url'] = url
-        payload['url_title'] = 'View on Amazon'
+        # The series monitor prefers a Goodreads link and falls back to Amazon,
+        # so the label has to follow the link rather than assume the store.
+        host = (urlparse(url).hostname or '').lower()
+        if 'goodreads.' in host:
+            payload['url_title'] = 'View on Goodreads'
+        elif 'amazon.' in host:
+            payload['url_title'] = 'View on Amazon'
+        else:
+            payload['url_title'] = 'View book'
 
     try:
         response = requests.post('https://api.pushover.net/1/messages.json', data=payload, timeout=10)

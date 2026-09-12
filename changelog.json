@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.4.1",
+    "date": "2026-09-12",
+    "changes": [
+      "Fix eight problems found in a whole-application scan. Importing an export taken before the match_key change would have re-announced every book in every monitored series: import inserts its rows verbatim, and the migrations that would fix them are keyed on this instance's schema version, which is already current, so they never ran. Data-level migrations are now applied to imported rows inside the import's own transaction, based on the version recorded in the archive. Editing a book that belongs to a bundle no longer wipes its cost, paid, discounts and purchase date — the form hides those fields for a bundled book, so the save was reading them as empty and blanking whatever the book had recorded before it joined the bundle. A bundle itself can no longer be marked as being read: the hero Start Reading button ignored the rule the Reads tab already followed, and the read it created was invisible in the bundle's history while still holding the bundle on the dashboard. Adding a price watch while Amazon is serving a bot challenge now says so instead of returning a 500. A genre or series scan that hits an error outside the per-book handler now stops cleanly instead of leaving the status stuck on 'running', which blocked every later scan until the app restarted. A scan that stopped early — blocked, or stopped by you — now reports itself as stopped at the book it reached, and shows the reason it stopped, rather than filling the progress bar and claiming the whole library was scanned. Cover images whose filenames are non-ASCII keep their file extension, where before they were stored without one and rendered as broken images. Pushover notifications now label the link for the site it actually points at, instead of always saying 'View on Amazon' for what is usually a Goodreads link"
+    ]
+  },
+  {
     "version": "1.4.0",
     "date": "2026-09-12",
     "changes": [

@@ -18,6 +18,57 @@ def _set_schema_version(cursor, conn, version):
     conn.commit()
 
 
+def _migrate_data_baseline_done(cursor):
+    """v11 data step: any series that already has releases has been baselined."""
+    cursor.execute("UPDATE series SET baseline_done = 1 WHERE id IN "
+                   "(SELECT DISTINCT series_id FROM series_release)")
+
+
+def _migrate_data_match_keys(cursor):
+    """v12 data step: match_key now normalises "Title: Book 2" and "Title #2"
+    to the same key, so keys recorded by the old rule no longer match what a
+    check computes. Left alone, every affected book would read as newly
+    released and be announced a second time."""
+    from series_monitor import match_key
+    cursor.execute("SELECT id, title FROM series_release")
+    for release_id, title in cursor.fetchall():
+        cursor.execute("UPDATE series_release SET match_key = ? WHERE id = ?",
+                       (match_key(title), release_id))
+
+
+# Every entry here rewrites *data* rather than schema, so it has to be re-run
+# against rows arriving from an older export as well as against this
+# instance's own rows. Keyed by the version that introduced the step.
+# Schema-only migrations don't belong here: an import lands in tables this
+# instance already created at the current version.
+DATA_MIGRATIONS = {
+    11: _migrate_data_baseline_done,
+    12: _migrate_data_match_keys,
+}
+
+
+def migrate_imported_data(from_version):
+    """Bring rows from an older export up to what the current code expects.
+
+    run_migrations() is keyed on this instance's own schema_version, which is
+    already current by the time an import runs, so none of its steps fire for
+    the rows the import just inserted. The tables are this instance's and need
+    no schema work; what needs redoing is every step that rewrote data.
+
+    Runs on the caller's open transaction, so it commits and rolls back with
+    the import itself. Returns the versions applied.
+    """
+    if from_version >= CURRENT_SCHEMA_VERSION:
+        return []
+    cursor = db.session.connection().connection.cursor()
+    applied = []
+    for version in sorted(DATA_MIGRATIONS):
+        if from_version < version:
+            DATA_MIGRATIONS[version](cursor)
+            applied.append(version)
+    return applied
+
+
 def run_migrations():
     """Apply schema migrations that db.create_all() won't handle on existing tables."""
     conn = db.engine.raw_connection()
@@ -125,21 +176,11 @@ def run_migrations():
             columns = [row[1] for row in cursor.fetchall()]
             if 'baseline_done' not in columns:
                 cursor.execute("ALTER TABLE series ADD COLUMN baseline_done BOOLEAN NOT NULL DEFAULT 0")
-                # Any series that already has releases recorded has been baselined.
-                cursor.execute("UPDATE series SET baseline_done = 1 WHERE id IN "
-                               "(SELECT DISTINCT series_id FROM series_release)")
+                _migrate_data_baseline_done(cursor)
             conn.commit()
 
         if version < 12:
-            # match_key now normalises "Title: Book 2" and "Title #2" to the
-            # same key, so keys recorded by the old rule no longer match what a
-            # check computes. Left alone, every affected book would read as
-            # newly released and be announced a second time.
-            from series_monitor import match_key
-            cursor.execute("SELECT id, title FROM series_release")
-            for release_id, title in cursor.fetchall():
-                cursor.execute("UPDATE series_release SET match_key = ? WHERE id = ?",
-                               (match_key(title), release_id))
+            _migrate_data_match_keys(cursor)
             conn.commit()
 
         if version < CURRENT_SCHEMA_VERSION:

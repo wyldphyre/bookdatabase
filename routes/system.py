@@ -336,6 +336,19 @@ def scan_genres_stop():
 
 def run_genre_scan(app, untagged_only):
     """Background thread that scans Goodreads for genres and imports as tags."""
+    try:
+        _run_genre_scan(app, untagged_only)
+    except Exception as e:
+        # Without this, an uncaught error would leave the status stuck at
+        # 'running' with the progress bar frozen and polling forever — and
+        # scan_genres_start refuses to start another while it is.
+        with genre_scan_lock:
+            genre_scan['results'].append({'book': '(scan aborted)', 'status': 'error', 'message': str(e)})
+            genre_scan['current_book'] = ''
+            genre_scan['status'] = 'stopped'
+
+
+def _run_genre_scan(app, untagged_only):
     with app.app_context():
         query = Book.query.options(
             joinedload(Book.authors),
@@ -444,9 +457,15 @@ def run_genre_scan(app, untagged_only):
             time.sleep(2)
 
         with genre_scan_lock:
-            genre_scan['progress'] = genre_scan['total']
+            # A scan that broke out early (the site blocked us, or the user
+            # pressed Stop) hasn't covered its total. Filling the bar and
+            # calling it complete would claim the whole run happened and
+            # hide the stop_reason, which only the 'stopped' branch shows.
+            stopped_early = genre_scan['stop_requested']
+            if not stopped_early:
+                genre_scan['progress'] = genre_scan['total']
             genre_scan['current_book'] = ''
-            genre_scan['status'] = 'complete'
+            genre_scan['status'] = 'stopped' if stopped_early else 'complete'
 
 
 @system_bp.route('/system/scan-series', methods=['POST'], endpoint='scan_series_start')
@@ -502,6 +521,17 @@ def scan_series_stop():
 
 def run_series_scan(app):
     """Background thread that scans Goodreads/Amazon for series book counts."""
+    try:
+        _run_series_scan(app)
+    except Exception as e:
+        # See run_genre_scan: a wedged 'running' status blocks all later scans.
+        with series_scan_lock:
+            series_scan['results'].append({'series': '(scan aborted)', 'status': 'error', 'message': str(e)})
+            series_scan['current_series'] = ''
+            series_scan['status'] = 'stopped'
+
+
+def _run_series_scan(app):
     with app.app_context():
         all_series = Series.query.filter(
             (Series.goodreads_url.isnot(None) & (Series.goodreads_url != '')) |
@@ -594,9 +624,15 @@ def run_series_scan(app):
             time.sleep(2)
 
         with series_scan_lock:
-            series_scan['progress'] = series_scan['total']
+            # A scan that broke out early (the site blocked us, or the user
+            # pressed Stop) hasn't covered its total. Filling the bar and
+            # calling it complete would claim the whole run happened and
+            # hide the stop_reason, which only the 'stopped' branch shows.
+            stopped_early = series_scan['stop_requested']
+            if not stopped_early:
+                series_scan['progress'] = series_scan['total']
             series_scan['current_series'] = ''
-            series_scan['status'] = 'complete'
+            series_scan['status'] = 'stopped' if stopped_early else 'complete'
 
 
 @system_bp.route('/system/scan-authors', methods=['POST'], endpoint='scan_authors_start')
@@ -800,9 +836,15 @@ def _run_author_scan(app):
             time.sleep(2)
 
         with author_scan_lock:
-            author_scan['progress'] = author_scan['total']
+            # A scan that broke out early (the site blocked us, or the user
+            # pressed Stop) hasn't covered its total. Filling the bar and
+            # calling it complete would claim the whole run happened and
+            # hide the stop_reason, which only the 'stopped' branch shows.
+            stopped_early = author_scan['stop_requested']
+            if not stopped_early:
+                author_scan['progress'] = author_scan['total']
             author_scan['current_author'] = ''
-            author_scan['status'] = 'complete'
+            author_scan['status'] = 'stopped' if stopped_early else 'complete'
 
 
 @system_bp.route('/system/author-suggestions/<int:id>/accept', methods=['POST'], endpoint='author_suggestion_accept')
