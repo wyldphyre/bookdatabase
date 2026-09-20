@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.5.1",
+    "date": "2026-09-20",
+    "changes": [
+      "Keep Hardcover's LGBTQ genre as it is written, rather than folding it onto the older LGBT tag. LGBTQ is the more standard form, so it is the one worth moving towards; books tagged from Hardcover will carry it from now on. Existing books keep the LGBT tag they already have — the two can be merged from the tag list on the System page whenever you want them consolidated"
+    ]
+  },
+  {
     "version": "1.5.0",
     "date": "2026-09-20",
     "changes": [

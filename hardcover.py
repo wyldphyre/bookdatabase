@@ -63,9 +63,11 @@ _MIN_GENRE_LENGTH = 3
 # uses. Only worth an entry when the existing tag is well established; anything
 # not listed here is passed through and may create a new tag, which is what the
 # Goodreads path has always done.
+#
+# LGBTQ is deliberately absent: it used to fold onto the older LGBT tag, but
+# the longer form is the more standard one, so Hardcover's wording is now kept
+# and LGBT is the form being moved away from. Don't re-add it.
 _GENRE_ALIASES = {
-    'lgbtq': 'LGBT',
-    'lgbtq+': 'LGBT',
     'young adult fiction': 'Young Adult',
     'juvenile fiction': 'Middle Grade',
     "children's fiction": 'Middle Grade',
