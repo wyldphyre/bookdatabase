@@ -96,7 +96,7 @@
 
 <article class="bordered-article">
     <h3>Tag Management</h3>
-    <p>Search, rename, or delete tags across your library.</p>
+    <p>Search, rename, or delete tags across your library. Replace swaps one tag for another everywhere it is used &mdash; useful for merging two tags that mean the same thing, which Rename refuses to do.</p>
 
     <input type="search"
            id="system-tag-search"
@@ -180,8 +180,10 @@ document.getElementById('system-tag-search').addEventListener('keydown', functio
     }
 });
 
+// Rename and Replace share the name cell, so opening one closes the other.
 function startRename(tagId) {
     document.getElementById('tag-name-' + tagId).hidden = true;
+    document.getElementById('tag-replace-form-' + tagId).hidden = true;
     document.getElementById('tag-rename-form-' + tagId).hidden = false;
     document.querySelector('#tag-rename-form-' + tagId + ' input[name="name"]').focus();
 }
@@ -189,6 +191,18 @@ function startRename(tagId) {
 function cancelRename(tagId) {
     document.getElementById('tag-name-' + tagId).hidden = false;
     document.getElementById('tag-rename-form-' + tagId).hidden = true;
+}
+
+function startReplace(tagId) {
+    document.getElementById('tag-name-' + tagId).hidden = true;
+    document.getElementById('tag-rename-form-' + tagId).hidden = true;
+    document.getElementById('tag-replace-form-' + tagId).hidden = false;
+    document.querySelector('#tag-replace-form-' + tagId + ' input[name="target"]').focus();
+}
+
+function cancelReplace(tagId) {
+    document.getElementById('tag-name-' + tagId).hidden = false;
+    document.getElementById('tag-replace-form-' + tagId).hidden = true;
 }
 
 // Preserve scan log scroll position across htmx polling swaps

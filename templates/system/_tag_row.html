@@ -15,6 +15,25 @@
             <small style="color: var(--pico-del-color);">{{ error }}</small>
             {% endif %}
         </form>
+
+        {% set replace_failed = replace_error and replace_error_tag_id == tag.id %}
+        <form {% if not replace_failed %}hidden{% endif %} id="tag-replace-form-{{ tag.id }}" class="tag-rename-form"
+              hx-post="{{ url_for('system.system_tag_replace', id=tag.id) }}"
+              hx-include="#system-tag-search"
+              hx-target="#system-tag-results"
+              hx-swap="innerHTML"
+              hx-confirm="Replace '{{ tag.name }}' with the tag you entered, on {{ tag.books|length }} book(s), {{ tag.authors|length }} author(s) and {{ tag.series|length }} series? '{{ tag.name }}' is then deleted.">
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="text" name="target" placeholder="Replace with tag&hellip;"
+                       value="{{ replace_target if replace_failed else '' }}">
+                <button type="submit" class="outline btn-compact" style="white-space: nowrap;">Replace</button>
+                <button type="button" class="outline secondary btn-compact" style="white-space: nowrap;"
+                        onclick="cancelReplace({{ tag.id }})">Cancel</button>
+            </div>
+            {% if replace_failed %}
+            <small style="color: var(--pico-del-color);">{{ replace_error }}</small>
+            {% endif %}
+        </form>
     </td>
     <td>{{ tag.books|length }}</td>
     <td>{{ tag.authors|length }}</td>
@@ -23,6 +42,8 @@
         <div style="display: flex; gap: 0.5rem;">
             <button class="outline btn-compact" style="white-space: nowrap;"
                     onclick="startRename({{ tag.id }})">Rename</button>
+            <button class="outline btn-compact" style="white-space: nowrap;"
+                    onclick="startReplace({{ tag.id }})">Replace</button>
             <button class="outline secondary btn-compact" style="white-space: nowrap;"
                     hx-delete="{{ url_for('system.system_tag_delete', id=tag.id) }}"
                     hx-confirm="Delete tag '{{ tag.name }}'? It will be removed from {{ tag.books|length }} book(s), {{ tag.authors|length }} author(s), and {{ tag.series|length }} series."

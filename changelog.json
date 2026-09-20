@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.7.0",
+    "date": "2026-09-20",
+    "changes": [
+      "Add Replace to tag management, so one tag can be swapped for another everywhere it is used. Rename deliberately refuses a name another tag already holds, which left no way to merge two tags that mean the same thing — exactly the case after Hardcover started adding LGBTQ alongside the older LGBT. Replace moves everything carrying the first tag onto the second and then deletes the first. Books, authors and series all move, not just books, since tags attach to all three and moving only books would have quietly discarded the rest. Anything already carrying both tags keeps just the one, rather than ending up with a duplicate. The confirmation names how many books, authors and series are affected before anything happens, an unknown tag name is refused with what you typed left in the box to correct, and the table refreshes afterwards so the surviving tag's counts are right"
+    ]
+  },
+  {
     "version": "1.6.1",
     "date": "2026-09-20",
     "changes": [

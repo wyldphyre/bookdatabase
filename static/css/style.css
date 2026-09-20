@@ -2314,6 +2314,16 @@ ul.tag-search-results {
     letter-spacing: 0.04em;
 }
 
+/* Result of a tag replace, shown above the refreshed table. */
+.tag-replace-notice {
+    margin: 0 0 0.75rem 0;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--pico-border-radius);
+    background: var(--pico-mark-background-color);
+    color: var(--pico-color);
+    font-size: 0.9rem;
+}
+
 /* Tag management table */
 .system-tag-table {
     margin-top: 1rem;

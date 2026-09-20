@@ -902,6 +902,61 @@ def system_tag_rename(id):
     return render_template('system/_tag_row.html', tag=tag)
 
 
+@system_bp.route('/system/tags/<int:id>/replace', methods=['POST'], endpoint='system_tag_replace')
+def system_tag_replace(id):
+    """Move everything carrying one tag onto another, then delete the first.
+
+    Rename can't do this: it refuses a name another tag already holds, which
+    is exactly the case when you want two tags to become one (LGBT and LGBTQ,
+    say). Tags hang off authors and series as well as books, so all three have
+    to move — dropping the source tag with only its books moved would discard
+    the rest silently.
+
+    Re-renders the whole result list rather than the one row, because the
+    target tag's counts change too and it is usually sitting in the same list.
+    """
+    tag = db.get_or_404(Tag, id)
+    query = request.args.get('q', '') or request.form.get('q', '')
+
+    def results(**extra):
+        tags = (Tag.query.filter(Tag.name.ilike(f'%{query}%')).order_by(Tag.name).limit(50).all()
+                if query else [])
+        return render_template('system/_tag_results.html', tags=tags, query=query, **extra)
+
+    def failed(message):
+        # Hand back what was typed so a typo can be corrected rather than retyped.
+        return results(replace_error=message, replace_error_tag_id=tag.id,
+                       replace_target=request.form.get('target', '').strip())
+
+    target_name = request.form.get('target', '').strip()
+    if not target_name:
+        return failed('Enter the tag to replace it with')
+
+    target = Tag.query.filter(db.func.lower(Tag.name) == target_name.lower()).first()
+    if not target:
+        return failed(f'No tag named "{target_name}". Use Rename to change this tag\'s own name.')
+    if target.id == tag.id:
+        return failed('That is the same tag')
+
+    counts = {'book': len(tag.books), 'author': len(tag.authors), 'series': len(tag.series)}
+    for holder in (*tag.books, *tag.authors, *tag.series):
+        if target not in holder.tags:
+            holder.tags.append(target)
+
+    # Clear first: deleting a tag that still has rows would leave the
+    # association rows behind, pointing at a tag that no longer exists.
+    old_name = tag.name
+    tag.books = []
+    tag.authors = []
+    tag.series = []
+    db.session.delete(tag)
+    db.session.commit()
+
+    return results(notice=f'Replaced "{old_name}" with "{target.name}" on '
+                          f'{counts["book"]} book(s), {counts["author"]} author(s) '
+                          f'and {counts["series"]} series.')
+
+
 @system_bp.route('/system/tags/<int:id>/delete', methods=['DELETE', 'POST'], endpoint='system_tag_delete')
 def system_tag_delete(id):
     tag = db.get_or_404(Tag, id)
