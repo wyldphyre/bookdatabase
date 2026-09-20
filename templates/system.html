@@ -120,8 +120,21 @@
 </article>
 
 <article class="bordered-article">
-    <h3>Goodreads Genre Scanner</h3>
-    <p>Scan Goodreads for each book in your library and import genres as tags. Existing tags will be reused.</p>
+    <h3>Genre Scanner</h3>
+    <p>Look up genres for each book in your library and import them as tags. Existing tags will be reused.
+       Sources are tried in the order below, and a book stops at the first one that answers.</p>
+
+    <ul class="source-status">
+        {% for source in tag_sources %}
+        <li>
+            <span class="source-status__name">{{ source.name }}</span>
+            <span class="source-status__state source-status__state--{{ 'ready' if source.ready else 'off' }}">
+                {{ 'Ready' if source.ready else 'Not configured' }}
+            </span>
+            <span class="source-status__detail">{{ source.detail }}</span>
+        </li>
+        {% endfor %}
+    </ul>
 
     <div id="scan-area">
         {% include "system/_scan_progress.html" %}

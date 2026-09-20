@@ -1724,6 +1724,65 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     cursor: pointer;
 }
 
+/* Which genre sources are usable, on the System page. A row per source, the
+   name and state on one line at narrow widths with the explanation beneath. */
+.source-status {
+    margin: 0 0 1rem 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.source-status li {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    align-items: baseline;
+    gap: 0.25rem 0.6rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.source-status li:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.source-status__name {
+    font-weight: 600;
+}
+
+.source-status__state {
+    padding: 0.05rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.source-status__state--ready {
+    background: var(--pico-ins-color);
+    color: var(--pico-card-background-color);
+}
+
+.source-status__state--off {
+    background: var(--pico-muted-border-color);
+    color: var(--pico-muted-color);
+}
+
+.source-status__detail {
+    grid-column: 1 / -1;
+    color: var(--pico-muted-color);
+    font-size: 0.85em;
+}
+
+@media (min-width: 768px) {
+    .source-status__detail {
+        grid-column: 3;
+    }
+}
+
 /* A disabled menu entry is a <span>, not a button, so it needs the button's
    metrics restated to keep the menu's rows aligned. */
 .dropdown-menu .menu-item--disabled {

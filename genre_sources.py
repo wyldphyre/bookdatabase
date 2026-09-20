@@ -27,6 +27,37 @@ GOODREADS = 'goodreads'
 SOURCES = (AUTO, HARDCOVER, GOODREADS)
 
 
+def source_status():
+    """Each source in the order it is tried, whether it can be used, and why not.
+
+    The System page shows this because an unconfigured source is otherwise
+    invisible until someone notices a greyed-out entry on a book page. The
+    usual cause is an environment variable that never reached the process —
+    under Docker that needs the name listed in the compose file's environment
+    *and* a value in the .env beside it, and missing either looks identical
+    from in here.
+    """
+    hardcover_ready = hardcover.is_configured()
+    return [
+        {
+            'name': 'Hardcover',
+            'ready': hardcover_ready,
+            'detail': ('Tried first. One API call per book, and no scraping.'
+                       if hardcover_ready else
+                       'Set HARDCOVER_TOKEN to enable. Under Docker it must be both listed in '
+                       'the compose file\'s environment section and given a value in the .env '
+                       'beside it — either one alone leaves it unset in here.'),
+        },
+        {
+            'name': 'Goodreads',
+            'ready': True,
+            'detail': 'Fallback for whatever Hardcover does not hold. Needs no configuration, '
+                      'but it is scraped rather than an API, and the site blocks automated '
+                      'requests after a handful of them.',
+        },
+    ]
+
+
 def _author_names(book):
     return ', '.join(a.name for a in book.authors) if book.authors else ''
 

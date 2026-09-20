@@ -90,6 +90,7 @@ def system():
         changelog = []
     pushover_configured = bool(os.environ.get('PUSHOVER_USER_KEY')) and bool(os.environ.get('PUSHOVER_APP_TOKEN'))
     return render_template('system.html',
+                           tag_sources=genre_sources.source_status(),
                            scan=_snapshot(genre_scan, genre_scan_lock),
                            series_scan=_snapshot(series_scan, series_scan_lock),
                            author_scan=_snapshot(author_scan, author_scan_lock),

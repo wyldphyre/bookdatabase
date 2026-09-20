@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.6.1",
+    "date": "2026-09-20",
+    "changes": [
+      "Show which genre sources are usable, on the System page. Hardcover being unconfigured was only visible as a greyed-out entry in a menu on an individual book's page, which is a poor place to learn that a deployment is missing a setting — the Genre Scanner section now lists each source in the order it is tried, whether it is ready, and what to do about it if not. The note for Hardcover spells out the trap that prompted this: under Docker the token has to be both listed in the compose file's environment section and given a value in the .env beside it, and having only one of those looks exactly like having neither. The section is also no longer titled \"Goodreads Genre Scanner\", since Goodreads has been the fallback rather than the source since v1.5.0"
+    ]
+  },
+  {
     "version": "1.6.0",
     "date": "2026-09-20",
     "changes": [
