@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.6.0",
+    "date": "2026-09-20",
+    "changes": [
+      "Replace the book page's \"Fetch tags from Goodreads\" with a \"Fetch tags\" that runs the same chain the System page's scan does — Hardcover first, Goodreads only for what Hardcover doesn't have. Below it sit \"Fetch from Hardcover\" and \"Fetch from Goodreads\", for aiming at one source directly: a disappointing result from the default could mean Hardcover has never heard of the book or that Goodreads is refusing to talk, and picking one says which. The menu no longer requires a Goodreads URL on the book — it used to grey itself out without one, which was most of the library; Hardcover needs no URL at all, and the Goodreads option will find and save one the way the scan does. Flash messages now name the source that answered",
+      "Say so when the Hardcover token is rejected, rather than reporting it as a book with no genres. An expired or mistyped token looked exactly like Hardcover never having heard of the book, which sends you looking in the wrong place. Asking Hardcover directly now reports the token; the automatic chain still quietly falls through to Goodreads, since a bad token is no reason to stop tagging"
+    ]
+  },
+  {
     "version": "1.5.1",
     "date": "2026-09-20",
     "changes": [

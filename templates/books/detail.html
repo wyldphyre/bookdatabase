@@ -110,15 +110,31 @@
             <div class="tag-options-dropdown" style="position: relative; display: inline-block;">
                 <button type="button" class="ellipsis-btn" onclick="toggleDropdownMenu(this)" aria-label="Tag options">&#8230;</button>
                 <ul class="dropdown-menu" style="min-width: 0;">
-                    {% if book.goodreads_url %}
+                    {# Default to the same chain the System page's scan uses.
+                       The two below aim at one source, for when it matters
+                       which one answered — or didn't. #}
                     <li>
                         <form method="post" action="{{ url_for('books.book_update_tags', id=book.id) }}" style="margin: 0;">
-                            <button type="submit" class="menu-item">Fetch tags from Goodreads</button>
+                            <button type="submit" class="menu-item">Fetch tags</button>
+                        </form>
+                    </li>
+                    <li class="menu-separator" role="separator"></li>
+                    {% if hardcover_configured %}
+                    <li>
+                        <form method="post" action="{{ url_for('books.book_update_tags', id=book.id) }}" style="margin: 0;">
+                            <input type="hidden" name="source" value="hardcover">
+                            <button type="submit" class="menu-item">Fetch from Hardcover</button>
                         </form>
                     </li>
                     {% else %}
-                    <li><span style="color: var(--pico-muted-color);" title="Add a Goodreads URL to this book to enable this feature">Fetch tags from Goodreads</span></li>
+                    <li><span class="menu-item menu-item--disabled" title="Set HARDCOVER_TOKEN to enable this source">Fetch from Hardcover</span></li>
                     {% endif %}
+                    <li>
+                        <form method="post" action="{{ url_for('books.book_update_tags', id=book.id) }}" style="margin: 0;">
+                            <input type="hidden" name="source" value="goodreads">
+                            <button type="submit" class="menu-item">Fetch from Goodreads</button>
+                        </form>
+                    </li>
                 </ul>
             </div>
         </div>

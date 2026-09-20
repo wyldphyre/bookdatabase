@@ -7,6 +7,8 @@ from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload, subqueryload
 from models import (db, Book, Author, Read, ReadingQueue, BookFormat, Tag, SeriesRelease,
                     book_tags, RATING_LABELS)
+import genre_sources
+import hardcover
 from utils import (allowed_file, parse_date, parse_float, validate_rating, fetch_cover_image,
                    clean_external_url, generate_thumbnail, delete_thumbnail,
                    MAX_COVER_DOWNLOAD_BYTES)
@@ -235,7 +237,8 @@ def book_detail(id):
     return render_template('books/detail.html', book=book, today=date.today().isoformat(),
                             suggest_queue_id=suggest_queue_id,
                             series_books=series_books, similar_books=similar_books,
-                            read_entries=read_entries, read_stats=read_stats)
+                            read_entries=read_entries, read_stats=read_stats,
+                            hardcover_configured=hardcover.is_configured())
 
 
 @books_bp.route('/books/new', methods=['GET', 'POST'], endpoint='book_new')
@@ -599,47 +602,52 @@ def book_delete(id):
 
 @books_bp.route('/books/<int:id>/update-tags', methods=['POST'], endpoint='book_update_tags')
 def book_update_tags(id):
-    book = db.get_or_404(Book, id)
+    """Fetch tags for one book.
 
-    if not book.goodreads_url:
-        flash('This book has no Goodreads URL', 'error')
+    Defaults to the same chain the System page's scan runs — Hardcover, then
+    Goodreads for what it doesn't hold — but takes a `source` so either can be
+    aimed at directly. That is how you tell a disappointing result apart: no
+    tags from 'auto' could mean Hardcover doesn't know the book or that
+    Goodreads is refusing to talk, and picking one says which.
+    """
+    book = db.get_or_404(Book, id)
+    source = request.form.get('source', genre_sources.AUTO)
+    if source not in genre_sources.SOURCES:
+        flash('Unknown tag source', 'error')
         return redirect(url_for('books.book_detail', id=id))
 
     try:
-        data = scrape_goodreads(book.goodreads_url)
-    except ScrapeBlockedError as e:
+        genres, used = genre_sources.fetch_genres(book, source)
+    except (ScrapeBlockedError, hardcover.HardcoverAuthError) as e:
         flash(str(e), 'error')
         return redirect(url_for('books.book_detail', id=id))
 
-    if not data:
-        flash('Could not read the Goodreads page for this book — check the Goodreads URL is still valid', 'error')
-        return redirect(url_for('books.book_detail', id=id))
-    if not data.get('genres'):
-        flash('No genres listed on this book\'s Goodreads page', 'error')
+    if not genres:
+        flash(_no_genres_message(source, genres), 'warning')
         return redirect(url_for('books.book_detail', id=id))
 
-    existing_tag_names = {t.name.lower() for t in book.tags}
-    added = []
-    for genre_name in data['genres']:
-        if genre_name.lower() in existing_tag_names:
-            continue
-        tag = Tag.query.filter(db.func.lower(Tag.name) == genre_name.lower()).first()
-        if not tag:
-            tag = Tag(name=genre_name)
-            db.session.add(tag)
-            db.session.flush()
-        book.tags.append(tag)
-        existing_tag_names.add(genre_name.lower())
-        added.append(genre_name)
-
-    db.session.commit()
-
+    added = genre_sources.apply_genres(book, genres)
     if added:
-        flash(f'Added {len(added)} tag(s): {", ".join(added)}', 'success')
+        flash(f'Added {len(added)} tag(s) from {used.title()}: {", ".join(added)}', 'success')
     else:
-        flash('No new tags found', 'success')
+        flash(f'{used.title()} listed nothing this book was not already tagged with', 'success')
 
     return redirect(url_for('books.book_detail', id=id))
+
+
+def _no_genres_message(source, genres):
+    """Why a fetch came back empty, in terms of what was actually asked.
+
+    `genres is None` means the source couldn't identify the book at all, which
+    only Goodreads can report — Hardcover returns an empty list either way.
+    """
+    if source == genre_sources.HARDCOVER:
+        return 'Hardcover has no genres for this book'
+    if source == genre_sources.GOODREADS:
+        return ('Could not find this book on Goodreads' if genres is None
+                else 'No genres listed on this book\'s Goodreads page')
+    return ('Neither Hardcover nor Goodreads could find this book' if genres is None
+            else 'Neither Hardcover nor Goodreads has genres for this book')
 
 
 def _active_tab():

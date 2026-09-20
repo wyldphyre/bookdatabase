@@ -1724,6 +1724,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     cursor: pointer;
 }
 
+/* A disabled menu entry is a <span>, not a button, so it needs the button's
+   metrics restated to keep the menu's rows aligned. */
+.dropdown-menu .menu-item--disabled {
+    display: block;
+    padding: 0.4rem 1rem;
+    color: var(--pico-muted-color);
+    cursor: not-allowed;
+}
+
+/* Divides the default action from the pick-a-source entries below it. */
+.dropdown-menu .menu-separator {
+    height: 1px;
+    margin: 0.25rem 0;
+    background: var(--pico-muted-border-color);
+}
+
 /* Small ellipsis (…) trigger button for option menus — flat icon button,
    not a Pico outline/secondary button */
 button.ellipsis-btn {

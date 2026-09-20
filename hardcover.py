@@ -36,6 +36,16 @@ MIN_REQUEST_INTERVAL_SECONDS = 1.0
 
 REQUEST_TIMEOUT_SECONDS = 20
 
+
+class HardcoverAuthError(Exception):
+    """The token was missing, rejected or expired.
+
+    Separate from every other failure because it is a configuration problem,
+    not a fact about the book: without it a stale token looks exactly like
+    'Hardcover has never heard of this book', which sends you looking in the
+    wrong place. The chain still falls through to Goodreads when it sees one;
+    it is asking Hardcover *directly* that reports it."""
+
 # The search index is Typesense; `genres` comes back on the document itself,
 # which is what makes this one request instead of two.
 _SEARCH_QUERY = '''
@@ -153,10 +163,12 @@ def _best_edition(documents):
 def lookup_genres(title, author=''):
     """Genres for a book, or [] when Hardcover can't confidently supply any.
 
-    Never raises: every failure — no token, network trouble, a GraphQL error,
-    no match — returns [] so the caller falls back to Goodreads. Problems are
-    logged rather than surfaced, because this sits in front of a fallback that
-    already reports its own failures.
+    Returns [] for every ordinary failure — network trouble, a GraphQL error,
+    no match — so the caller falls back to Goodreads; those are logged rather
+    than surfaced, because this sits in front of a fallback that reports its
+    own problems. The one exception is HardcoverAuthError, which is a broken
+    token rather than a missing book and would otherwise be indistinguishable
+    from one.
 
     The query is the title alone. Including the author wrecks the ranking:
     searching "Shadow Sight E. J. Stevens" returns 1980s fantasy anthologies
@@ -179,6 +191,11 @@ def lookup_genres(title, author=''):
     except requests.RequestException as e:
         logging.warning('Hardcover lookup for %r failed: %s', title, e)
         return []
+
+    if response.status_code in (401, 403):
+        raise HardcoverAuthError(
+            'Hardcover rejected the API token — check HARDCOVER_TOKEN is set to a '
+            'current token from your Hardcover account settings.')
 
     if response.status_code != 200:
         logging.warning('Hardcover returned HTTP %s for %r', response.status_code, title)
