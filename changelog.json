@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.7.1",
+    "date": "2026-09-20",
+    "changes": [
+      "Break up the whole-hierarchy genre labels some books were getting tagged with. A handful of Hardcover's records carry a complete BISAC heading as a single genre — \"Comics & Graphic Novels / East Asian Style / Manga / General\" — which became one unusable tag instead of the two or three real ones inside it. They are now split into their levels, the filler \"General\" is dropped, and \"East Asian Style\" folds into Manga, so that example becomes Graphic Novels and Manga. A slash only counts as a separator when it has space around it, so genuine one-word-per-side labels like \"FanFic/Trashy\" are still left alone. Tags already created from these headings are unaffected and can be tidied with Replace on the System page"
+    ]
+  },
+  {
     "version": "1.7.0",
     "date": "2026-09-20",
     "changes": [

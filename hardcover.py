@@ -59,8 +59,14 @@ _CANDIDATES_PER_SEARCH = 8
 # Hardcover's genre list is partly ingested from library records, and some of
 # those arrive as one BISAC heading that has been split on its commas —
 # "Fantasy comic books, strips, etc" becomes three entries, two of which are
-# meaningless on their own. Others arrive semicolon-joined in a single string.
-_FRAGMENT_SEPARATORS = re.compile(r'\s*;\s*')
+# meaningless on their own. Others arrive semicolon-joined in a single string,
+# or as a whole BISAC hierarchy: "Comics & Graphic Novels / East Asian Style /
+# Manga / General" is four useful-ish levels wearing one unusable label.
+#
+# The slash is only a separator when it has space around it. Hardcover also
+# carries genuine single labels containing one — "FanFic/Trashy" — and
+# splitting those would invent two tags out of one.
+_FRAGMENT_SEPARATORS = re.compile(r'\s*;\s*|(?<=\s)/|/(?=\s)')
 
 # Some entries carry their own gloss — "LitRPG (Literary Role-Playing Game)" —
 # which would otherwise become a second tag alongside the plain "LitRPG" the
@@ -85,6 +91,9 @@ _GENRE_ALIASES = {
     'comic books': 'Comics',
     'dystopian': 'Dystopia',
     'action & adventure': 'Adventure',
+    # A BISAC qualifier that only means anything next to the level it
+    # qualifies; folding it onto that level lets the de-duplication drop it.
+    'east asian style': 'Manga',
 }
 
 
