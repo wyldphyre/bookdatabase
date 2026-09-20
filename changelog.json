@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.4.2",
+    "date": "2026-09-20",
+    "changes": [
+      "Stop the genre scan searching Goodreads for books it can already find. Tagging a book took two requests: one to /search to locate it, then one for the book page itself — and the URL the search returned was thrown away, so every later run paid for the same search again. The scan now uses a book's stored Goodreads URL when it has one, and saves the URL it finds when it doesn't. A scan that gets blocked part way through and is re-run no longer repeats the searches it already did, and books the scan has seen once gain a working Update Tags button on their detail page, which until now refused for want of a URL. Searching is the more heavily rate-limited of the two requests, so this roughly halves the Goodreads traffic of a repeat scan"
+    ]
+  },
+  {
     "version": "1.4.1",
     "date": "2026-09-12",
     "changes": [

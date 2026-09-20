@@ -386,8 +386,21 @@ def _run_genre_scan(app, untagged_only):
             author_names = ', '.join(a.name for a in book.authors) if book.authors else ''
 
             try:
-                # Search Goodreads for this book
-                book_url = search_goodreads_for_book(book.title, author_names)
+                # Prefer a URL we already hold. Finding a book costs a second
+                # request to /search, which is the most aggressively protected
+                # endpoint on the site and the one that gets the scan blocked;
+                # a book whose URL is already known needs only the page itself.
+                book_url = book.goodreads_url
+                if not book_url:
+                    book_url = search_goodreads_for_book(book.title, author_names)
+                    if book_url:
+                        # Keep what the search cost us. A scan that gets blocked
+                        # part way is normally re-run, and without this every
+                        # re-run pays for the same searches again — as does the
+                        # book page's own Update Tags button, which otherwise
+                        # refuses outright for want of a URL.
+                        book.goodreads_url = book_url
+                        db.session.commit()
                 if not book_url:
                     with genre_scan_lock:
                         genre_scan['results'].append({
