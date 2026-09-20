@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.5.0",
+    "date": "2026-09-20",
+    "changes": [
+      "Get book genres from Hardcover instead of scraping Goodreads for them. Goodreads stops answering after a couple of requests, which was not even enough to tag one newly added book, because finding it took one request and reading its page another. Hardcover is a Goodreads-style community catalogue with a real API, and its search results carry a book's genres already, so a lookup is a single call to a site that isn't trying to block us. The genre scan now asks Hardcover first and only falls back to Goodreads for what Hardcover doesn't have — measured across a 50-book sample of this library that was about three books in five, against the 28% Open Library managed on the same sample. The scan log now shows which source each book's tags came from. Genres are tidied on the way in: Hardcover's wording is mapped onto tags this library already uses (LGBTQ to LGBT, Young Adult Fiction to Young Adult), compound and half-split entries are broken up or dropped, and a label carrying its own explanation no longer becomes a second tag beside the plain one. Needs a free HARDCOVER_TOKEN in .env; without one the scan behaves exactly as it did before",
+      "Keep scanning when Goodreads blocks us. A block used to end the whole run, which was right when Goodreads was the only source but throws away most of a scan now that Hardcover covers the majority of it. The run stops asking Goodreads, carries on with Hardcover for everything else, and still reports why Goodreads dropped out. With no Hardcover token configured a block ends the run as before, since nothing else could answer"
+    ]
+  },
+  {
     "version": "1.4.2",
     "date": "2026-09-20",
     "changes": [

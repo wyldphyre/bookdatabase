@@ -2226,6 +2226,19 @@ ul.tag-search-results {
     color: var(--pico-ins-color);
 }
 
+/* Which source supplied the tags. Quiet by design — it matters when reading
+   back how much of a run avoided Goodreads, not while the run is going. */
+.scan-source {
+    margin-left: 0.4rem;
+    padding: 0.05rem 0.35rem;
+    border-radius: 0.25rem;
+    background: var(--pico-muted-border-color);
+    color: var(--pico-muted-color);
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
 /* Tag management table */
 .system-tag-table {
     margin-top: 1rem;

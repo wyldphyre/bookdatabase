@@ -9,6 +9,7 @@ from models import db, Book, Series, Tag, Author, AuthorGender, AuthorInfoSugges
 from scrapers import (search_goodreads_for_book, scrape_goodreads, scrape_goodreads_series,
                       scrape_amazon_series, ScrapeBlockedError)
 from author_info import lookup_author_info
+import hardcover
 from notifications import (send_pushover_notification, get_pushover_priority,
                            PUSHOVER_PRIORITIES, VALID_PRIORITIES, PRIORITY_SETTING_KEY)
 from utils import start_thumbnail_backfill
@@ -334,6 +335,37 @@ def scan_genres_stop():
     return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan, genre_scan_lock))
 
 
+def _goodreads_genres(book):
+    """Genres from Goodreads, or None when it can't identify the book.
+
+    The fallback for whatever Hardcover doesn't hold. Returns None rather than
+    [] for "no such book" so the caller can log not_found separately from a
+    book that was found with nothing listed on it.
+
+    Prefers a URL already on the book: finding one costs a request to /search,
+    the most aggressively protected endpoint on the site and the one that trips
+    the block, while a known URL needs only the page itself.
+    """
+    author_names = ', '.join(a.name for a in book.authors) if book.authors else ''
+
+    book_url = book.goodreads_url
+    if not book_url:
+        book_url = search_goodreads_for_book(book.title, author_names)
+        if not book_url:
+            return None
+        # Keep what the search cost us. A scan that gets blocked part way is
+        # normally re-run, and without this every re-run pays for the same
+        # searches again — as does the book page's own Update Tags button,
+        # which otherwise refuses outright for want of a URL.
+        book.goodreads_url = book_url
+        db.session.commit()
+
+    book_data = scrape_goodreads(book_url)
+    if not book_data:
+        return None
+    return book_data.get('genres') or []
+
+
 def run_genre_scan(app, untagged_only):
     """Background thread that scans Goodreads for genres and imports as tags."""
     try:
@@ -362,6 +394,10 @@ def _run_genre_scan(app, untagged_only):
         with genre_scan_lock:
             genre_scan['total'] = len(books)
 
+        # Set once Goodreads has refused us, so the rest of the run stops
+        # asking it and leans on Hardcover alone.
+        goodreads_blocked = False
+
         for i, book in enumerate(books):
             # Check for stop
             if genre_scan['stop_requested']:
@@ -386,22 +422,18 @@ def _run_genre_scan(app, untagged_only):
             author_names = ', '.join(a.name for a in book.authors) if book.authors else ''
 
             try:
-                # Prefer a URL we already hold. Finding a book costs a second
-                # request to /search, which is the most aggressively protected
-                # endpoint on the site and the one that gets the scan blocked;
-                # a book whose URL is already known needs only the page itself.
-                book_url = book.goodreads_url
-                if not book_url:
-                    book_url = search_goodreads_for_book(book.title, author_names)
-                    if book_url:
-                        # Keep what the search cost us. A scan that gets blocked
-                        # part way is normally re-run, and without this every
-                        # re-run pays for the same searches again — as does the
-                        # book page's own Update Tags button, which otherwise
-                        # refuses outright for want of a URL.
-                        book.goodreads_url = book_url
-                        db.session.commit()
-                if not book_url:
+                # Hardcover first: one authenticated API call, against a site
+                # that isn't trying to block us. It covers roughly 60% of this
+                # library, and every book it answers for is a book Goodreads
+                # never gets asked about — which is the whole point, since
+                # Goodreads stops answering after a couple of requests.
+                genres = hardcover.lookup_genres(book.title, author_names)
+                source = 'hardcover'
+
+                if not genres and not goodreads_blocked:
+                    genres, source = _goodreads_genres(book), 'goodreads'
+                if genres is None:
+                    # Goodreads couldn't identify the book at all.
                     with genre_scan_lock:
                         genre_scan['results'].append({
                             'book': book.title,
@@ -409,10 +441,7 @@ def _run_genre_scan(app, untagged_only):
                         })
                     time.sleep(1)
                     continue
-
-                # Scrape the Goodreads page for genres
-                book_data = scrape_goodreads(book_url)
-                if not book_data or not book_data.get('genres'):
+                if not genres:
                     with genre_scan_lock:
                         genre_scan['results'].append({
                             'book': book.title,
@@ -423,7 +452,7 @@ def _run_genre_scan(app, untagged_only):
 
                 # Find or create tags and add to book
                 new_tags = []
-                for genre_name in book_data['genres']:
+                for genre_name in genres:
                     tag = Tag.query.filter(db.func.lower(Tag.name) == genre_name.lower()).first()
                     if not tag:
                         tag = Tag(name=genre_name)
@@ -443,12 +472,16 @@ def _run_genre_scan(app, untagged_only):
                     genre_scan['results'].append({
                         'book': book.title,
                         'status': 'found',
-                        'tags': new_tags if new_tags else book_data['genres'],
+                        'source': source,
+                        'tags': new_tags if new_tags else genres,
                     })
 
             except ScrapeBlockedError as e:
-                # No point walking the rest of the library: the site is turning
-                # us away, so every remaining book would fail the same way.
+                # Goodreads is turning us away, so every later book would fail
+                # there too — stop asking it. That used to end the scan, which
+                # is right when Goodreads is the only source but wasteful now:
+                # Hardcover answers for most of this library and isn't blocking
+                # us, so the run carries on with whatever it can still tag.
                 with genre_scan_lock:
                     genre_scan['results'].append({
                         'book': book.title,
@@ -456,8 +489,11 @@ def _run_genre_scan(app, untagged_only):
                         'message': str(e),
                     })
                     genre_scan['stop_reason'] = str(e)
-                    genre_scan['stop_requested'] = True
-                break
+                    if not hardcover.is_configured():
+                        genre_scan['stop_requested'] = True
+                if not hardcover.is_configured():
+                    break
+                goodreads_blocked = True
             except Exception as e:
                 with genre_scan_lock:
                     genre_scan['results'].append({

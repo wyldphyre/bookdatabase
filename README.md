@@ -52,6 +52,7 @@ book-database/
 ├── models.py           # SQLAlchemy ORM models
 ├── database.py         # Database initialization, migrations, and seed data
 ├── scrapers.py         # Amazon/Goodreads page scraping (book data, prices, series counts)
+├── hardcover.py        # Hardcover API genre lookup, tried before scraping Goodreads
 ├── notifications.py    # Pushover notification helper
 ├── price_watch.py      # Daily background price check + manual "Check Now" logic
 ├── series_monitor.py   # Weekly background check of monitored series for new releases
@@ -145,10 +146,12 @@ Create a `.env` file in the project root (it's gitignored, so it never gets comm
 SECRET_KEY=some-random-string
 PUSHOVER_USER_KEY=your-pushover-user-key
 PUSHOVER_APP_TOKEN=your-pushover-application-token
+HARDCOVER_TOKEN=your-hardcover-api-token
 ```
 
 - `SECRET_KEY` - used to sign Flask session cookies. Falls back to an insecure development default (with a startup warning) if unset. **Set this on the production host**: generate one with `python -c "import secrets; print(secrets.token_hex(32))"` and put it in `.env`. Until v1.1.1 the compose files hardcoded a placeholder, which meant the `.env` value was ignored and the startup warning never fired.
 - `PUSHOVER_USER_KEY` / `PUSHOVER_APP_TOKEN` - optional. Required only for [Price Watch](#price-watch) notifications. Get both from [pushover.net](https://pushover.net/) (the user key from your dashboard, the app token by creating an application). When unset, price drops are detected but no notification is sent, and the "Send Test Notification" button on the System page is hidden.
+- `HARDCOVER_TOKEN` - optional, but strongly recommended. Lets the genre scan ask [Hardcover](https://hardcover.app/) for a book's genres before falling back to scraping Goodreads. Create a free account, then copy the API token from your account settings. Measured against a 50-book sample of this library, Hardcover supplied usable genres for 60% of it (Open Library managed 28%), and it does so in one API call where Goodreads costs two scrapes of a site that blocks automated traffic after a handful of requests. When unset, the scan works exactly as it did before and goes straight to Goodreads.
 
 `docker-compose.yml`/`docker-compose.prod.yml` read these via `${VARNAME}` substitution, which Docker Compose resolves automatically from a `.env` file in the same directory - the compose files themselves never contain real secrets.
 

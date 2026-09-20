@@ -80,10 +80,11 @@
             <strong>{{ entry.book }}</strong>
             {% if entry.status == 'found' %}
             &mdash; {{ entry.tags|join(', ') }}
+            {% if entry.source %}<span class="scan-source">{{ entry.source }}</span>{% endif %}
             {% elif entry.status == 'skipped' %}
             &mdash; <em>already has tags</em>
             {% elif entry.status == 'not_found' %}
-            &mdash; <em>not found on Goodreads</em>
+            &mdash; <em>not found on Hardcover or Goodreads</em>
             {% elif entry.status == 'no_genres' %}
             &mdash; <em>no genres listed</em>
             {% elif entry.status == 'blocked' %}

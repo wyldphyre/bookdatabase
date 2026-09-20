@@ -35,17 +35,22 @@ def _host_lock(host):
         return lock
 
 
-def _throttle(host):
+def throttle(host, min_interval=MIN_REQUEST_INTERVAL_SECONDS):
     """Block until this host may be contacted again.
 
     The wait happens while holding that host's lock, so simultaneous callers
     (a background scan and a click, say) queue up instead of all deciding at
     once that enough time has passed. Locking per host means a slow crawl of
-    one site doesn't hold up another."""
+    one site doesn't hold up another.
+
+    Public because it isn't scraping-specific: hardcover.py paces its API
+    calls through the same bookkeeping, at its own interval, so that every
+    outbound call this app makes is spaced from one place.
+    """
     with _host_lock(host):
         last = _last_request_at.get(host)
         if last is not None:
-            wait = MIN_REQUEST_INTERVAL_SECONDS - (time.monotonic() - last)
+            wait = min_interval - (time.monotonic() - last)
             if wait > 0:
                 time.sleep(wait)
         _last_request_at[host] = time.monotonic()
@@ -123,7 +128,7 @@ def fetch_page(url):
         'Sec-Fetch-User': '?1',
         'Cache-Control': 'max-age=0',
     }
-    _throttle(parsed.netloc)
+    throttle(parsed.netloc)
     response = http_requests.get(url, headers=headers, timeout=15, allow_redirects=True)
     _detect_block(response, parsed.netloc)
     response.raise_for_status()
