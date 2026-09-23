@@ -149,7 +149,10 @@ def _clean_genres(raw):
     seen = set()
     for entry in raw or []:
         for piece in _FRAGMENT_SEPARATORS.split(str(entry)):
-            piece = _PARENTHETICAL.sub('', piece).strip().strip('.,;')
+            # Punctuation first, then whitespace: the other order leaves
+            # 'Fiction ,' as 'Fiction ', which is a second tag as far as a
+            # name comparison is concerned but looks identical on screen.
+            piece = _PARENTHETICAL.sub('', piece).strip('.,; ').strip()
             if len(piece) < _MIN_GENRE_LENGTH or piece.lower() in _JUNK_FRAGMENTS:
                 continue
             name = _GENRE_ALIASES.get(piece.lower(), piece)

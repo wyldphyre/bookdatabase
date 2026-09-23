@@ -56,6 +56,11 @@
         &mdash; <strong>{{ scan.tags_added }}</strong> tags added
     </div>
     <progress value="{{ scan.total }}" max="{{ scan.total }}"></progress>
+    {% if scan.stop_reason %}
+    {# The run finished, but a source dropped out along the way and the books
+       after that point were checked against one source only. #}
+    <div class="flash flash-warning scan-stop-reason">{{ scan.stop_reason }}</div>
+    {% endif %}
 </div>
 
 {% elif scan.status == 'stopped' %}
@@ -87,6 +92,8 @@
             &mdash; <em>not found on Hardcover or Goodreads</em>
             {% elif entry.status == 'no_genres' %}
             &mdash; <em>no genres listed</em>
+            {% elif entry.status == 'source_unavailable' %}
+            &mdash; <em>not in Hardcover, and Goodreads was unavailable</em>
             {% elif entry.status == 'blocked' %}
             &mdash; <em>{{ entry.message }}</em>
             {% elif entry.status == 'error' %}

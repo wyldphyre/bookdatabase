@@ -2297,6 +2297,12 @@ ul.tag-search-results {
     color: var(--pico-muted-color);
 }
 
+/* Not the same as "no genres listed": this book was only ever checked against
+   one source, so it is worth re-running once the other is answering again. */
+.scan-log-entry.source_unavailable em {
+    color: var(--pico-del-color);
+}
+
 .scan-log-entry.found {
     color: var(--pico-ins-color);
 }

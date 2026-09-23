@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.7.2",
+    "date": "2026-09-23",
+    "changes": [
+      "Fix four problems found in a whole-application scan. One book failing during a scan used to take the whole run down with it: the error was recorded but the database session was left unusable, so the next book's title could not even be read and the run ended with nothing tagged, behind a message naming neither the book nor the cause. All three scanners now recover and carry on, so one bad book costs you that book. Names with an accented capital — a tag, series or author like Éducation — are now matched case-insensitively the way the rest are; SQLite's own lower() ignores anything outside A-Z, so such a name never matched what was already stored and the app tried to store it twice, which failed. That produced a 500 from Fetch tags, a failed book in a scan, a Replace that reported a tag missing while it sat in the table, and a rename that could slip past its own duplicate check. A scan that carries on after Goodreads blocks it no longer describes books it only managed to check against Hardcover as having no genres listed — they are now marked as unchecked, and the finished run says which source dropped out, which it previously recorded and never showed. And a genre arriving as \"Fiction ,\" no longer becomes a tag with a trailing space sitting next to the real one"
+    ]
+  },
+  {
     "version": "1.7.1",
     "date": "2026-09-20",
     "changes": [

@@ -1,6 +1,38 @@
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+
 from models import db, BookFormat, AuthorGender
 
 CURRENT_SCHEMA_VERSION = 12
+
+
+@event.listens_for(Engine, 'connect')
+def _use_unicode_lower(dbapi_connection, connection_record):
+    """Make SQL lower() fold non-ASCII letters, as Python's str.lower() does.
+
+    SQLite's built-in lower() only touches A-Z, so a case-insensitive lookup
+    written as `db.func.lower(Tag.name) == name.lower()` silently fails to
+    match anything with an uppercase accented letter: the column side leaves
+    'Éducation' alone while the Python side produces 'éducation'. The row is
+    then judged absent and re-inserted, which the UNIQUE constraint on the
+    name rejects — a 500 from the book page's Fetch tags, or a failed book in
+    a scan.
+
+    That comparison appears at fifteen call sites across tags, series, authors
+    and formats, so this replaces the function they all rely on rather than
+    correcting each one and waiting for the sixteenth to be written. An
+    application-defined function takes precedence over SQLite's built-in.
+    Declared deterministic so it stays usable wherever SQLite requires that.
+    """
+    if not hasattr(dbapi_connection, 'create_function'):
+        return                       # not SQLite; nothing to correct
+    try:
+        dbapi_connection.create_function(
+            'lower', 1, lambda value: value.lower() if value is not None else None,
+            deterministic=True)
+    except TypeError:                # deterministic= needs Python 3.8+/SQLite 3.8.3+
+        dbapi_connection.create_function(
+            'lower', 1, lambda value: value.lower() if value is not None else None)
 
 
 def _get_schema_version(cursor):

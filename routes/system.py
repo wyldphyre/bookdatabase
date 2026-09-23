@@ -406,9 +406,13 @@ def _run_genre_scan(app, untagged_only):
                     continue
                 if not genres:
                     with genre_scan_lock:
+                        # Once Goodreads has blocked us, an empty result means
+                        # only that Hardcover doesn't hold the book — the second
+                        # source was never asked. Reporting that as "no genres
+                        # listed" would claim both were checked.
                         genre_scan['results'].append({
                             'book': book.title,
-                            'status': 'no_genres',
+                            'status': 'source_unavailable' if goodreads_blocked else 'no_genres',
                         })
                     time.sleep(1)
                     continue
@@ -444,6 +448,13 @@ def _run_genre_scan(app, untagged_only):
                     break
                 goodreads_blocked = True
             except Exception as e:
+                # Leave the session usable. Without this a failed write — an
+                # IntegrityError, or SQLite refusing a locked database while the
+                # web side writes — leaves the transaction poisoned, and the next
+                # book's attribute access outside this try raises
+                # PendingRollbackError, which escapes to the thread guard and ends
+                # the whole run with nothing tagged.
+                db.session.rollback()
                 with genre_scan_lock:
                     genre_scan['results'].append({
                         'book': book.title,
@@ -612,6 +623,9 @@ def _run_series_scan(app):
                     series_scan['stop_requested'] = True
                 break
             except Exception as e:
+                # See the genre scan: without this the session stays poisoned
+                # and every later item fails too.
+                db.session.rollback()
                 with series_scan_lock:
                     series_scan['results'].append({
                         'series': series.name,
@@ -823,6 +837,9 @@ def _run_author_scan(app):
                     author_scan['stop_requested'] = True
                 break
             except Exception as e:
+                # See the genre scan: without this the session stays poisoned
+                # and every later item fails too.
+                db.session.rollback()
                 with author_scan_lock:
                     author_scan['results'].append({
                         'author': author.name,
