@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.8.4",
+    "date": "2026-09-25",
+    "changes": [
+      "Pin SQLAlchemy. It was the one library here whose version nothing decided: it arrives underneath Flask-SQLAlchemy, so every image rebuild quietly picked up whatever had been released by then — the next one was going to move it from 2.0.x to 2.1.0 with no change to this project at all. It is now pinned to 2.1.0 like everything else, and that version has been run against the whole test suite and every page of the app before pinning rather than after"
+    ]
+  },
+  {
     "version": "1.8.3",
     "date": "2026-09-25",
     "changes": [
