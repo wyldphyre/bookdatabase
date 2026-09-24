@@ -634,7 +634,7 @@ def book_update_tags(id):
         flash(_no_genres_message(source, genres), 'warning')
         return redirect(url_for('books.book_detail', id=id))
 
-    added = genre_sources.apply_genres(book, genres)
+    added = genre_sources.apply_genres(book, genres, used)
     if added:
         flash(f'Added {len(added)} tag(s) from {used.title()}: {", ".join(added)}', 'success')
     else:

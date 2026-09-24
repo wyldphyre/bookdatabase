@@ -160,6 +160,8 @@ GOOGLEBOOKS_TOKEN=your-google-books-api-key
 
 Genres are looked up through a chain of sources, and the order differs by context. Fetching tags for **one book** tries Goodreads first, then Hardcover, then Google Books: a request or two is affordable and Goodreads gives by far the best tags. A **library-wide scan** reverses that - Hardcover, then Google Books, then Goodreads - because Goodreads blocks automated requests after a handful and a scan is judged on finishing. Once it blocks during a scan it is dropped for the rest of that run. Each source can also be aimed at directly from the book page's tag menu, and the System page lists which are configured.
 
+Each book records which source last supplied its genres, shown beside its tags. That gives the genre scan a third scope besides "books with no tags" and "every book": **books not yet tagged from Goodreads**, which picks up anything a fallback tagged while Goodreads was unavailable, plus anything still untagged. Run that once Goodreads is answering again and it sweeps up the shallow-tagged books without re-walking the whole library. Books tagged before v1.8.1 are credited to Goodreads, which was the only source until v1.5.0.
+
 `docker-compose.yml`/`docker-compose.prod.yml` read these via `${VARNAME}` substitution, which Docker Compose resolves automatically from a `.env` file in the same directory - the compose files themselves never contain real secrets.
 
 ### Build and export

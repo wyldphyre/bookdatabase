@@ -1724,6 +1724,30 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     cursor: pointer;
 }
 
+/* Where a book's tags came from. Quiet — it answers a question you only ask
+   when the tags look thin, and shouldn't compete with the tags themselves. */
+.tag-source-note {
+    margin-left: 0.4rem;
+    color: var(--pico-muted-color);
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Scan scope radios: a stacked set, with the explanatory line tucked under
+   the option it belongs to rather than sitting beside the input. */
+.scan-scope label {
+    display: block;
+    margin-bottom: 0.35rem;
+}
+
+.scan-scope label small {
+    display: block;
+    margin-left: 1.75rem;
+    color: var(--pico-muted-color);
+    font-size: 0.8em;
+}
+
 /* Which genre sources are usable, on the System page. A row per source, the
    name and state on one line at narrow widths with the explanation beneath. */
 .source-status {

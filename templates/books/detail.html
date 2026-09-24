@@ -107,6 +107,9 @@
             {% for tag in book.tags %}
             <a href="{{ url_for('books.tag_browse', ids=tag.id) }}" class="detail-chip">{{ tag.name }}</a>
             {% endfor %}
+            {% if book.genre_source %}
+            <span class="tag-source-note">from {{ {'goodreads': 'Goodreads', 'hardcover': 'Hardcover', 'googlebooks': 'Google Books'}.get(book.genre_source, book.genre_source) }}</span>
+            {% endif %}
             <div class="tag-options-dropdown" style="position: relative; display: inline-block;">
                 <button type="button" class="ellipsis-btn" onclick="toggleDropdownMenu(this)" aria-label="Tag options">&#8230;</button>
                 <ul class="dropdown-menu" style="min-width: 0;">

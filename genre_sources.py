@@ -201,13 +201,19 @@ def fetch_genres(book, source=AUTO, chain=BOOK_CHAIN, unavailable=()):
     return result, last
 
 
-def apply_genres(book, genres):
+def apply_genres(book, genres, source=None):
     """Attach genres to a book as tags, creating any that don't exist yet.
 
     Returns the names actually added, so callers can report "3 new tags" apart
     from "found the book, knew all of it already". Tag names are matched
-    case-insensitively, which is what keeps Hardcover's lowercase 'litrpg' from
-    becoming a second tag beside an existing 'LitRPG'.
+    case-insensitively, which is what keeps a lowercase 'litrpg' from becoming
+    a second tag beside an existing 'LitRPG'.
+
+    `source` records which source supplied them, so a later scan can find the
+    books a fallback tagged while Goodreads was unavailable and go back for
+    better ones. Recorded whenever a source answered, even if it said nothing
+    this book didn't already have — it was still asked, and that is what the
+    filter is asking about.
     """
     existing = {t.name.lower() for t in book.tags}
     added = []
@@ -223,6 +229,9 @@ def apply_genres(book, genres):
         existing.add(name.lower())
         added.append(tag.name)
 
-    if added:
+    changed_source = bool(source) and book.genre_source != source
+    if changed_source:
+        book.genre_source = source
+    if added or changed_source:
         db.session.commit()
     return added

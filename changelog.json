@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.8.1",
+    "date": "2026-09-24",
+    "changes": [
+      "Remember which source gave a book its genres, and let the scan go back for the ones Goodreads missed. Until now a book tagged by a fallback while Goodreads was blocked was finished with as far as the scan was concerned — it had tags, so \"only scan books with no tags\" skipped it for good, and the better tags Goodreads would have given were never collected. The scan's filter is now three choices rather than a checkbox: books with no tags, books not yet tagged from Goodreads, or every book. The middle one covers exactly the gap — anything a fallback tagged, plus anything still untagged — so running it when Goodreads is behaving sweeps up the shallow-tagged books without re-walking the library. Each book's detail page now shows which source its tags came from, next to the tags. Books tagged before this version are credited to Goodreads, since it was the only source until v1.5.0 and that is true of nearly all of them"
+    ]
+  },
+  {
     "version": "1.8.0",
     "date": "2026-09-24",
     "changes": [

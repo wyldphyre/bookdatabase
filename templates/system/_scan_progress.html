@@ -1,14 +1,23 @@
 {% if scan.status == 'idle' %}
 <div id="scan-controls">
-    <fieldset>
+    <fieldset class="scan-scope">
         <label>
-            <input type="checkbox" name="untagged_only" id="untagged-only" checked>
-            Only scan books with no tags
+            <input type="radio" name="scope" value="untagged" checked>
+            Books with no tags
+        </label>
+        <label>
+            <input type="radio" name="scope" value="not_goodreads">
+            Books not yet tagged from Goodreads
+            <small>Includes untagged books, and any a fallback source tagged while Goodreads was unavailable.</small>
+        </label>
+        <label>
+            <input type="radio" name="scope" value="all">
+            Every book
         </label>
     </fieldset>
     <button hx-post="{{ url_for('system.scan_genres_start') }}"
             hx-target="#scan-area"
-            hx-include="#untagged-only" class="btn-compact">
+            hx-include="[name='scope']" class="btn-compact">
         Start Scan
     </button>
 </div>
@@ -107,15 +116,24 @@
 
 {% if scan.status in ('complete', 'stopped') %}
 <div style="margin-top: 1rem;">
-    <fieldset>
+    <fieldset class="scan-scope">
         <label>
-            <input type="checkbox" name="untagged_only" id="untagged-only" checked>
-            Only scan books with no tags
+            <input type="radio" name="scope" value="untagged" checked>
+            Books with no tags
+        </label>
+        <label>
+            <input type="radio" name="scope" value="not_goodreads">
+            Books not yet tagged from Goodreads
+            <small>Includes untagged books, and any a fallback source tagged while Goodreads was unavailable.</small>
+        </label>
+        <label>
+            <input type="radio" name="scope" value="all">
+            Every book
         </label>
     </fieldset>
     <button hx-post="{{ url_for('system.scan_genres_start') }}"
             hx-target="#scan-area"
-            hx-include="#untagged-only" class="btn-compact">
+            hx-include="[name='scope']" class="btn-compact">
         Start New Scan
     </button>
 </div>

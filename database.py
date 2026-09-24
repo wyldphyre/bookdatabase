@@ -3,7 +3,7 @@ from sqlalchemy.engine import Engine
 
 from models import db, BookFormat, AuthorGender
 
-CURRENT_SCHEMA_VERSION = 12
+CURRENT_SCHEMA_VERSION = 13
 
 
 @event.listens_for(Engine, 'connect')
@@ -68,6 +68,17 @@ def _migrate_data_match_keys(cursor):
                        (match_key(title), release_id))
 
 
+def _migrate_data_genre_source(cursor):
+    """v13 data step: credit existing tags to Goodreads.
+
+    Goodreads was the only genre source until v1.5.0, so anything already
+    tagged got those tags from it. Left null they would look never-scanned,
+    and the first "not yet tagged from Goodreads" run would sweep the entire
+    library instead of the handful a fallback tagged."""
+    cursor.execute("UPDATE book SET genre_source = 'goodreads' WHERE genre_source IS NULL "
+                   "AND id IN (SELECT DISTINCT book_id FROM book_tags)")
+
+
 # Every entry here rewrites *data* rather than schema, so it has to be re-run
 # against rows arriving from an older export as well as against this
 # instance's own rows. Keyed by the version that introduced the step.
@@ -76,6 +87,7 @@ def _migrate_data_match_keys(cursor):
 DATA_MIGRATIONS = {
     11: _migrate_data_baseline_done,
     12: _migrate_data_match_keys,
+    13: _migrate_data_genre_source,
 }
 
 
@@ -213,6 +225,14 @@ def run_migrations():
 
         if version < 12:
             _migrate_data_match_keys(cursor)
+            conn.commit()
+
+        if version < 13:
+            cursor.execute("PRAGMA table_info(book)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'genre_source' not in columns:
+                cursor.execute("ALTER TABLE book ADD COLUMN genre_source VARCHAR(20)")
+            _migrate_data_genre_source(cursor)
             conn.commit()
 
         if version < CURRENT_SCHEMA_VERSION:

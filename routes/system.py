@@ -18,6 +18,14 @@ from data_transfer import (build_export_zip, validate_import_zip, apply_import,
 
 system_bp = Blueprint('system', __name__)
 
+# Which books a genre scan walks. Three, not two, because "has some tags" and
+# "has had Goodreads asked about it" stopped being the same question once a
+# fallback could tag a book on its own.
+SCAN_UNTAGGED = 'untagged'          # no tags at all
+SCAN_NOT_GOODREADS = 'not_goodreads'  # untagged, or tagged by a fallback source
+SCAN_ALL = 'all'
+SCAN_SCOPES = (SCAN_UNTAGGED, SCAN_NOT_GOODREADS, SCAN_ALL)
+
 genre_scan = {
     'status': 'idle',       # idle, running, paused, complete, stopped
     'progress': 0,
@@ -285,7 +293,9 @@ def system_pushover_test():
 
 @system_bp.route('/system/scan-genres', methods=['POST'], endpoint='scan_genres_start')
 def scan_genres_start():
-    untagged_only = request.form.get('untagged_only') == 'on'
+    scope = request.form.get('scope', SCAN_UNTAGGED)
+    if scope not in SCAN_SCOPES:
+        scope = SCAN_UNTAGGED
 
     with genre_scan_lock:
         # Refuse while a scan thread is alive ('paused' included — resetting its
@@ -306,7 +316,7 @@ def scan_genres_start():
 
     if not already_active:
         _app = current_app._get_current_object()
-        thread = threading.Thread(target=run_genre_scan, args=(_app, untagged_only), daemon=True)
+        thread = threading.Thread(target=run_genre_scan, args=(_app, scope), daemon=True)
         thread.start()
 
     return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan, genre_scan_lock))
@@ -336,10 +346,10 @@ def scan_genres_stop():
     return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan, genre_scan_lock))
 
 
-def run_genre_scan(app, untagged_only):
+def run_genre_scan(app, scope):
     """Background thread that scans Goodreads for genres and imports as tags."""
     try:
-        _run_genre_scan(app, untagged_only)
+        _run_genre_scan(app, scope)
     except Exception as e:
         # Without this, an uncaught error would leave the status stuck at
         # 'running' with the progress bar frozen and polling forever — and
@@ -350,15 +360,21 @@ def run_genre_scan(app, untagged_only):
             genre_scan['status'] = 'stopped'
 
 
-def _run_genre_scan(app, untagged_only):
+def _run_genre_scan(app, scope):
     with app.app_context():
         query = Book.query.options(
             joinedload(Book.authors),
             joinedload(Book.tags)
         )
 
-        if untagged_only:
+        if scope == SCAN_UNTAGGED:
             query = query.filter(~Book.tags.any())
+        elif scope == SCAN_NOT_GOODREADS:
+            # Books a fallback tagged while Goodreads was unavailable, plus any
+            # still untagged. Both are books Goodreads has not answered for, and
+            # both are worth another pass once it is talking again.
+            query = query.filter((Book.genre_source.is_(None))
+                                 | (Book.genre_source != genre_sources.GOODREADS))
 
         books = query.all()
         with genre_scan_lock:
@@ -419,7 +435,7 @@ def _run_genre_scan(app, untagged_only):
                     time.sleep(1)
                     continue
 
-                new_tags = genre_sources.apply_genres(book, genres)
+                new_tags = genre_sources.apply_genres(book, genres, source)
 
                 with genre_scan_lock:
                     if new_tags:
