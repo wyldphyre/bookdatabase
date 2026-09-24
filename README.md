@@ -26,6 +26,8 @@ A personal book database web application for tracking books, authors, series, an
 
 ## Setup
 
+Needs **Python 3.10 or newer** - Pillow 12, which the cover thumbnails use, dropped 3.9. The Docker image is built on 3.12.
+
 1. Create a virtual environment (recommended):
    ```bash
    python -m venv venv
@@ -112,6 +114,8 @@ The SQLite database (`books.db`) is created automatically on first run with seed
 ### Cover Images
 
 Book cover images are stored on the filesystem in `static/uploads/` rather than as BLOBs in the database. This keeps the database small, allows Flask to serve images directly as static files with browser caching, and avoids the overhead of streaming binary data through a database query. The tradeoff is that `static/uploads/` must be backed up separately from `books.db`.
+
+Only JPEG, PNG, GIF and WebP are decoded when building thumbnails. Pillow identifies a file by its magic bytes rather than its name and will open 43 formats by default, so the upload extension check constrains what gets *stored*, not what gets *decoded* - a cover fetched from a URL is saved under a guessed extension, and unrecognised types default to `.jpg`. Naming the permitted formats (`COVER_IMAGE_FORMATS` in `utils.py`) keeps everything else away from the decoders, which is also the documented mitigation for CVE-2026-25990, an out-of-bounds write reached by opening a crafted PSD.
 
 ## Price Watch
 

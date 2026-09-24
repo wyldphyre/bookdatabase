@@ -12,6 +12,19 @@ THUMB_SUBFOLDER = 'thumbs'
 # 2x the ~200px-wide grid cards, so thumbs stay sharp on hidpi screens
 THUMB_MAX_SIZE = (400, 640)
 
+# Which formats Pillow is allowed to decode. Pillow identifies a file by its
+# magic bytes, not its name, and will open 43 formats out of the box — AVIF,
+# PSD, TIFF, EPS, DDS and so on. ALLOWED_EXTENSIONS therefore constrains what
+# gets *stored*, never what gets *decoded*: a cover fetched from a URL is
+# saved under a guessed extension (unrecognised types default to .jpg), and
+# whatever is really inside it is what chooses the decoder.
+#
+# Naming the formats is Pillow's own documented way to shut that down, and it
+# is the advised workaround for CVE-2026-25990, an out-of-bounds write reached
+# by opening a crafted PSD. Matches ALLOWED_EXTENSIONS; every cover currently
+# stored is JPEG or PNG, so nothing existing loses its thumbnail.
+COVER_IMAGE_FORMATS = ['JPEG', 'PNG', 'GIF', 'WEBP']
+
 
 def thumb_path(upload_folder, filename):
     return os.path.join(upload_folder, THUMB_SUBFOLDER, filename)
@@ -24,11 +37,16 @@ def generate_thumbnail(upload_folder, filename):
     if a thumb was written. Thumbnailing is best-effort: any unreadable or
     hostile image (including Pillow's DecompressionBombError, which is not an
     OSError) is skipped rather than failing the book save or killing the
-    backfill thread — the page falls back to the original."""
+    backfill thread — the page falls back to the original.
+
+    Only COVER_IMAGE_FORMATS are decoded, so a file that is really something
+    else wearing a .jpg name is refused here rather than handed to whichever
+    of Pillow's decoders its magic bytes point at."""
     from PIL import Image
     dst = thumb_path(upload_folder, filename)
     try:
-        with Image.open(os.path.join(upload_folder, filename)) as img:
+        with Image.open(os.path.join(upload_folder, filename),
+                        formats=COVER_IMAGE_FORMATS) as img:
             if img.width <= THUMB_MAX_SIZE[0] and img.height <= THUMB_MAX_SIZE[1]:
                 return False
             img.thumbnail(THUMB_MAX_SIZE)
