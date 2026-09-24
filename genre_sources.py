@@ -15,20 +15,43 @@ import logging
 
 from models import db, Tag
 import hardcover
+import googlebooks
 from scrapers import search_goodreads_for_book, scrape_goodreads
 
 AUTO = 'auto'
 HARDCOVER = 'hardcover'
 GOODREADS = 'goodreads'
+GOOGLEBOOKS = 'googlebooks'
 
-#: Sources a caller may ask for by name. AUTO is the chain; the other two force
-#: one source, which is how you find out whether a disappointing result was
-#: Hardcover not knowing the book or Goodreads refusing to talk.
-SOURCES = (AUTO, HARDCOVER, GOODREADS)
+#: Sources a caller may ask for by name. AUTO walks a chain; the rest force one
+#: source, which is how you find out whether a disappointing result was a
+#: source not knowing the book or a source refusing to talk.
+SOURCES = (AUTO, GOODREADS, HARDCOVER, GOOGLEBOOKS)
+
+#: Human-readable, for messages and the System page.
+LABELS = {GOODREADS: 'Goodreads', HARDCOVER: 'Hardcover', GOOGLEBOOKS: 'Google Books'}
+
+# The order differs by caller, because the two jobs want opposite things.
+#
+# Measured over this library: Goodreads gives by far the richest tags but stops
+# answering after a couple of requests; Hardcover gives about five genres a
+# book, free and unlimited, and agrees with 43% of the tags already here;
+# Google Books gives about one category a book — usually the word "Fiction" —
+# but is the only one that reaches the obscure indie titles at all.
+#
+#: One book at a time, where a couple of requests is affordable and quality is
+#: the whole point: ask the best source first.
+BOOK_CHAIN = (GOODREADS, HARDCOVER, GOOGLEBOOKS)
+
+#: Hundreds of books in a row, where being able to finish matters more than any
+#: single answer: Goodreads would block on book three and retire, so it goes
+#: last and only sees what the other two could not place.
+SCAN_CHAIN = (HARDCOVER, GOOGLEBOOKS, GOODREADS)
 
 
 def source_status():
-    """Each source in the order it is tried, whether it can be used, and why not.
+    """Each source in the order the scan tries them, whether it can be used,
+    and why not.
 
     The System page shows this because an unconfigured source is otherwise
     invisible until someone notices a greyed-out entry on a book page. The
@@ -37,23 +60,35 @@ def source_status():
     *and* a value in the .env beside it, and missing either looks identical
     from in here.
     """
+    docker_note = ('Under Docker it must be both listed in the compose file\'s environment '
+                   'section and given a value in the .env beside it — either one alone '
+                   'leaves it unset in here.')
     hardcover_ready = hardcover.is_configured()
+    google_ready = googlebooks.is_configured()
     return [
         {
-            'name': 'Hardcover',
+            'name': LABELS[HARDCOVER],
             'ready': hardcover_ready,
-            'detail': ('Tried first. One API call per book, and no scraping.'
+            'detail': ('Tried first in a scan. One API call per book, no scraping, and '
+                       'around five genres when it has the book at all.'
                        if hardcover_ready else
-                       'Set HARDCOVER_TOKEN to enable. Under Docker it must be both listed in '
-                       'the compose file\'s environment section and given a value in the .env '
-                       'beside it — either one alone leaves it unset in here.'),
+                       f'Set HARDCOVER_TOKEN to enable. {docker_note}'),
         },
         {
-            'name': 'Goodreads',
+            'name': LABELS[GOOGLEBOOKS],
+            'ready': google_ready,
+            'detail': ('Reaches obscure titles the others miss, but usually returns a '
+                       'single broad category. Free quota is 1,000 lookups a day.'
+                       if google_ready else
+                       f'Set GOOGLEBOOKS_TOKEN to enable. {docker_note}'),
+        },
+        {
+            'name': LABELS[GOODREADS],
             'ready': True,
-            'detail': 'Fallback for whatever Hardcover does not hold. Needs no configuration, '
-                      'but it is scraped rather than an API, and the site blocks automated '
-                      'requests after a handful of them.',
+            'detail': 'The richest tags by far, and the reason most of this library is '
+                      'already tagged — but it is scraped rather than an API, and blocks '
+                      'after a handful of requests. Tried first for a single book, last '
+                      'in a scan, and dropped for the rest of a run once it refuses.',
         },
     ]
 
@@ -69,6 +104,14 @@ def hardcover_genres(book):
     an empty list — so unlike the Goodreads side this never returns None.
     """
     return hardcover.lookup_genres(book.title, _author_names(book))
+
+
+def googlebooks_genres(book):
+    """Categories from Google Books, or [] if it can't confidently supply any.
+
+    Same empty-list-for-everything contract as Hardcover's.
+    """
+    return googlebooks.lookup_genres(book.title, _author_names(book))
 
 
 def goodreads_genres(book):
@@ -100,37 +143,62 @@ def goodreads_genres(book):
     return book_data.get('genres') or []
 
 
-def fetch_genres(book, source=AUTO, allow_goodreads=True):
+def _provider(name):
+    """The function backing a source name.
+
+    Resolved per call rather than captured in a module-level table, so the
+    three functions above stay the real seam — a table built at import time
+    would keep pointing at the original functions after anything rebound them.
+    """
+    return {GOODREADS: goodreads_genres,
+            HARDCOVER: hardcover_genres,
+            GOOGLEBOOKS: googlebooks_genres}[name]
+
+#: Raised past the chain rather than swallowed: a rejected key or token is a
+#: configuration problem, not a fact about the book.
+_AUTH_ERRORS = (hardcover.HardcoverAuthError, googlebooks.GoogleBooksAuthError)
+
+
+def fetch_genres(book, source=AUTO, chain=BOOK_CHAIN, unavailable=()):
     """Genres for one book, and which source supplied them.
 
-    Returns (genres, source_used) where genres is a list, or None when the
-    source that ran could not identify the book at all. source_used names the
-    source whose answer is being returned, so a caller can report it.
+    Returns (genres, source_used). genres is a list, or None when the last
+    source tried could not identify the book at all — only Goodreads can say
+    that, the others return an empty list either way.
 
-    `allow_goodreads=False` keeps the chain from falling back — the scan sets
-    it once Goodreads has blocked us, so the rest of the run leans on
-    Hardcover instead of hammering a site that has already said no.
+    `source` other than AUTO forces one source and skips the chain, which is
+    how the book page's explicit menu entries work and how you tell a source
+    having nothing apart from a source being unreachable.
+
+    `unavailable` names sources to skip for this run. The scan puts Goodreads
+    in there once it has been blocked, so the rest of the run stops asking a
+    site that has already refused rather than collecting hundreds of identical
+    failures.
+
+    A broken token stops that one source rather than the chain: it is logged
+    and the next source is tried, because a misconfigured key is no reason to
+    leave a book untagged. Asking for that source by name still raises.
     """
     if source not in SOURCES:
         raise ValueError(f'unknown genre source: {source!r}')
+    if source != AUTO:
+        return _provider(source)(book), source
 
-    if source == HARDCOVER:
-        return hardcover_genres(book), HARDCOVER
-    if source == GOODREADS:
-        return goodreads_genres(book), GOODREADS
+    result, last = [], chain[-1]
+    for name in chain:
+        if name in unavailable:
+            continue
+        try:
+            genres = _provider(name)(book)
+        except _AUTH_ERRORS as e:
+            logging.warning('Skipping %s: %s', LABELS[name], e)
+            continue
+        last = name
+        if genres:
+            return genres, name
+        result = genres          # keep the last answer, None included
 
-    try:
-        genres = hardcover_genres(book)
-    except hardcover.HardcoverAuthError as e:
-        # A broken token shouldn't stop the chain — Goodreads can still answer.
-        # Asking for Hardcover by name reports it instead; see fetch_genres's
-        # HARDCOVER branch above, which lets it through.
-        logging.warning('Skipping Hardcover: %s', e)
-        genres = []
-
-    if genres or not allow_goodreads:
-        return genres, HARDCOVER
-    return goodreads_genres(book), GOODREADS
+    return result, last
 
 
 def apply_genres(book, genres):

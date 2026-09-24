@@ -110,31 +110,35 @@
             <div class="tag-options-dropdown" style="position: relative; display: inline-block;">
                 <button type="button" class="ellipsis-btn" onclick="toggleDropdownMenu(this)" aria-label="Tag options">&#8230;</button>
                 <ul class="dropdown-menu" style="min-width: 0;">
-                    {# Default to the same chain the System page's scan uses.
-                       The two below aim at one source, for when it matters
-                       which one answered — or didn't. #}
+                    {# Default walks the book chain: Goodreads, then Hardcover,
+                       then Google Books. The entries below aim at one source,
+                       for when it matters which one answered — or didn't. #}
                     <li>
                         <form method="post" action="{{ url_for('books.book_update_tags', id=book.id) }}" style="margin: 0;">
                             <button type="submit" class="menu-item">Fetch tags</button>
                         </form>
                     </li>
                     <li class="menu-separator" role="separator"></li>
-                    {% if hardcover_configured %}
-                    <li>
-                        <form method="post" action="{{ url_for('books.book_update_tags', id=book.id) }}" style="margin: 0;">
-                            <input type="hidden" name="source" value="hardcover">
-                            <button type="submit" class="menu-item">Fetch from Hardcover</button>
-                        </form>
-                    </li>
-                    {% else %}
-                    <li><span class="menu-item menu-item--disabled" title="Set HARDCOVER_TOKEN to enable this source">Fetch from Hardcover</span></li>
-                    {% endif %}
                     <li>
                         <form method="post" action="{{ url_for('books.book_update_tags', id=book.id) }}" style="margin: 0;">
                             <input type="hidden" name="source" value="goodreads">
                             <button type="submit" class="menu-item">Fetch from Goodreads</button>
                         </form>
                     </li>
+                    {% for key, label, ready, why in [
+                          ('hardcover', 'Hardcover', hardcover_configured, 'HARDCOVER_TOKEN'),
+                          ('googlebooks', 'Google Books', googlebooks_configured, 'GOOGLEBOOKS_TOKEN')] %}
+                    {% if ready %}
+                    <li>
+                        <form method="post" action="{{ url_for('books.book_update_tags', id=book.id) }}" style="margin: 0;">
+                            <input type="hidden" name="source" value="{{ key }}">
+                            <button type="submit" class="menu-item">Fetch from {{ label }}</button>
+                        </form>
+                    </li>
+                    {% else %}
+                    <li><span class="menu-item menu-item--disabled" title="Set {{ why }} to enable this source">Fetch from {{ label }}</span></li>
+                    {% endif %}
+                    {% endfor %}
                 </ul>
             </div>
         </div>

@@ -390,11 +390,13 @@ def _run_genre_scan(app, untagged_only):
                 genre_scan['progress'] = i
 
             try:
-                # The same chain the book page's Fetch tags button runs, so the
-                # two can't drift: Hardcover first, Goodreads only for what it
-                # doesn't hold — and not at all once Goodreads has blocked us.
+                # A scan is judged on finishing, not on any single answer, so
+                # it takes the sources that can't block first and leaves
+                # Goodreads — the best of them, and the one that stops
+                # answering — for whatever the others could not place.
                 genres, source = genre_sources.fetch_genres(
-                    book, allow_goodreads=not goodreads_blocked)
+                    book, chain=genre_sources.SCAN_CHAIN,
+                    unavailable=(genre_sources.GOODREADS,) if goodreads_blocked else ())
                 if genres is None:
                     # Goodreads couldn't identify the book at all.
                     with genre_scan_lock:
@@ -407,9 +409,9 @@ def _run_genre_scan(app, untagged_only):
                 if not genres:
                     with genre_scan_lock:
                         # Once Goodreads has blocked us, an empty result means
-                        # only that Hardcover doesn't hold the book — the second
-                        # source was never asked. Reporting that as "no genres
-                        # listed" would claim both were checked.
+                        # only that the other sources don't hold the book —
+                        # the best one was never asked. Reporting that as "no
+                        # genres listed" would claim all of them were checked.
                         genre_scan['results'].append({
                             'book': book.title,
                             'status': 'source_unavailable' if goodreads_blocked else 'no_genres',

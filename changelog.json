@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.8.0",
+    "date": "2026-09-24",
+    "changes": [
+      "Look up genres through a chain of three sources, in an order that now depends on what you are doing. Fetching tags for one book tries Goodreads first, then Hardcover, then Google Books: a request or two is affordable for a single book, and Goodreads gives far better tags than either of the others — measured across this library it is the source most of your existing tags came from, while Hardcover reproduces 43% of them and Google Books 9%. A library-wide scan keeps the opposite order, Hardcover then Google Books then Goodreads, because Goodreads stops answering after a handful of requests and a scan is judged on finishing; once it blocks mid-scan it is dropped for the rest of that run",
+      "Add Google Books as a third source. It is the only one that reaches the obscure self-published titles, box sets and manga volumes that make up the untagged part of this library — it answered for 15 of those where Hardcover answered for none — but it returns about one broad category per book, most often just \"Fiction\". Hence last in the chain: worth asking when the better sources have nothing, not worth asking before them. Needs a free GOOGLEBOOKS_TOKEN; without one it is simply skipped. Each source can still be aimed at directly from the book page's tag menu, and the System page now lists all three with what each is good and bad at"
+    ]
+  },
+  {
     "version": "1.7.2",
     "date": "2026-09-23",
     "changes": [

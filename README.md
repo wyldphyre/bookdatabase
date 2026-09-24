@@ -52,8 +52,10 @@ book-database/
 ├── models.py           # SQLAlchemy ORM models
 ├── database.py         # Database initialization, migrations, and seed data
 ├── scrapers.py         # Amazon/Goodreads page scraping (book data, prices, series counts)
-├── hardcover.py        # Hardcover API genre lookup, tried before scraping Goodreads
-├── genre_sources.py    # Which source a book's genres come from, and in what order
+├── hardcover.py        # Hardcover API genre lookup
+├── googlebooks.py      # Google Books API genre lookup
+├── genre_text.py       # Shared title/author matching and genre tidying
+├── genre_sources.py    # Which sources a book's genres come from, and in what order
 ├── notifications.py    # Pushover notification helper
 ├── price_watch.py      # Daily background price check + manual "Check Now" logic
 ├── series_monitor.py   # Weekly background check of monitored series for new releases
@@ -148,11 +150,15 @@ SECRET_KEY=some-random-string
 PUSHOVER_USER_KEY=your-pushover-user-key
 PUSHOVER_APP_TOKEN=your-pushover-application-token
 HARDCOVER_TOKEN=your-hardcover-api-token
+GOOGLEBOOKS_TOKEN=your-google-books-api-key
 ```
 
 - `SECRET_KEY` - used to sign Flask session cookies. Falls back to an insecure development default (with a startup warning) if unset. **Set this on the production host**: generate one with `python -c "import secrets; print(secrets.token_hex(32))"` and put it in `.env`. Until v1.1.1 the compose files hardcoded a placeholder, which meant the `.env` value was ignored and the startup warning never fired.
 - `PUSHOVER_USER_KEY` / `PUSHOVER_APP_TOKEN` - optional. Required only for [Price Watch](#price-watch) notifications. Get both from [pushover.net](https://pushover.net/) (the user key from your dashboard, the app token by creating an application). When unset, price drops are detected but no notification is sent, and the "Send Test Notification" button on the System page is hidden.
-- `HARDCOVER_TOKEN` - optional, but strongly recommended. Lets tag fetching ask [Hardcover](https://hardcover.app/) for a book's genres before falling back to scraping Goodreads. Create a free account, then copy the API token from your account settings. Measured against a 50-book sample of this library, Hardcover supplied usable genres for 60% of it (Open Library managed 28%), and it does so in one API call where Goodreads costs two scrapes of a site that blocks automated traffic after a handful of requests. When unset, tag fetching works exactly as it did before and goes straight to Goodreads, and the book page's "Fetch from Hardcover" option is shown disabled.
+- `HARDCOVER_TOKEN` - optional, recommended. A free account at [Hardcover](https://hardcover.app/) (token in your account settings) adds it to the chain below. Measured over this library it supplies genres for about two thirds of it, roughly five per book, agreeing with 43% of the tags already present - but it is blind to obscure self-published and manga titles.
+- `GOOGLEBOOKS_TOKEN` - optional. A free [Google Cloud](https://console.cloud.google.com/) API key with the **Books API** enabled on its project (enable it first, or it won't appear in the key's API restriction list). It reaches indie titles the other sources miss - it was the only source to answer for any of this library's untagged books - but returns about one broad category per book, most often just "Fiction". Free quota is 1,000 lookups a day. Keyless requests are refused outright, so without a key this source is simply skipped.
+
+Genres are looked up through a chain of sources, and the order differs by context. Fetching tags for **one book** tries Goodreads first, then Hardcover, then Google Books: a request or two is affordable and Goodreads gives by far the best tags. A **library-wide scan** reverses that - Hardcover, then Google Books, then Goodreads - because Goodreads blocks automated requests after a handful and a scan is judged on finishing. Once it blocks during a scan it is dropped for the rest of that run. Each source can also be aimed at directly from the book page's tag menu, and the System page lists which are configured.
 
 `docker-compose.yml`/`docker-compose.prod.yml` read these via `${VARNAME}` substitution, which Docker Compose resolves automatically from a `.env` file in the same directory - the compose files themselves never contain real secrets.
 

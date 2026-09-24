@@ -9,6 +9,7 @@ from models import (db, Book, Author, Read, ReadingQueue, BookFormat, Tag, Serie
                     book_tags, RATING_LABELS)
 import genre_sources
 import hardcover
+import googlebooks
 from utils import (allowed_file, parse_date, parse_float, validate_rating, fetch_cover_image,
                    clean_external_url, generate_thumbnail, delete_thumbnail,
                    MAX_COVER_DOWNLOAD_BYTES)
@@ -238,7 +239,8 @@ def book_detail(id):
                             suggest_queue_id=suggest_queue_id,
                             series_books=series_books, similar_books=similar_books,
                             read_entries=read_entries, read_stats=read_stats,
-                            hardcover_configured=hardcover.is_configured())
+                            hardcover_configured=hardcover.is_configured(),
+                            googlebooks_configured=googlebooks.is_configured())
 
 
 @books_bp.route('/books/new', methods=['GET', 'POST'], endpoint='book_new')
@@ -604,11 +606,16 @@ def book_delete(id):
 def book_update_tags(id):
     """Fetch tags for one book.
 
-    Defaults to the same chain the System page's scan runs — Hardcover, then
-    Goodreads for what it doesn't hold — but takes a `source` so either can be
-    aimed at directly. That is how you tell a disappointing result apart: no
-    tags from 'auto' could mean Hardcover doesn't know the book or that
-    Goodreads is refusing to talk, and picking one says which.
+    Defaults to the book chain — Goodreads, then Hardcover, then Google Books.
+    That is the opposite order to the System page's scan, deliberately: one
+    book costs Goodreads a request or two, which it usually tolerates, and it
+    gives far better tags than either of the others. A scan cannot afford that
+    and puts it last.
+
+    A `source` aims at one source directly, which is how you tell a
+    disappointing result apart: nothing from 'auto' could mean none of them
+    hold the book, or that Goodreads is refusing to talk, and picking one says
+    which.
     """
     book = db.get_or_404(Book, id)
     source = request.form.get('source', genre_sources.AUTO)
@@ -618,7 +625,8 @@ def book_update_tags(id):
 
     try:
         genres, used = genre_sources.fetch_genres(book, source)
-    except (ScrapeBlockedError, hardcover.HardcoverAuthError) as e:
+    except (ScrapeBlockedError, hardcover.HardcoverAuthError,
+            googlebooks.GoogleBooksAuthError) as e:
         flash(str(e), 'error')
         return redirect(url_for('books.book_detail', id=id))
 
@@ -641,13 +649,13 @@ def _no_genres_message(source, genres):
     `genres is None` means the source couldn't identify the book at all, which
     only Goodreads can report — Hardcover returns an empty list either way.
     """
-    if source == genre_sources.HARDCOVER:
-        return 'Hardcover has no genres for this book'
     if source == genre_sources.GOODREADS:
         return ('Could not find this book on Goodreads' if genres is None
                 else 'No genres listed on this book\'s Goodreads page')
-    return ('Neither Hardcover nor Goodreads could find this book' if genres is None
-            else 'Neither Hardcover nor Goodreads has genres for this book')
+    if source != genre_sources.AUTO:
+        return f'{genre_sources.LABELS[source]} has no genres for this book'
+    return ('No source could find this book' if genres is None
+            else 'No source has genres for this book')
 
 
 def _active_tab():
