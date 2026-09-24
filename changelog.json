@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.8.2",
+    "date": "2026-09-24",
+    "changes": [
+      "Fix the explanation under the genre scan's \"books not yet tagged from Goodreads\" option printing on top of the option's own label. Pico pulls small print upwards so it sits tight beneath a form field, which is right where the note follows an input and wrong where it follows the label's text, as this one does"
+    ]
+  },
+  {
     "version": "1.8.1",
     "date": "2026-09-24",
     "changes": [

@@ -1743,9 +1743,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .scan-scope label small {
     display: block;
+    /* Pico pulls <small> up by a negative top margin, meant for helper text
+       sitting directly beneath an input. Here it lands on top of the label's
+       own text instead, so the pull has to be undone rather than reduced. */
+    margin-top: 0.2rem;
     margin-left: 1.75rem;
     color: var(--pico-muted-color);
     font-size: 0.8em;
+    line-height: 1.35;
 }
 
 /* Which genre sources are usable, on the System page. A row per source, the
