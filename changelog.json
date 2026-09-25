@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.8.6",
+    "date": "2026-09-26",
+    "changes": [
+      "Fix the tag menu's … button doing nothing when clicked on books showing the new not-tagged-from-Goodreads dot. The button opens whatever comes directly after it on the page, and v1.8.5 put the dot there, so clicks were toggling the dot instead of the menu. Books without the dot were unaffected"
+    ]
+  },
+  {
     "version": "1.8.5",
     "date": "2026-09-26",
     "changes": [

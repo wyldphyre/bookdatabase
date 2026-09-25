@@ -119,10 +119,14 @@
             {% set goodreads_hint = 'Not yet tagged from Goodreads' ~ (' — current tags came from ' ~ source_labels.get(book.genre_source, book.genre_source) if book.genre_source else '') %}
             {% endif %}
             <div class="tag-options-dropdown" style="position: relative; display: inline-block;">
+                {# Must stay BEFORE the button: toggleDropdownMenu opens the
+                   button's next sibling, so anything between the two
+                   swallows the click. Absolutely positioned, so order
+                   doesn't affect where it draws. #}
+                {% if goodreads_hint %}<span class="tag-goodreads-dot" aria-hidden="true"></span>{% endif %}
                 <button type="button" class="ellipsis-btn" onclick="toggleDropdownMenu(this)"
                         aria-label="Tag options{% if goodreads_hint %} ({{ goodreads_hint }}){% endif %}"
                         {% if goodreads_hint %}title="{{ goodreads_hint }}"{% endif %}>&#8230;</button>
-                {% if goodreads_hint %}<span class="tag-goodreads-dot" aria-hidden="true"></span>{% endif %}
                 <ul class="dropdown-menu" style="min-width: 0;">
                     {# Default walks the book chain: Goodreads, then Hardcover,
                        then Google Books. The entries below aim at one source,
