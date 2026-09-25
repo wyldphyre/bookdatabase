@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.8.5",
+    "date": "2026-09-26",
+    "changes": [
+      "Mark books that Goodreads hasn't tagged. A small amber dot now sits on the tag menu's … button on a book's page when its tags didn't come from Goodreads — either it has none yet, or a fallback source tagged it while Goodreads was unavailable. Hovering explains which: \"Not yet tagged from Goodreads — current tags came from Hardcover\", say. Goodreads gives far richer tags than the other sources, so these are the books where \"Fetch from Goodreads\" is worth a try when you happen to be looking at one"
+    ]
+  },
+  {
     "version": "1.8.4",
     "date": "2026-09-25",
     "changes": [

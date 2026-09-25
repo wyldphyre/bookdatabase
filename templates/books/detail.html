@@ -107,11 +107,22 @@
             {% for tag in book.tags %}
             <a href="{{ url_for('books.tag_browse', ids=tag.id) }}" class="detail-chip">{{ tag.name }}</a>
             {% endfor %}
+            {# Flag books Goodreads hasn't tagged: untagged ones, and ones a
+               fallback source tagged while Goodreads was unavailable. Goodreads
+               gives far richer tags than the others, so these are worth a
+               "Fetch from Goodreads" when it's answering. #}
+            {% set source_labels = {'goodreads': 'Goodreads', 'hardcover': 'Hardcover', 'googlebooks': 'Google Books'} %}
             {% if book.genre_source %}
-            <span class="tag-source-note">from {{ {'goodreads': 'Goodreads', 'hardcover': 'Hardcover', 'googlebooks': 'Google Books'}.get(book.genre_source, book.genre_source) }}</span>
+            <span class="tag-source-note">from {{ source_labels.get(book.genre_source, book.genre_source) }}</span>
+            {% endif %}
+            {% if book.genre_source != 'goodreads' %}
+            {% set goodreads_hint = 'Not yet tagged from Goodreads' ~ (' — current tags came from ' ~ source_labels.get(book.genre_source, book.genre_source) if book.genre_source else '') %}
             {% endif %}
             <div class="tag-options-dropdown" style="position: relative; display: inline-block;">
-                <button type="button" class="ellipsis-btn" onclick="toggleDropdownMenu(this)" aria-label="Tag options">&#8230;</button>
+                <button type="button" class="ellipsis-btn" onclick="toggleDropdownMenu(this)"
+                        aria-label="Tag options{% if goodreads_hint %} ({{ goodreads_hint }}){% endif %}"
+                        {% if goodreads_hint %}title="{{ goodreads_hint }}"{% endif %}>&#8230;</button>
+                {% if goodreads_hint %}<span class="tag-goodreads-dot" aria-hidden="true"></span>{% endif %}
                 <ul class="dropdown-menu" style="min-width: 0;">
                     {# Default walks the book chain: Goodreads, then Hardcover,
                        then Google Books. The entries below aim at one source,

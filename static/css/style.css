@@ -1724,6 +1724,26 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     cursor: pointer;
 }
 
+/* Notification dot on the tag menu's ellipsis for books Goodreads hasn't
+   tagged. Amber rather than red: it's a nudge that better tags are probably
+   available, not an error. Ringed in the page background so it reads as
+   sitting on the button's corner. Clicks pass through to the button, which
+   carries the explanation as its tooltip and accessible label. */
+.tag-goodreads-dot {
+    position: absolute;
+    /* Placed against the glyph, not the button's box: the "…" sits on the
+       baseline at the bottom of its line box, so a dot pinned to the corner
+       floats clear of it. This tucks it just above-right of the last dot. */
+    top: 0.3rem;
+    right: 0;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: #f59e0b;
+    box-shadow: 0 0 0 2px var(--pico-background-color);
+    pointer-events: none;
+}
+
 /* Where a book's tags came from. Quiet — it answers a question you only ask
    when the tags look thin, and shouldn't compete with the tags themselves. */
 .tag-source-note {
