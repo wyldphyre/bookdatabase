@@ -4,6 +4,7 @@ from models import db, PriceWatch
 from utils import clean_external_url
 from scrapers import scrape_amazon, ScrapeBlockedError
 from price_watch import run_price_checks
+from notifications import pushover_configured
 
 price_watch_bp = Blueprint('price_watch', __name__)
 
@@ -11,7 +12,8 @@ price_watch_bp = Blueprint('price_watch', __name__)
 @price_watch_bp.route('/price-watch', endpoint='price_watch_list')
 def price_watch_list():
     watches = PriceWatch.query.order_by(PriceWatch.created_at.desc()).all()
-    return render_template('price_watch/list.html', watches=watches)
+    return render_template('price_watch/list.html', watches=watches,
+                           pushover_configured=pushover_configured())
 
 
 @price_watch_bp.route('/price-watch/add', methods=['POST'], endpoint='price_watch_add')
@@ -37,6 +39,7 @@ def price_watch_add():
         cover_url=data.get('cover_url'),
         initial_price=data['price'],
         current_price=data['price'],
+        notified_price=data['price'],   # you saw this price when adding it
         currency=data.get('currency'),
     )
     db.session.add(watch)

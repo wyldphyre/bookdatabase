@@ -1724,6 +1724,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     cursor: pointer;
 }
 
+/* Price watch: a drop that was found but not yet sent. Amber like the
+   Goodreads dot — something is owed, nothing is broken. */
+.price-drop-pending {
+    margin-left: 0.35rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 0.25rem;
+    background: #f59e0b;
+    color: #1f1300;
+    font-size: 0.75em;
+    white-space: nowrap;
+}
+
+.price-watch-unconfigured {
+    margin-bottom: 1rem;
+}
+
 /* Notification dot on the tag menu's ellipsis for books Goodreads hasn't
    tagged. Amber rather than red: it's a nudge that better tags are probably
    available, not an error. Ringed in the page background so it reads as

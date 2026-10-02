@@ -3,7 +3,7 @@ from sqlalchemy.engine import Engine
 
 from models import db, BookFormat, AuthorGender
 
-CURRENT_SCHEMA_VERSION = 13
+CURRENT_SCHEMA_VERSION = 14
 
 
 @event.listens_for(Engine, 'connect')
@@ -79,6 +79,14 @@ def _migrate_data_genre_source(cursor):
                    "AND id IN (SELECT DISTINCT book_id FROM book_tags)")
 
 
+def _migrate_data_notified_price(cursor):
+    """v14 data step: start every watch as already notified at its current
+    price. Drops before this version were sent (or lost) under the old rule;
+    there is no record of which, so the safe baseline is "nothing pending"."""
+    cursor.execute("UPDATE price_watch SET notified_price = current_price "
+                   "WHERE notified_price IS NULL")
+
+
 # Every entry here rewrites *data* rather than schema, so it has to be re-run
 # against rows arriving from an older export as well as against this
 # instance's own rows. Keyed by the version that introduced the step.
@@ -88,6 +96,7 @@ DATA_MIGRATIONS = {
     11: _migrate_data_baseline_done,
     12: _migrate_data_match_keys,
     13: _migrate_data_genre_source,
+    14: _migrate_data_notified_price,
 }
 
 
@@ -233,6 +242,14 @@ def run_migrations():
             if 'genre_source' not in columns:
                 cursor.execute("ALTER TABLE book ADD COLUMN genre_source VARCHAR(20)")
             _migrate_data_genre_source(cursor)
+            conn.commit()
+
+        if version < 14:
+            cursor.execute("PRAGMA table_info(price_watch)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'notified_price' not in columns:
+                cursor.execute("ALTER TABLE price_watch ADD COLUMN notified_price FLOAT")
+            _migrate_data_notified_price(cursor)
             conn.commit()
 
         if version < CURRENT_SCHEMA_VERSION:

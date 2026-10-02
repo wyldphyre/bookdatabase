@@ -10,7 +10,7 @@ from scrapers import scrape_goodreads_series, scrape_amazon_series, ScrapeBlocke
 from author_info import lookup_author_info
 import hardcover
 import genre_sources
-from notifications import (send_pushover_notification, get_pushover_priority,
+from notifications import (send_pushover_notification, get_pushover_priority, pushover_configured,
                            PUSHOVER_PRIORITIES, VALID_PRIORITIES, PRIORITY_SETTING_KEY)
 from utils import start_thumbnail_backfill
 from data_transfer import (build_export_zip, validate_import_zip, apply_import,
@@ -96,7 +96,6 @@ def system():
             changelog = json.load(f)
     except (OSError, ValueError):
         changelog = []
-    pushover_configured = bool(os.environ.get('PUSHOVER_USER_KEY')) and bool(os.environ.get('PUSHOVER_APP_TOKEN'))
     return render_template('system.html',
                            tag_sources=genre_sources.source_status(),
                            scan=_snapshot(genre_scan, genre_scan_lock),
@@ -105,7 +104,7 @@ def system():
                            suggestions=_load_suggestions(),
                            version=current_app.config['APP_VERSION'],
                            changelog=changelog,
-                           pushover_configured=pushover_configured,
+                           pushover_configured=pushover_configured(),
                            pushover_priority=get_pushover_priority(),
                            pushover_priorities=PUSHOVER_PRIORITIES,
                            export=_export_snapshot(),

@@ -6,6 +6,20 @@
 
 {% block content %}
 
+{% if not pushover_configured %}
+{# The System page just hides its Pushover section when unconfigured, which
+   reads the same as "nothing to see". Say it plainly here, where it matters:
+   drops are still found, they just can't be sent. #}
+<div class="flash flash-warning price-watch-unconfigured">
+    <strong>Price drop notifications are off.</strong>
+    Pushover isn't configured, so drops are still detected and kept as pending,
+    but nothing is sent. Set <code>PUSHOVER_USER_KEY</code> and
+    <code>PUSHOVER_APP_TOKEN</code> &mdash; under Docker, both in the compose
+    file's environment section and in the <code>.env</code> beside it.
+    Pending drops are sent on the first check after that.
+</div>
+{% endif %}
+
 <form method="post" action="{{ url_for('price_watch.price_watch_add') }}" class="edit-form">
     <label>
         Amazon Kindle URL

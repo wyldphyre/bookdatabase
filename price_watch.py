@@ -38,13 +38,28 @@ def run_price_checks(app):
                 continue
 
             new_price = data['price']
-            if watch.current_price is not None and new_price < watch.current_price:
+            # Measure from the price you were last told about, not the last
+            # price seen. Previously the alert's success was ignored and the
+            # new price recorded regardless, so a drop that couldn't be sent
+            # (Pushover misconfigured, or down) was absorbed for good — the
+            # next check compared against the already-lower price and stayed
+            # silent. Now an unsent drop stays pending and is retried.
+            reference = watch.notified_price if watch.notified_price is not None else watch.current_price
+            if reference is not None and new_price < reference:
                 currency = watch.currency or ''
-                send_pushover_notification(
+                sent = send_pushover_notification(
                     title='Price drop!',
-                    message=f'{watch.title}: {currency}{watch.current_price:g} → {currency}{new_price:g}',
+                    message=f'{watch.title}: {currency}{reference:g} → {currency}{new_price:g}',
                     url=watch.amazon_url,
                 )
+                if sent:
+                    watch.notified_price = new_price
+            else:
+                # A rise or no change. Rises aren't announced, but they move
+                # the baseline so a later fall is measured from the higher
+                # price — the same behaviour as before. This also clears a
+                # pending drop the price has since recovered from.
+                watch.notified_price = new_price
 
             watch.current_price = new_price
             if data.get('currency'):

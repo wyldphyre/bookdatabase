@@ -31,6 +31,13 @@ def get_pushover_priority():
     return priority if priority in VALID_PRIORITIES else DEFAULT_PRIORITY
 
 
+def pushover_configured():
+    """Whether both Pushover settings reached this process. The one place that
+    answers it, so the System page, the Price Watch page and the sender can't
+    disagree about whether notifications are possible."""
+    return bool(os.environ.get('PUSHOVER_USER_KEY')) and bool(os.environ.get('PUSHOVER_APP_TOKEN'))
+
+
 def send_pushover_notification(title, message, url=None):
     """Send a push notification via Pushover. Returns True on success."""
     user_key = os.environ.get('PUSHOVER_USER_KEY')

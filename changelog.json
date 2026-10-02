@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.8.7",
+    "date": "2026-10-03",
+    "changes": [
+      "Stop losing price drop alerts that couldn't be sent. A price check recorded the new lower price whether or not the notification went out, so if Pushover wasn't configured — or was down — the drop was simply absorbed: the next check compared against the already-lower price and stayed silent, and nothing on the page said a notification had been missed. Each watch now remembers the last price you were told about, and a drop only counts as notified once Pushover accepts it. Until then it is marked \"notification pending\" on the Price Watch page and retried on every check, measured from the price you last knew, so it arrives as soon as notifications work again. Rises still move the baseline silently, as before, and a pending drop the price recovers from is cleared rather than announced late",
+      "Warn on the Price Watch page when Pushover isn't configured. The System page only hid its Pushover section in that case, which looked the same as having nothing to show; the Price Watch page now says plainly that notifications are off and what to set. Both pages use the same check"
+    ]
+  },
+  {
     "version": "1.8.6",
     "date": "2026-09-26",
     "changes": [

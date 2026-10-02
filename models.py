@@ -329,6 +329,11 @@ class PriceWatch(db.Model):
     cover_url = db.Column(db.String(500))
     initial_price = db.Column(db.Float)
     current_price = db.Column(db.Float)
+    # The price you were last told about (or that a rise silently moved it to).
+    # Drops are measured from here rather than from current_price, and it only
+    # moves down once Pushover has accepted the alert — so a drop that couldn't
+    # be sent is retried on the next check instead of being quietly absorbed.
+    notified_price = db.Column(db.Float)
     currency = db.Column(db.String(10))
     last_checked_at = db.Column(db.DateTime)
     last_error = db.Column(db.String(300))
@@ -337,3 +342,9 @@ class PriceWatch(db.Model):
     @property
     def dropped(self):
         return self.current_price is not None and self.initial_price is not None and self.current_price < self.initial_price
+
+    @property
+    def drop_unnotified(self):
+        """A drop has been seen but no alert for it has gone out yet."""
+        return (self.current_price is not None and self.notified_price is not None
+                and self.current_price < self.notified_price)

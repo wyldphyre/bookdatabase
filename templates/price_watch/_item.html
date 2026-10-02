@@ -17,6 +17,9 @@
             {% if watch.dropped %}
             <mark class="tag-label">&#8595; was {{ watch.currency or '' }}{{ '%.2f'|format(watch.initial_price) }}</mark>
             {% endif %}
+            {% if watch.drop_unnotified %}
+            <span class="price-drop-pending" title="Dropped from {{ watch.currency or '' }}{{ '%.2f'|format(watch.notified_price) }}, but the notification hasn't gone out yet. It's retried on every check until Pushover accepts it.">notification pending</span>
+            {% endif %}
         </small>
         {% if watch.last_checked_at %}
         <small class="secondary">Checked {{ watch.last_checked_at.strftime('%b %d, %Y') }}</small>
