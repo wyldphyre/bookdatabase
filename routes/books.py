@@ -623,22 +623,32 @@ def book_update_tags(id):
         flash('Unknown tag source', 'error')
         return redirect(url_for('books.book_detail', id=id))
 
+    # Errors only escape here when a source was asked for by name; the default
+    # chain skips a blocked or misconfigured source and reports blocks below.
+    blocked = []
     try:
-        genres, used = genre_sources.fetch_genres(book, source)
+        genres, used = genre_sources.fetch_genres(book, source, blocked=blocked)
     except (ScrapeBlockedError, hardcover.HardcoverAuthError,
             googlebooks.GoogleBooksAuthError) as e:
         flash(str(e), 'error')
         return redirect(url_for('books.book_detail', id=id))
 
     if not genres:
-        flash(_no_genres_message(source, genres), 'warning')
+        # If Goodreads turned us away, that is the useful thing to say: the
+        # others had nothing, and the best source wasn't really asked.
+        message = blocked[0][1] if blocked else _no_genres_message(source, genres)
+        flash(message, 'warning')
         return redirect(url_for('books.book_detail', id=id))
 
     added = genre_sources.apply_genres(book, genres, used)
+    label = genre_sources.LABELS.get(used, used)
     if added:
-        flash(f'Added {len(added)} tag(s) from {used.title()}: {", ".join(added)}', 'success')
+        flash(f'Added {len(added)} tag(s) from {label}: {", ".join(added)}', 'success')
     else:
-        flash(f'{used.title()} listed nothing this book was not already tagged with', 'success')
+        flash(f'{label} listed nothing this book was not already tagged with', 'success')
+    if blocked:
+        flash(f'{genre_sources.LABELS[blocked[0][0]]} is blocking requests at the moment, so these '
+              f'came from {label} instead. Try "Fetch from Goodreads" later for fuller tags.', 'warning')
 
     return redirect(url_for('books.book_detail', id=id))
 

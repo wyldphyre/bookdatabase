@@ -16,7 +16,7 @@ import logging
 from models import db, Tag
 import hardcover
 import googlebooks
-from scrapers import search_goodreads_for_book, scrape_goodreads
+from scrapers import search_goodreads_for_book, scrape_goodreads, ScrapeBlockedError
 
 AUTO = 'auto'
 HARDCOVER = 'hardcover'
@@ -159,7 +159,13 @@ def _provider(name):
 _AUTH_ERRORS = (hardcover.HardcoverAuthError, googlebooks.GoogleBooksAuthError)
 
 
-def fetch_genres(book, source=AUTO, chain=BOOK_CHAIN, unavailable=()):
+def fallbacks_configured():
+    """Whether any source other than Goodreads can answer. When Goodreads
+    blocks, this decides whether there is anything left worth asking."""
+    return hardcover.is_configured() or googlebooks.is_configured()
+
+
+def fetch_genres(book, source=AUTO, chain=BOOK_CHAIN, unavailable=(), blocked=None):
     """Genres for one book, and which source supplied them.
 
     Returns (genres, source_used). genres is a list, or None when the last
@@ -177,7 +183,11 @@ def fetch_genres(book, source=AUTO, chain=BOOK_CHAIN, unavailable=()):
 
     A broken token stops that one source rather than the chain: it is logged
     and the next source is tried, because a misconfigured key is no reason to
-    leave a book untagged. Asking for that source by name still raises.
+    leave a book untagged. A source that blocks us is skipped the same way — a
+    site turning us away is a fact about the site, not the book — and is
+    appended as (source, message) to `blocked` when the caller passes a list,
+    so it can tell the user or retire that source. Asking for a source by name
+    still raises either error.
     """
     if source not in SOURCES:
         raise ValueError(f'unknown genre source: {source!r}')
@@ -193,12 +203,21 @@ def fetch_genres(book, source=AUTO, chain=BOOK_CHAIN, unavailable=()):
         except _AUTH_ERRORS as e:
             logging.warning('Skipping %s: %s', LABELS[name], e)
             continue
+        except ScrapeBlockedError as e:
+            logging.warning('Skipping %s: %s', LABELS[name], e)
+            if blocked is not None:
+                blocked.append((name, str(e)))
+            continue
         last = name
         if genres:
             return genres, name
         result = genres          # keep the last answer, None included
 
     return result, last
+
+
+# Quality order, for apply_genres: the recorded source only ever moves up.
+_SOURCE_RANK = {GOOGLEBOOKS: 1, HARDCOVER: 2, GOODREADS: 3}
 
 
 def apply_genres(book, genres, source=None):
@@ -209,11 +228,12 @@ def apply_genres(book, genres, source=None):
     case-insensitively, which is what keeps a lowercase 'litrpg' from becoming
     a second tag beside an existing 'LitRPG'.
 
-    `source` records which source supplied them, so a later scan can find the
-    books a fallback tagged while Goodreads was unavailable and go back for
-    better ones. Recorded whenever a source answered, even if it said nothing
-    this book didn't already have — it was still asked, and that is what the
-    filter is asking about.
+    `source` records the best source that has supplied this book's genres, so
+    a later scan can find the books only a fallback has tagged and go back for
+    better ones. Recorded whenever a source answers — even with nothing new,
+    since it was still asked — but never moved *down* the ranking: once
+    Goodreads has tagged a book, a later Hardcover answer (an "Every book" scan
+    asks Hardcover first) must not make it look as if Goodreads never had.
     """
     existing = {t.name.lower() for t in book.tags}
     added = []
@@ -229,7 +249,8 @@ def apply_genres(book, genres, source=None):
         existing.add(name.lower())
         added.append(tag.name)
 
-    changed_source = bool(source) and book.genre_source != source
+    changed_source = (bool(source) and book.genre_source != source
+                      and _SOURCE_RANK.get(source, 0) >= _SOURCE_RANK.get(book.genre_source, 0))
     if changed_source:
         book.genre_source = source
     if added or changed_source:

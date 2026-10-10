@@ -98,11 +98,11 @@
             {% elif entry.status == 'skipped' %}
             &mdash; <em>already has tags</em>
             {% elif entry.status == 'not_found' %}
-            &mdash; <em>not found on Hardcover or Goodreads</em>
+            &mdash; <em>not found by any source</em>
             {% elif entry.status == 'no_genres' %}
             &mdash; <em>no genres listed</em>
             {% elif entry.status == 'source_unavailable' %}
-            &mdash; <em>not in Hardcover, and Goodreads was unavailable</em>
+            &mdash; <em>no other source had it, and Goodreads was unavailable</em>
             {% elif entry.status == 'blocked' %}
             &mdash; <em>{{ entry.message }}</em>
             {% elif entry.status == 'error' %}

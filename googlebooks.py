@@ -38,7 +38,9 @@ MIN_REQUEST_INTERVAL_SECONDS = 1.0
 
 REQUEST_TIMEOUT_SECONDS = 20
 
-_CANDIDATES_PER_SEARCH = 5
+# A plain-text search ranks looser than a field-scoped one would, so look a
+# little further down the results for the verified match.
+_CANDIDATES_PER_SEARCH = 10
 
 
 class GoogleBooksAuthError(Exception):
@@ -49,6 +51,31 @@ class GoogleBooksAuthError(Exception):
     you looking in the wrong place. The chain falls through past it; asking
     for Google Books directly reports it.
     """
+
+
+# Google's error bodies say *why* a request failed; the status code alone
+# doesn't. A bad key is HTTP 400 (API_KEY_INVALID), but so is a malformed
+# query, and 403 covers both a disabled Books API and an exhausted daily quota
+# — so only the reasons below mean the key or its project needs fixing.
+_KEY_REASONS = {'API_KEY_INVALID', 'keyInvalid', 'SERVICE_DISABLED', 'accessNotConfigured',
+                'API_KEY_SERVICE_BLOCKED', 'API_KEY_IP_ADDRESS_BLOCKED',
+                'API_KEY_HTTP_REFERRER_BLOCKED'}
+_QUOTA_REASONS = {'RATE_LIMIT_EXCEEDED', 'RESOURCE_EXHAUSTED', 'dailyLimitExceeded',
+                  'rateLimitExceeded', 'userRateLimitExceeded', 'quotaExceeded'}
+
+
+def _error_reasons(response):
+    """Every reason code in a Google API error body, from both the legacy
+    error.errors[].reason and the newer error.details[].reason, plus the
+    top-level status."""
+    try:
+        error = (response.json() or {}).get('error') or {}
+    except ValueError:
+        return set()
+    reasons = {e.get('reason') for e in error.get('errors') or []}
+    reasons |= {d.get('reason') for d in error.get('details') or []}
+    reasons.add(error.get('status'))
+    return {r for r in reasons if r}
 
 
 def _token():
@@ -68,10 +95,13 @@ def _best_volume(volumes):
 def lookup_genres(title, author=''):
     """Categories for a book, or [] when Google Books can't confidently supply any.
 
-    Unlike Hardcover this queries title *and* author together: Google's
-    `intitle:`/`inauthor:` operators are field-scoped, so naming the author
-    narrows rather than pollutes. The result is still verified afterwards,
-    because the operators match loosely.
+    Searches plain text — title and first author — and relies on the title
+    and author checks afterwards to reject anything that isn't the book.
+    Google's field operators (`intitle:`, `inauthor:`, `isbn:`) would be the
+    natural way to ask, but since late September 2026 any query using them
+    returns zero results with HTTP 200 and no error, while plain-text
+    queries still work. Asking with operators made this source silently find
+    nothing for every book.
 
     Returns [] for every ordinary failure so the caller moves on to the next
     source. GoogleBooksAuthError is the exception, being a broken key rather
@@ -81,33 +111,37 @@ def lookup_genres(title, author=''):
     if not key or not (title or '').strip():
         return []
 
-    query = f'intitle:"{title}"'
+    # One author is enough to disambiguate, and the full list of a comic's
+    # contributors would over-constrain the query.
+    query = title.strip()
     if author:
-        # One author is enough to disambiguate, and the full list of a comic's
-        # contributors would over-constrain the query.
-        query += f' inauthor:"{author.split(",")[0].strip()}"'
+        query += ' ' + author.split(',')[0].strip()
 
     throttle(API_HOST, MIN_REQUEST_INTERVAL_SECONDS)
     try:
+        # The key goes in a header, not the query string: requests puts the
+        # full URL into its exception messages, so a key in the URL ends up in
+        # the log on any connection error.
         response = requests.get(
             API_URL,
-            params={'q': query, 'maxResults': _CANDIDATES_PER_SEARCH, 'key': key},
+            params={'q': query, 'maxResults': _CANDIDATES_PER_SEARCH},
+            headers={'X-goog-api-key': key},
             timeout=REQUEST_TIMEOUT_SECONDS)
     except requests.RequestException as e:
         logging.warning('Google Books lookup for %r failed: %s', title, e)
         return []
 
-    if response.status_code in (400, 401, 403):
-        raise GoogleBooksAuthError(
-            'Google Books rejected the API key — check GOOGLEBOOKS_TOKEN, and that the '
-            'Books API is enabled for its project in the Google Cloud console.')
-
-    if response.status_code == 429:
-        logging.warning('Google Books quota exhausted while looking up %r', title)
-        return []
-
     if response.status_code != 200:
-        logging.warning('Google Books returned HTTP %s for %r', response.status_code, title)
+        reasons = _error_reasons(response)
+        if reasons & _KEY_REASONS:
+            raise GoogleBooksAuthError(
+                'Google Books rejected the API key — check GOOGLEBOOKS_TOKEN, and that the '
+                'Books API is enabled for its project in the Google Cloud console.')
+        if response.status_code == 429 or reasons & _QUOTA_REASONS:
+            logging.warning('Google Books quota exhausted while looking up %r', title)
+        else:
+            logging.warning('Google Books returned HTTP %s (%s) for %r', response.status_code,
+                            ', '.join(sorted(reasons)) or 'no reason given', title)
         return []
 
     try:

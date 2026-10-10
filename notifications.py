@@ -40,11 +40,11 @@ def pushover_configured():
 
 def send_pushover_notification(title, message, url=None):
     """Send a push notification via Pushover. Returns True on success."""
-    user_key = os.environ.get('PUSHOVER_USER_KEY')
-    app_token = os.environ.get('PUSHOVER_APP_TOKEN')
-    if not user_key or not app_token:
+    if not pushover_configured():
         logging.warning('Pushover not configured (PUSHOVER_USER_KEY/PUSHOVER_APP_TOKEN) — skipping notification')
         return False
+    user_key = os.environ['PUSHOVER_USER_KEY']
+    app_token = os.environ['PUSHOVER_APP_TOKEN']
 
     payload = {
         'token': app_token,

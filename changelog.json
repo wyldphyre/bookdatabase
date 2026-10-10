@@ -1,5 +1,18 @@
 [
   {
+    "version": "1.8.8",
+    "date": "2026-10-10",
+    "changes": [
+      "Fix Fetch tags giving up when Goodreads is blocking. On a book's page the default Fetch tags asks Goodreads first, and a block ended the whole fetch with an error, so Hardcover and Google Books were never asked. A blocked source is now skipped and the next one tried; if another source supplies tags you're told Goodreads was blocking, so you know to try Fetch from Goodreads later for fuller ones",
+      "Fix the genre scan stopping when Goodreads blocks if Hardcover isn't set up, even with Google Books available to carry on. It now continues as long as any other source is configured",
+      "Stop a lesser source overwriting the record that Goodreads tagged a book. Fetch from Hardcover, or an \"every book\" scan (which asks Hardcover first), relabelled Goodreads-tagged books, putting the orange dot back on them and sweeping them into the \"not yet tagged from Goodreads\" scan. The record now only moves towards a better source",
+      "Fix Google Books finding nothing at all. Since late September Google has returned no results for searches that name a field (title, author or ISBN) while still reporting success, and this source searched that way for every book. It now searches by plain title and author and checks the match itself, as it already did",
+      "Keep the Google Books API key out of the logs, where a connection error could print it, and stop reporting a used-up daily quota as a rejected key",
+      "Show Google Books by name in tag messages and the scan log, rather than \"Googlebooks\", and stop the scan log naming only two of the three sources it checks",
+      "Make the … menus on a book's page find their own menu, so nothing placed beside the button can stop them opening again"
+    ]
+  },
+  {
     "version": "1.8.7",
     "date": "2026-10-03",
     "changes": [

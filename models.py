@@ -157,8 +157,9 @@ class Book(db.Model):
     goodreads_url = db.Column(db.String(500))
     amazon_url = db.Column(db.String(500))
     parent_id = db.Column(db.Integer, db.ForeignKey('book.id'), index=True)
-    # Which source last supplied this book's genres, so a scan can go back
-    # for the ones a fallback tagged while Goodreads was refusing to talk.
+    # The best source that has supplied this book's genres (Goodreads, then
+    # Hardcover, then Google Books), so a scan can go back for the ones only
+    # a fallback has tagged. Never moves down — see genre_sources.apply_genres.
     genre_source = db.Column(db.String(20))
 
     authors = db.relationship('Author', secondary=book_authors, back_populates='books')

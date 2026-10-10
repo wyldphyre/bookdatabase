@@ -8,7 +8,6 @@ from sqlalchemy.orm import joinedload
 from models import db, Book, Series, Tag, Author, AuthorGender, AuthorInfoSuggestion, set_setting
 from scrapers import scrape_goodreads_series, scrape_amazon_series, ScrapeBlockedError
 from author_info import lookup_author_info
-import hardcover
 import genre_sources
 from notifications import (send_pushover_notification, get_pushover_priority, pushover_configured,
                            PUSHOVER_PRIORITIES, VALID_PRIORITIES, PRIORITY_SETTING_KEY)
@@ -409,9 +408,36 @@ def _run_genre_scan(app, scope):
                 # it takes the sources that can't block first and leaves
                 # Goodreads — the best of them, and the one that stops
                 # answering — for whatever the others could not place.
+                blocked = []
                 genres, source = genre_sources.fetch_genres(
                     book, chain=genre_sources.SCAN_CHAIN,
-                    unavailable=(genre_sources.GOODREADS,) if goodreads_blocked else ())
+                    unavailable=(genre_sources.GOODREADS,) if goodreads_blocked else (),
+                    blocked=blocked)
+
+                if blocked and not goodreads_blocked:
+                    # Goodreads is turning us away, so every later book would
+                    # fail there too — stop asking it for the rest of the run,
+                    # and carry on with the other sources if any are set up.
+                    # Only when none are is there nothing left to scan with.
+                    goodreads_blocked = True
+                    message = blocked[0][1]
+                    no_fallback = not genre_sources.fallbacks_configured()
+                    with genre_scan_lock:
+                        genre_scan['results'].append({
+                            'book': book.title,
+                            'status': 'blocked',
+                            'message': message,
+                        })
+                        genre_scan['stop_reason'] = message
+                        if no_fallback:
+                            genre_scan['stop_requested'] = True
+                    if no_fallback:
+                        break
+                    if not genres:
+                        # The blocked line above already accounts for this book.
+                        time.sleep(1)
+                        continue
+
                 if genres is None:
                     # Goodreads couldn't identify the book at all.
                     with genre_scan_lock:
@@ -442,28 +468,10 @@ def _run_genre_scan(app, scope):
                     genre_scan['results'].append({
                         'book': book.title,
                         'status': 'found',
-                        'source': source,
+                        'source': genre_sources.LABELS.get(source, source),
                         'tags': new_tags if new_tags else genres,
                     })
 
-            except ScrapeBlockedError as e:
-                # Goodreads is turning us away, so every later book would fail
-                # there too — stop asking it. That used to end the scan, which
-                # is right when Goodreads is the only source but wasteful now:
-                # Hardcover answers for most of this library and isn't blocking
-                # us, so the run carries on with whatever it can still tag.
-                with genre_scan_lock:
-                    genre_scan['results'].append({
-                        'book': book.title,
-                        'status': 'blocked',
-                        'message': str(e),
-                    })
-                    genre_scan['stop_reason'] = str(e)
-                    if not hardcover.is_configured():
-                        genre_scan['stop_requested'] = True
-                if not hardcover.is_configured():
-                    break
-                goodreads_blocked = True
             except Exception as e:
                 # Leave the session usable. Without this a failed write — an
                 # IntegrityError, or SQLite refusing a locked database while the

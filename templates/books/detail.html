@@ -119,10 +119,6 @@
             {% set goodreads_hint = 'Not yet tagged from Goodreads' ~ (' — current tags came from ' ~ source_labels.get(book.genre_source, book.genre_source) if book.genre_source else '') %}
             {% endif %}
             <div class="tag-options-dropdown" style="position: relative; display: inline-block;">
-                {# Must stay BEFORE the button: toggleDropdownMenu opens the
-                   button's next sibling, so anything between the two
-                   swallows the click. Absolutely positioned, so order
-                   doesn't affect where it draws. #}
                 {% if goodreads_hint %}<span class="tag-goodreads-dot" aria-hidden="true"></span>{% endif %}
                 <button type="button" class="ellipsis-btn" onclick="toggleDropdownMenu(this)"
                         aria-label="Tag options{% if goodreads_hint %} ({{ goodreads_hint }}){% endif %}"
@@ -522,7 +518,10 @@ function toggleQueueDropdown(btn) {
 }
 
 function toggleDropdownMenu(btn) {
-    const menu = btn.nextElementSibling;
+    // Find the menu within the button's own wrapper rather than taking
+    // btn.nextElementSibling: anything placed between the two (v1.8.5's
+    // notification dot did exactly this) would otherwise swallow the click.
+    const menu = btn.parentElement.querySelector(':scope > .dropdown-menu');
     menu.classList.toggle('show');
     if (menu.classList.contains('show')) {
         // Reset to the CSS default, then flip toward whichever side
