@@ -1,0 +1,139 @@
+{# Tag picker shared by the book, author and series forms. Set `selected_tags`
+   before including; the chosen tags post as `tags` ids. #}
+<fieldset>
+    <legend>Tags</legend>
+
+    <div id="selected-tags" class="selected-tags">
+        {% for tag in selected_tags %}
+        {% include 'books/_tag_chip.html' %}
+        {% endfor %}
+    </div>
+
+    <div class="tag-picker">
+        <div class="tag-picker-row">
+            <input type="text"
+                   id="tag-search"
+                   placeholder="Search for tags..."
+                   autocomplete="off"
+                   hx-get="{{ url_for('system.tag_search') }}"
+                   hx-trigger="input changed delay:200ms, focus"
+                   hx-target="#tag-search-results"
+                   hx-vals='js:{exclude: Array.from(document.querySelectorAll("#selected-tags input[name=tags]")).map(i => i.value).join(",")}'
+                   name="q">
+            <button type="button" class="outline secondary tag-new-btn" onclick="toggleNewTag()">+ New</button>
+            <button type="button" class="outline secondary tag-new-btn" onclick="togglePasteTags()">Paste list</button>
+        </div>
+        <div id="tag-search-results"></div>
+    </div>
+
+    <div id="quick-add-tag-form" hidden class="quick-add-tag-form">
+        <input type="text" name="tag_name" id="new-tag-name" placeholder="New tag name...">
+        <button type="button" class="secondary tag-new-btn"
+                hx-post="{{ url_for('system.tag_quick_add') }}"
+                hx-include="#new-tag-name"
+                hx-target="#selected-tags"
+                hx-swap="beforeend"
+                hx-on::after-request="document.getElementById('quick-add-tag-form').hidden = true; document.getElementById('new-tag-name').value = '';">
+            Add
+        </button>
+    </div>
+
+    <div id="paste-tags-form" hidden class="quick-add-tag-form">
+        <textarea id="paste-tags-text" rows="4"
+                  placeholder="One tag per line, or separated by commas"></textarea>
+        <button type="button" class="secondary tag-new-btn" onclick="submitPastedTags()">Add all</button>
+    </div>
+
+    <p id="tag-paste-status" class="tag-paste-status" aria-live="polite"></p>
+</fieldset>
+
+<script>
+function toggleNewTag() {
+    const form = document.getElementById('quick-add-tag-form');
+    form.hidden = !form.hidden;
+    if (!form.hidden) document.getElementById('new-tag-name').focus();
+}
+
+function togglePasteTags() {
+    const form = document.getElementById('paste-tags-form');
+    form.hidden = !form.hidden;
+    if (!form.hidden) document.getElementById('paste-tags-text').focus();
+}
+
+// Returns false when the tag was already selected
+function addTag(id, name) {
+    if (document.querySelector('#selected-tags [data-tag-id="' + id + '"]')) {
+        return false;
+    }
+
+    const chip = document.createElement('span');
+    chip.className = 'tag-chip';
+    chip.dataset.tagId = id;
+    chip.appendChild(document.createTextNode(name));
+    chip.insertAdjacentHTML('beforeend',
+        '<input type="hidden" name="tags" value="' + id + '">' +
+        '<button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>');
+
+    document.getElementById('selected-tags').appendChild(chip);
+    document.getElementById('tag-search').value = '';
+    document.getElementById('tag-search-results').innerHTML = '';
+    return true;
+}
+
+// Resolve a pasted list server-side (creating unknown tags) and add the chips.
+// Says which tags were new, since a paste creates them without asking.
+async function addTagList(text) {
+    const status = document.getElementById('tag-paste-status');
+    const formData = new FormData();
+    formData.append('tag_text', text);
+    try {
+        const response = await fetch('{{ url_for("system.tag_bulk_add") }}', { method: 'POST', body: formData });
+        if (!response.ok) throw new Error('Failed to add tags');
+        const data = await response.json();
+        const added = data.tags.filter(t => addTag(t.id, t.name)).length;
+
+        const parts = [];
+        if (added) parts.push('Added ' + added + (added === 1 ? ' tag' : ' tags'));
+        else if (data.tags.length) parts.push('Those tags were already added');
+        if (data.created.length) parts.push('new: ' + data.created.join(', '));
+        if (data.skipped) parts.push(data.skipped + ' skipped as too long for a tag');
+        status.textContent = parts.length ? parts.join('; ') + '.' : 'No tag names found.';
+        return true;
+    } catch (e) {
+        status.textContent = "Couldn't add those tags. Please try again.";
+        return false;
+    }
+}
+
+async function submitPastedTags() {
+    const textarea = document.getElementById('paste-tags-text');
+    if (!textarea.value.trim()) return;
+    if (await addTagList(textarea.value)) {
+        textarea.value = '';
+        document.getElementById('paste-tags-form').hidden = true;
+    }
+}
+
+document.getElementById('paste-tags-text').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        submitPastedTags();
+    }
+});
+
+// A list pasted into the search box is added whole; a single name pastes and
+// searches as usual. Trimmed first, so a spreadsheet cell's trailing newline
+// doesn't count as a list.
+document.getElementById('tag-search').addEventListener('paste', function(e) {
+    const text = e.clipboardData.getData('text').trim();
+    if (!/[,\t\r\n]/.test(text)) return;
+    e.preventDefault();
+    addTagList(text);
+});
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.tag-picker')) {
+        document.getElementById('tag-search-results').innerHTML = '';
+    }
+});
+</script>

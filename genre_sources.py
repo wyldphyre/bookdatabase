@@ -240,11 +240,7 @@ def apply_genres(book, genres, source=None):
     for name in genres or []:
         if name.lower() in existing:
             continue
-        tag = Tag.query.filter(db.func.lower(Tag.name) == name.lower()).first()
-        if not tag:
-            tag = Tag(name=name)
-            db.session.add(tag)
-            db.session.flush()
+        tag = Tag.find_or_create(name)
         book.tags.append(tag)
         existing.add(name.lower())
         added.append(tag.name)

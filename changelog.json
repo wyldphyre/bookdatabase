@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.8.9",
+    "date": "2026-10-11",
+    "changes": [
+      "Paste a list of tags into a book, author or series. Pasting a comma-, tab- or line-separated list into the tag search box adds every tag at once, and the new Paste list button opens a box to paste or type one into first (Ctrl/Cmd+Enter adds it). Existing tags are matched regardless of case, tags not seen before are created, and a note under the picker names the new ones so a typo is easy to spot and remove"
+    ]
+  },
+  {
     "version": "1.8.8",
     "date": "2026-10-10",
     "changes": [

@@ -1,5 +1,6 @@
 import os
 import re
+import csv
 import socket
 import ipaddress
 import threading
@@ -125,6 +126,23 @@ def parse_float(value):
         return float(value)
     except ValueError:
         return None
+
+
+def parse_tag_list(text):
+    """Split pasted text into tag names: one per line, comma-separated, or
+    tab-separated (a row copied from a spreadsheet), in any mix. Commas always
+    separate, since no tag uses one, but a quoted "A, B" stays whole for CSV
+    that needs it. Names are trimmed, and repeats dropped case-insensitively,
+    keeping the first spelling and the pasted order."""
+    names, seen = [], set()
+    for row in csv.reader(text.splitlines(), skipinitialspace=True):
+        for field in row:
+            for name in field.split('\t'):
+                name = name.strip()
+                if name and name.lower() not in seen:
+                    seen.add(name.lower())
+                    names.append(name)
+    return names
 
 
 def validate_rating(rating):

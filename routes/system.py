@@ -3,7 +3,7 @@ import json
 import time
 import threading
 from datetime import date, datetime
-from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, send_file
+from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, send_file, jsonify
 from sqlalchemy.orm import joinedload
 from models import db, Book, Series, Tag, Author, AuthorGender, AuthorInfoSuggestion, set_setting
 from scrapers import scrape_goodreads_series, scrape_amazon_series, ScrapeBlockedError
@@ -11,7 +11,7 @@ from author_info import lookup_author_info
 import genre_sources
 from notifications import (send_pushover_notification, get_pushover_priority, pushover_configured,
                            PUSHOVER_PRIORITIES, VALID_PRIORITIES, PRIORITY_SETTING_KEY)
-from utils import start_thumbnail_backfill
+from utils import start_thumbnail_backfill, parse_tag_list
 from data_transfer import (build_export_zip, validate_import_zip, apply_import,
                            ImportValidationError, ImportCoverError, PRE_IMPORT_BACKUP_NAME)
 
@@ -1039,13 +1039,30 @@ def tag_quick_add():
     if not name:
         return '<p class="error">Name is required</p>', 400
 
-    # Check if tag already exists (case-insensitive)
-    existing = Tag.query.filter(db.func.lower(Tag.name) == name.lower()).first()
-    if existing:
-        return render_template('books/_tag_chip.html', tag=existing)
-
-    tag = Tag(name=name)
-    db.session.add(tag)
+    tag = Tag.find_or_create(name)
     db.session.commit()
-
     return render_template('books/_tag_chip.html', tag=tag)
+
+
+@system_bp.route('/tags/bulk-add', methods=['POST'], endpoint='tag_bulk_add')
+def tag_bulk_add():
+    """Resolve a pasted list of tag names for the tag picker, creating any
+    that don't exist yet. Returns JSON so the picker can add the chips and say
+    which tags were new — a paste creates them without asking, so a typo'd
+    name should at least be visible."""
+    max_len = Tag.name.type.length
+    names = parse_tag_list(request.form.get('tag_text', ''))
+    skipped = sum(1 for n in names if len(n) > max_len)
+    names = [n for n in names if len(n) <= max_len]
+
+    existing = {t.name.lower(): t for t in
+                Tag.query.filter(db.func.lower(Tag.name).in_([n.lower() for n in names]))} if names else {}
+    tags, created = [], []
+    for name in names:
+        tag = existing.get(name.lower())
+        if not tag:
+            tag = Tag.find_or_create(name)
+            created.append(tag.name)
+        tags.append({'id': tag.id, 'name': tag.name})
+    db.session.commit()
+    return jsonify(tags=tags, created=created, skipped=skipped)

@@ -43,6 +43,18 @@ class Tag(db.Model):
     authors = db.relationship('Author', secondary=author_tags, back_populates='tags')
     series = db.relationship('Series', secondary=series_tags, back_populates='tags')
 
+    @classmethod
+    def find_or_create(cls, name):
+        """The tag called `name`, matched case-insensitively so a lowercase
+        'litrpg' finds the existing 'LitRPG' rather than becoming a second tag.
+        A new tag is flushed, so it has an id, but the caller commits."""
+        tag = cls.query.filter(db.func.lower(cls.name) == name.lower()).first()
+        if not tag:
+            tag = cls(name=name)
+            db.session.add(tag)
+            db.session.flush()
+        return tag
+
 
 class BookFormat(db.Model):
     id = db.Column(db.Integer, primary_key=True)

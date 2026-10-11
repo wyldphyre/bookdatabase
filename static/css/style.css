@@ -2221,9 +2221,24 @@ mark {
     margin-top: 0.5rem;
 }
 
-.quick-add-tag-form input[type="text"] {
+.quick-add-tag-form input[type="text"],
+.quick-add-tag-form textarea {
     flex: 1;
     margin: 0;
+}
+
+.quick-add-tag-form textarea + .tag-new-btn {
+    align-self: flex-end;
+}
+
+.tag-paste-status {
+    margin: 0.5rem 0 0;
+    font-size: 0.8rem;
+    color: var(--pico-muted-color);
+}
+
+.tag-paste-status:empty {
+    display: none;
 }
 
 .selected-tags {

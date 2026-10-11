@@ -324,15 +324,8 @@ def book_import():
         if book_data:
             # Auto-create tags from genres
             if book_data.get('genres'):
-                tag_ids = []
-                for genre_name in book_data['genres']:
-                    tag = Tag.query.filter(db.func.lower(Tag.name) == genre_name.lower()).first()
-                    if not tag:
-                        tag = Tag(name=genre_name)
-                        db.session.add(tag)
-                        db.session.commit()
-                    tag_ids.append(tag.id)
-                book_data['tag_ids'] = tag_ids
+                book_data['tag_ids'] = [Tag.find_or_create(name).id for name in book_data['genres']]
+                db.session.commit()
 
             # Map detected format (e.g. Kindle) to a format_id
             detected_format = book_data.pop('detected_format', None)

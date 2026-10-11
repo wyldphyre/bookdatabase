@@ -163,12 +163,6 @@
         }
     }
 
-    function toggleNewTag() {
-        const form = document.getElementById('quick-add-tag-form');
-        form.hidden = !form.hidden;
-        if (!form.hidden) document.getElementById('new-tag-name').focus();
-    }
-
     async function quickAddSeries() {
         const nameInput = document.getElementById('new-series-name');
         const name = nameInput.value.trim();
@@ -185,28 +179,9 @@
         } catch (e) {}
     }
 
-    function addTag(id, name) {
-        if (document.querySelector('#selected-tags [data-tag-id="' + id + '"]')) {
-            return;
-        }
-
-        const chip = document.createElement('span');
-        chip.className = 'tag-chip';
-        chip.dataset.tagId = id;
-        chip.appendChild(document.createTextNode(name));
-        chip.insertAdjacentHTML('beforeend',
-            '<input type="hidden" name="tags" value="' + id + '">' +
-            '<button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>');
-
-        document.getElementById('selected-tags').appendChild(chip);
-        document.getElementById('tag-search').value = '';
-        document.getElementById('tag-search-results').innerHTML = '';
-    }
-
     // Close search-result dropdowns when clicking outside their picker
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.tag-picker')) {
-            document.getElementById('tag-search-results').innerHTML = '';
             document.getElementById('author-search-results').innerHTML = '';
             document.getElementById('series-search-results').innerHTML = '';
         }
@@ -529,57 +504,8 @@
         <textarea name="comment" rows="3">{{ book.comment or '' if book else '' }}</textarea>
     </label>
 
-    <fieldset>
-        <legend>Tags</legend>
-
-        <div id="selected-tags" class="selected-tags">
-            {% if book %}
-            {% for tag in book.tags %}
-            <span class="tag-chip" data-tag-id="{{ tag.id }}">
-                {{ tag.name }}
-                <input type="hidden" name="tags" value="{{ tag.id }}">
-                <button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>
-            </span>
-            {% endfor %}
-            {% elif prefill_tags is defined and prefill_tags %}
-            {% for tag in prefill_tags %}
-            <span class="tag-chip" data-tag-id="{{ tag.id }}">
-                {{ tag.name }}
-                <input type="hidden" name="tags" value="{{ tag.id }}">
-                <button type="button" class="chip-remove" onclick="this.parentElement.remove()" aria-label="Remove">&times;</button>
-            </span>
-            {% endfor %}
-            {% endif %}
-        </div>
-
-        <div class="tag-picker">
-            <div class="tag-picker-row">
-                <input type="text"
-                       id="tag-search"
-                       placeholder="Search for tags..."
-                       autocomplete="off"
-                       hx-get="{{ url_for('system.tag_search') }}"
-                       hx-trigger="input changed delay:200ms, focus"
-                       hx-target="#tag-search-results"
-                       hx-vals='js:{exclude: Array.from(document.querySelectorAll("#selected-tags input[name=tags]")).map(i => i.value).join(",")}'
-                       name="q">
-                <button type="button" class="outline secondary tag-new-btn" onclick="toggleNewTag()">+ New</button>
-            </div>
-            <div id="tag-search-results"></div>
-        </div>
-
-        <div id="quick-add-tag-form" hidden class="quick-add-tag-form">
-            <input type="text" name="tag_name" id="new-tag-name" placeholder="New tag name...">
-            <button type="button" class="secondary tag-new-btn"
-                    hx-post="{{ url_for('system.tag_quick_add') }}"
-                    hx-include="#new-tag-name"
-                    hx-target="#selected-tags"
-                    hx-swap="beforeend"
-                    hx-on::after-request="document.getElementById('quick-add-tag-form').hidden = true; document.getElementById('new-tag-name').value = '';">
-                Add
-            </button>
-        </div>
-    </fieldset>
+    {% set selected_tags = book.tags if book else (prefill_tags if prefill_tags is defined else []) %}
+    {% include '_tag_picker.html' %}
 
     <div class="detail-actions">
         <button type="submit">{{ 'Update' if book else 'Add' }} Book</button>
