@@ -120,28 +120,6 @@
 </article>
 
 <article class="bordered-article">
-    <h3>Genre Scanner</h3>
-    <p>Look up genres for each book in your library and import them as tags. Existing tags will be reused.
-       Sources are tried in the order below, and a book stops at the first one that answers.</p>
-
-    <ul class="source-status">
-        {% for source in tag_sources %}
-        <li>
-            <span class="source-status__name">{{ source.name }}</span>
-            <span class="source-status__state source-status__state--{{ 'ready' if source.ready else 'off' }}">
-                {{ 'Ready' if source.ready else 'Not configured' }}
-            </span>
-            <span class="source-status__detail">{{ source.detail }}</span>
-        </li>
-        {% endfor %}
-    </ul>
-
-    <div id="scan-area">
-        {% include "system/_scan_progress.html" %}
-    </div>
-</article>
-
-<article class="bordered-article">
     <h3>Author Gender &amp; Pronoun Scanner</h3>
     <p>Look up gender and pronouns for authors missing them, using their Goodreads bio, Wikipedia, and website.
        Nothing is written automatically &mdash; findings appear below as suggestions with their evidence for you to accept or reject.</p>
@@ -206,7 +184,7 @@ function cancelReplace(tagId) {
 }
 
 // Preserve scan log scroll position across htmx polling swaps
-var scanAreas = ['scan-area', 'series-scan-area', 'author-scan-area'];
+var scanAreas = ['series-scan-area', 'author-scan-area'];
 var scanLogScroll = {};
 document.addEventListener('htmx:beforeSwap', function(e) {
     if (scanAreas.indexOf(e.detail.target.id) !== -1) {

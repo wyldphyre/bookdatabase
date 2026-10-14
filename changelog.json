@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.9.0",
+    "date": "2026-10-14",
+    "changes": [
+      "Remove fetching tags from other sites. Goodreads was the only source whose tags were worth having, and it blocks automated requests after one or two, so it couldn't tag even a book just added; Hardcover and Google Books never tagged a single book in this library. Gone are the Genre Scanner on the System page, the tag menu on a book's page (Fetch tags and the per-source entries), the amber dot and \"from Goodreads\" note beside a book's tags, and the HARDCOVER_TOKEN and GOOGLEBOOKS_TOKEN settings",
+      "To tag a book now, copy the genres from its Goodreads page in your own browser and paste them into the tag box on the edit form (added in v1.8.9). Importing a book from a Goodreads link still brings its genres in as tags"
+    ]
+  },
+  {
     "version": "1.8.9",
     "date": "2026-10-11",
     "changes": [

@@ -735,10 +735,6 @@ a.detail-chip:hover {
     margin: 0.75rem 0 1.5rem;
 }
 
-.tags-row .ellipsis-btn {
-    padding: 0.15rem 0.45rem;
-}
-
 /* Metadata facts — plain "label value" pairs, no card backgrounds. Shared
    by the book, author, and series detail pages. */
 .detail-facts {
@@ -1740,130 +1736,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     margin-bottom: 1rem;
 }
 
-/* Notification dot on the tag menu's ellipsis for books Goodreads hasn't
-   tagged. Amber rather than red: it's a nudge that better tags are probably
-   available, not an error. Ringed in the page background so it reads as
-   sitting on the button's corner. Clicks pass through to the button, which
-   carries the explanation as its tooltip and accessible label. */
-.tag-goodreads-dot {
-    position: absolute;
-    /* Placed against the glyph, not the button's box: the "…" sits on the
-       baseline at the bottom of its line box, so a dot pinned to the corner
-       floats clear of it. This tucks it just above-right of the last dot. */
-    top: 0.3rem;
-    right: 0;
-    width: 0.45rem;
-    height: 0.45rem;
-    border-radius: 50%;
-    background: #f59e0b;
-    box-shadow: 0 0 0 2px var(--pico-background-color);
-    pointer-events: none;
-}
-
-/* Where a book's tags came from. Quiet — it answers a question you only ask
-   when the tags look thin, and shouldn't compete with the tags themselves. */
-.tag-source-note {
-    margin-left: 0.4rem;
-    color: var(--pico-muted-color);
-    font-size: 0.75em;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-/* Scan scope radios: a stacked set, with the explanatory line tucked under
-   the option it belongs to rather than sitting beside the input. */
-.scan-scope label {
-    display: block;
-    margin-bottom: 0.35rem;
-}
-
-.scan-scope label small {
-    display: block;
-    /* Pico pulls <small> up by a negative top margin, meant for helper text
-       sitting directly beneath an input. Here it lands on top of the label's
-       own text instead, so the pull has to be undone rather than reduced. */
-    margin-top: 0.2rem;
-    margin-left: 1.75rem;
-    color: var(--pico-muted-color);
-    font-size: 0.8em;
-    line-height: 1.35;
-}
-
-/* Which genre sources are usable, on the System page. A row per source, the
-   name and state on one line at narrow widths with the explanation beneath. */
-.source-status {
-    margin: 0 0 1rem 0;
-    padding: 0;
-    list-style: none;
-    display: grid;
-    gap: 0.5rem;
-}
-
-.source-status li {
-    display: grid;
-    grid-template-columns: auto auto 1fr;
-    align-items: baseline;
-    gap: 0.25rem 0.6rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--pico-muted-border-color);
-}
-
-.source-status li:last-child {
-    padding-bottom: 0;
-    border-bottom: none;
-}
-
-.source-status__name {
-    font-weight: 600;
-}
-
-.source-status__state {
-    padding: 0.05rem 0.4rem;
-    border-radius: 0.25rem;
-    font-size: 0.75em;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    white-space: nowrap;
-}
-
-.source-status__state--ready {
-    background: var(--pico-ins-color);
-    color: var(--pico-card-background-color);
-}
-
-.source-status__state--off {
-    background: var(--pico-muted-border-color);
-    color: var(--pico-muted-color);
-}
-
-.source-status__detail {
-    grid-column: 1 / -1;
-    color: var(--pico-muted-color);
-    font-size: 0.85em;
-}
-
-@media (min-width: 768px) {
-    .source-status__detail {
-        grid-column: 3;
-    }
-}
-
-/* A disabled menu entry is a <span>, not a button, so it needs the button's
-   metrics restated to keep the menu's rows aligned. */
-.dropdown-menu .menu-item--disabled {
-    display: block;
-    padding: 0.4rem 1rem;
-    color: var(--pico-muted-color);
-    cursor: not-allowed;
-}
-
-/* Divides the default action from the pick-a-source entries below it. */
-.dropdown-menu .menu-separator {
-    height: 1px;
-    margin: 0.25rem 0;
-    background: var(--pico-muted-border-color);
-}
-
 /* Small ellipsis (…) trigger button for option menus — flat icon button,
    not a Pico outline/secondary button */
 button.ellipsis-btn {
@@ -1894,8 +1766,7 @@ button.ellipsis-btn:focus {
     display: inline-block;
 }
 
-.page-actions-dropdown .dropdown-menu,
-.tag-options-dropdown .dropdown-menu {
+.page-actions-dropdown .dropdown-menu {
     left: 0;
     right: auto;
     white-space: nowrap;
@@ -2371,33 +2242,6 @@ ul.tag-search-results {
 .scan-log-entry.not_found em,
 .scan-log-entry.error em {
     color: var(--pico-del-color);
-}
-
-.scan-log-entry.no_genres em {
-    color: var(--pico-muted-color);
-}
-
-/* Not the same as "no genres listed": this book was only ever checked against
-   one source, so it is worth re-running once the other is answering again. */
-.scan-log-entry.source_unavailable em {
-    color: var(--pico-del-color);
-}
-
-.scan-log-entry.found {
-    color: var(--pico-ins-color);
-}
-
-/* Which source supplied the tags. Quiet by design — it matters when reading
-   back how much of a run avoided Goodreads, not while the run is going. */
-.scan-source {
-    margin-left: 0.4rem;
-    padding: 0.05rem 0.35rem;
-    border-radius: 0.25rem;
-    background: var(--pico-muted-border-color);
-    color: var(--pico-muted-color);
-    font-size: 0.75em;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
 }
 
 /* Result of a tag replace, shown above the refreshed table. */

@@ -33,7 +33,7 @@
 {% elif ep in ['tag_browse'] %}{% set active_nav = 'tags' %}
 {% elif ep in ['statistics'] %}{% set active_nav = 'statistics' %}
 {% elif ep in ['price_watch_list','price_watch_add','price_watch_delete','price_watch_check_now'] %}{% set active_nav = 'price_watch' %}
-{% elif ep in ['system','system_tag_search','system_tag_rename','system_tag_delete','system_pushover_test','scan_genres_start','scan_genres_progress','scan_genres_pause','scan_genres_stop','scan_series_start','scan_series_progress','scan_series_pause','scan_series_stop'] %}{% set active_nav = 'system' %}
+{% elif ep in ['system','system_tag_search','system_tag_rename','system_tag_delete','system_pushover_test','scan_series_start','scan_series_progress','scan_series_pause','scan_series_stop'] %}{% set active_nav = 'system' %}
 {% else %}{% set active_nav = '' %}{% endif %}
 
 {% macro nav_icon(nav) %}

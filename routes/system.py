@@ -8,7 +8,6 @@ from sqlalchemy.orm import joinedload
 from models import db, Book, Series, Tag, Author, AuthorGender, AuthorInfoSuggestion, set_setting
 from scrapers import scrape_goodreads_series, scrape_amazon_series, ScrapeBlockedError
 from author_info import lookup_author_info
-import genre_sources
 from notifications import (send_pushover_notification, get_pushover_priority, pushover_configured,
                            PUSHOVER_PRIORITIES, VALID_PRIORITIES, PRIORITY_SETTING_KEY)
 from utils import start_thumbnail_backfill, parse_tag_list
@@ -16,27 +15,6 @@ from data_transfer import (build_export_zip, validate_import_zip, apply_import,
                            ImportValidationError, ImportCoverError, PRE_IMPORT_BACKUP_NAME)
 
 system_bp = Blueprint('system', __name__)
-
-# Which books a genre scan walks. Three, not two, because "has some tags" and
-# "has had Goodreads asked about it" stopped being the same question once a
-# fallback could tag a book on its own.
-SCAN_UNTAGGED = 'untagged'          # no tags at all
-SCAN_NOT_GOODREADS = 'not_goodreads'  # untagged, or tagged by a fallback source
-SCAN_ALL = 'all'
-SCAN_SCOPES = (SCAN_UNTAGGED, SCAN_NOT_GOODREADS, SCAN_ALL)
-
-genre_scan = {
-    'status': 'idle',       # idle, running, paused, complete, stopped
-    'progress': 0,
-    'total': 0,
-    'current_book': '',
-    'tags_added': 0,
-    'results': [],
-    'paused': False,
-    'stop_requested': False,
-    'stop_reason': '',
-}
-genre_scan_lock = threading.Lock()
 
 series_scan = {
     'status': 'idle',
@@ -96,8 +74,6 @@ def system():
     except (OSError, ValueError):
         changelog = []
     return render_template('system.html',
-                           tag_sources=genre_sources.source_status(),
-                           scan=_snapshot(genre_scan, genre_scan_lock),
                            series_scan=_snapshot(series_scan, series_scan_lock),
                            author_scan=_snapshot(author_scan, author_scan_lock),
                            suggestions=_load_suggestions(),
@@ -289,219 +265,6 @@ def system_pushover_test():
     return redirect(url_for('system.system'))
 
 
-@system_bp.route('/system/scan-genres', methods=['POST'], endpoint='scan_genres_start')
-def scan_genres_start():
-    scope = request.form.get('scope', SCAN_UNTAGGED)
-    if scope not in SCAN_SCOPES:
-        scope = SCAN_UNTAGGED
-
-    with genre_scan_lock:
-        # Refuse while a scan thread is alive ('paused' included — resetting its
-        # state here would unpause it and leave two threads running).
-        already_active = genre_scan['status'] in ('running', 'paused')
-        if not already_active:
-            genre_scan.update({
-                'status': 'running',
-                'progress': 0,
-                'total': 0,
-                'current_book': '',
-                'tags_added': 0,
-                'results': [],
-                'paused': False,
-                'stop_requested': False,
-                'stop_reason': '',
-            })
-
-    if not already_active:
-        _app = current_app._get_current_object()
-        thread = threading.Thread(target=run_genre_scan, args=(_app, scope), daemon=True)
-        thread.start()
-
-    return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan, genre_scan_lock))
-
-
-@system_bp.route('/system/scan-genres/progress', endpoint='scan_genres_progress')
-def scan_genres_progress():
-    return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan, genre_scan_lock))
-
-
-@system_bp.route('/system/scan-genres/pause', methods=['POST'], endpoint='scan_genres_pause')
-def scan_genres_pause():
-    with genre_scan_lock:
-        if genre_scan['status'] == 'running':
-            genre_scan['paused'] = True
-            genre_scan['status'] = 'paused'
-        elif genre_scan['status'] == 'paused':
-            genre_scan['paused'] = False
-            genre_scan['status'] = 'running'
-    return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan, genre_scan_lock))
-
-
-@system_bp.route('/system/scan-genres/stop', methods=['POST'], endpoint='scan_genres_stop')
-def scan_genres_stop():
-    with genre_scan_lock:
-        genre_scan['stop_requested'] = True
-    return render_template('system/_scan_progress.html', scan=_snapshot(genre_scan, genre_scan_lock))
-
-
-def run_genre_scan(app, scope):
-    """Background thread that scans Goodreads for genres and imports as tags."""
-    try:
-        _run_genre_scan(app, scope)
-    except Exception as e:
-        # Without this, an uncaught error would leave the status stuck at
-        # 'running' with the progress bar frozen and polling forever — and
-        # scan_genres_start refuses to start another while it is.
-        with genre_scan_lock:
-            genre_scan['results'].append({'book': '(scan aborted)', 'status': 'error', 'message': str(e)})
-            genre_scan['current_book'] = ''
-            genre_scan['status'] = 'stopped'
-
-
-def _run_genre_scan(app, scope):
-    with app.app_context():
-        query = Book.query.options(
-            joinedload(Book.authors),
-            joinedload(Book.tags)
-        )
-
-        if scope == SCAN_UNTAGGED:
-            query = query.filter(~Book.tags.any())
-        elif scope == SCAN_NOT_GOODREADS:
-            # Books a fallback tagged while Goodreads was unavailable, plus any
-            # still untagged. Both are books Goodreads has not answered for, and
-            # both are worth another pass once it is talking again.
-            query = query.filter((Book.genre_source.is_(None))
-                                 | (Book.genre_source != genre_sources.GOODREADS))
-
-        books = query.all()
-        with genre_scan_lock:
-            genre_scan['total'] = len(books)
-
-        # Set once Goodreads has refused us, so the rest of the run stops
-        # asking it and leans on Hardcover alone.
-        goodreads_blocked = False
-
-        for i, book in enumerate(books):
-            # Check for stop
-            if genre_scan['stop_requested']:
-                with genre_scan_lock:
-                    genre_scan['status'] = 'stopped'
-                    genre_scan['current_book'] = ''
-                return
-
-            # Handle pause
-            while genre_scan['paused']:
-                if genre_scan['stop_requested']:
-                    with genre_scan_lock:
-                        genre_scan['status'] = 'stopped'
-                        genre_scan['current_book'] = ''
-                    return
-                time.sleep(0.5)
-
-            with genre_scan_lock:
-                genre_scan['current_book'] = book.title
-                genre_scan['progress'] = i
-
-            try:
-                # A scan is judged on finishing, not on any single answer, so
-                # it takes the sources that can't block first and leaves
-                # Goodreads — the best of them, and the one that stops
-                # answering — for whatever the others could not place.
-                blocked = []
-                genres, source = genre_sources.fetch_genres(
-                    book, chain=genre_sources.SCAN_CHAIN,
-                    unavailable=(genre_sources.GOODREADS,) if goodreads_blocked else (),
-                    blocked=blocked)
-
-                if blocked and not goodreads_blocked:
-                    # Goodreads is turning us away, so every later book would
-                    # fail there too — stop asking it for the rest of the run,
-                    # and carry on with the other sources if any are set up.
-                    # Only when none are is there nothing left to scan with.
-                    goodreads_blocked = True
-                    message = blocked[0][1]
-                    no_fallback = not genre_sources.fallbacks_configured()
-                    with genre_scan_lock:
-                        genre_scan['results'].append({
-                            'book': book.title,
-                            'status': 'blocked',
-                            'message': message,
-                        })
-                        genre_scan['stop_reason'] = message
-                        if no_fallback:
-                            genre_scan['stop_requested'] = True
-                    if no_fallback:
-                        break
-                    if not genres:
-                        # The blocked line above already accounts for this book.
-                        time.sleep(1)
-                        continue
-
-                if genres is None:
-                    # Goodreads couldn't identify the book at all.
-                    with genre_scan_lock:
-                        genre_scan['results'].append({
-                            'book': book.title,
-                            'status': 'not_found',
-                        })
-                    time.sleep(1)
-                    continue
-                if not genres:
-                    with genre_scan_lock:
-                        # Once Goodreads has blocked us, an empty result means
-                        # only that the other sources don't hold the book —
-                        # the best one was never asked. Reporting that as "no
-                        # genres listed" would claim all of them were checked.
-                        genre_scan['results'].append({
-                            'book': book.title,
-                            'status': 'source_unavailable' if goodreads_blocked else 'no_genres',
-                        })
-                    time.sleep(1)
-                    continue
-
-                new_tags = genre_sources.apply_genres(book, genres, source)
-
-                with genre_scan_lock:
-                    if new_tags:
-                        genre_scan['tags_added'] += len(new_tags)
-                    genre_scan['results'].append({
-                        'book': book.title,
-                        'status': 'found',
-                        'source': genre_sources.LABELS.get(source, source),
-                        'tags': new_tags if new_tags else genres,
-                    })
-
-            except Exception as e:
-                # Leave the session usable. Without this a failed write — an
-                # IntegrityError, or SQLite refusing a locked database while the
-                # web side writes — leaves the transaction poisoned, and the next
-                # book's attribute access outside this try raises
-                # PendingRollbackError, which escapes to the thread guard and ends
-                # the whole run with nothing tagged.
-                db.session.rollback()
-                with genre_scan_lock:
-                    genre_scan['results'].append({
-                        'book': book.title,
-                        'status': 'error',
-                        'message': str(e),
-                    })
-
-            # Brief delay to avoid rate limiting
-            time.sleep(2)
-
-        with genre_scan_lock:
-            # A scan that broke out early (the site blocked us, or the user
-            # pressed Stop) hasn't covered its total. Filling the bar and
-            # calling it complete would claim the whole run happened and
-            # hide the stop_reason, which only the 'stopped' branch shows.
-            stopped_early = genre_scan['stop_requested']
-            if not stopped_early:
-                genre_scan['progress'] = genre_scan['total']
-            genre_scan['current_book'] = ''
-            genre_scan['status'] = 'stopped' if stopped_early else 'complete'
-
-
 @system_bp.route('/system/scan-series', methods=['POST'], endpoint='scan_series_start')
 def scan_series_start():
     with series_scan_lock:
@@ -558,7 +321,9 @@ def run_series_scan(app):
     try:
         _run_series_scan(app)
     except Exception as e:
-        # See run_genre_scan: a wedged 'running' status blocks all later scans.
+        # Without this, an uncaught error would leave the status stuck at
+        # 'running' with the progress bar frozen and polling forever — and
+        # scan_series_start refuses to start another while it is.
         with series_scan_lock:
             series_scan['results'].append({'series': '(scan aborted)', 'status': 'error', 'message': str(e)})
             series_scan['current_series'] = ''
@@ -648,8 +413,12 @@ def _run_series_scan(app):
                     series_scan['stop_requested'] = True
                 break
             except Exception as e:
-                # See the genre scan: without this the session stays poisoned
-                # and every later item fails too.
+                # Leave the session usable. Without this a failed write — an
+                # IntegrityError, or SQLite refusing a locked database while the
+                # web side writes — leaves the transaction poisoned, and the next
+                # series' attribute access outside this try raises
+                # PendingRollbackError, which escapes to the thread guard and ends
+                # the whole run.
                 db.session.rollback()
                 with series_scan_lock:
                     series_scan['results'].append({
@@ -862,7 +631,7 @@ def _run_author_scan(app):
                     author_scan['stop_requested'] = True
                 break
             except Exception as e:
-                # See the genre scan: without this the session stays poisoned
+                # See the series scan: without this the session stays poisoned
                 # and every later item fails too.
                 db.session.rollback()
                 with author_scan_lock:

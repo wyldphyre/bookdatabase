@@ -15,8 +15,7 @@ def _use_unicode_lower(dbapi_connection, connection_record):
     match anything with an uppercase accented letter: the column side leaves
     'Éducation' alone while the Python side produces 'éducation'. The row is
     then judged absent and re-inserted, which the UNIQUE constraint on the
-    name rejects — a 500 from the book page's Fetch tags, or a failed book in
-    a scan.
+    name rejects — a 500 from pasting a tag list, or a failed book import.
 
     That comparison appears at fifteen call sites across tags, series, authors
     and formats, so this replaces the function they all rely on rather than
@@ -68,17 +67,6 @@ def _migrate_data_match_keys(cursor):
                        (match_key(title), release_id))
 
 
-def _migrate_data_genre_source(cursor):
-    """v13 data step: credit existing tags to Goodreads.
-
-    Goodreads was the only genre source until v1.5.0, so anything already
-    tagged got those tags from it. Left null they would look never-scanned,
-    and the first "not yet tagged from Goodreads" run would sweep the entire
-    library instead of the handful a fallback tagged."""
-    cursor.execute("UPDATE book SET genre_source = 'goodreads' WHERE genre_source IS NULL "
-                   "AND id IN (SELECT DISTINCT book_id FROM book_tags)")
-
-
 def _migrate_data_notified_price(cursor):
     """v14 data step: start every watch as already notified at its current
     price. Drops before this version were sent (or lost) under the old rule;
@@ -95,7 +83,6 @@ def _migrate_data_notified_price(cursor):
 DATA_MIGRATIONS = {
     11: _migrate_data_baseline_done,
     12: _migrate_data_match_keys,
-    13: _migrate_data_genre_source,
     14: _migrate_data_notified_price,
 }
 
@@ -236,13 +223,9 @@ def run_migrations():
             _migrate_data_match_keys(cursor)
             conn.commit()
 
-        if version < 13:
-            cursor.execute("PRAGMA table_info(book)")
-            columns = [row[1] for row in cursor.fetchall()]
-            if 'genre_source' not in columns:
-                cursor.execute("ALTER TABLE book ADD COLUMN genre_source VARCHAR(20)")
-            _migrate_data_genre_source(cursor)
-            conn.commit()
+        # v13 added book.genre_source for the genre fetchers, removed in
+        # v1.9.0. Databases that have the column keep it unused: dropping a
+        # column in SQLite means rebuilding the table, which isn't worth it.
 
         if version < 14:
             cursor.execute("PRAGMA table_info(price_watch)")
