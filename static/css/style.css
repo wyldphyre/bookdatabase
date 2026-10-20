@@ -1893,6 +1893,42 @@ button.ellipsis-btn:focus {
     margin-bottom: 0.5rem;
 }
 
+/* Bulk un-monitor list (System page) */
+.monitored-series-all {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.monitored-series-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.monitored-series-list li {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.5rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.monitored-series-list li:last-child {
+    border-bottom: none;
+}
+
+.monitored-series-list label {
+    margin: 0;
+}
+
+.monitored-series-list .monitor-chip {
+    margin-left: 0;
+}
+
 /* Pushover priority setting (System page) */
 .pushover-priority-form {
     margin-bottom: 1rem;

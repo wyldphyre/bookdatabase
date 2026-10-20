@@ -84,7 +84,31 @@ def system():
                            pushover_priorities=PUSHOVER_PRIORITIES,
                            export=_export_snapshot(),
                            pending_import=_pending_import_manifest(),
-                           current_book_count=Book.query.count())
+                           current_book_count=Book.query.count(),
+                           monitored_series=_monitored_series())
+
+
+def _monitored_series():
+    return Series.query.filter(Series.monitored.is_(True)).order_by(db.func.lower(Series.name)).all()
+
+
+@system_bp.route('/system/monitored-series', methods=['POST'], endpoint='system_monitored_series')
+def system_monitored_series():
+    """Stop monitoring every series that was listed but left unticked.
+
+    Only ids rendered in the form ("shown") are candidates, so a series that
+    started being monitored after the page loaded isn't switched off by it."""
+    shown = {int(i) for i in request.form.getlist('shown') if i.isdigit()}
+    keep = {int(i) for i in request.form.getlist('keep') if i.isdigit()}
+    to_stop = Series.query.filter(Series.id.in_(shown - keep), Series.monitored.is_(True)).all()
+    for series in to_stop:
+        series.monitored = False
+        series.last_check_error = None
+    db.session.commit()
+
+    notice = f'Stopped monitoring {len(to_stop)} series.' if to_stop else None
+    return render_template('system/_monitored_series.html',
+                           monitored_series=_monitored_series(), notice=notice)
 
 
 def _pending_import_path():

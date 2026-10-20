@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.9.1",
+    "date": "2026-10-20",
+    "changes": [
+      "Stop monitoring several series at once. The System page lists every monitored series with a tick box (plus All to tick or untick them together); untick the ones to drop and save. Each shows when it was last checked and flags any whose last check failed"
+    ]
+  },
+  {
     "version": "1.9.0",
     "date": "2026-10-14",
     "changes": [

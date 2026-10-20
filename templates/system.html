@@ -119,6 +119,8 @@
     </div>
 </article>
 
+{% include "system/_monitored_series.html" %}
+
 <article class="bordered-article">
     <h3>Author Gender &amp; Pronoun Scanner</h3>
     <p>Look up gender and pronouns for authors missing them, using their Goodreads bio, Wikipedia, and website.
@@ -181,6 +183,28 @@ function startReplace(tagId) {
 function cancelReplace(tagId) {
     document.getElementById('tag-name-' + tagId).hidden = false;
     document.getElementById('tag-replace-form-' + tagId).hidden = true;
+}
+
+// Monitored series: Save stays disabled until something is unticked, and
+// names how many will stop being monitored.
+function monitoredBoxes() {
+    return document.querySelectorAll('#monitored-series input[name="keep"]');
+}
+
+function updateMonitoredSave() {
+    var boxes = monitoredBoxes();
+    var unticked = Array.prototype.filter.call(boxes, function(b) { return !b.checked; }).length;
+    var all = document.querySelector('.monitored-series-all input');
+    all.checked = unticked === 0;
+    all.indeterminate = unticked > 0 && unticked < boxes.length;
+    var save = document.getElementById('monitored-series-save');
+    save.disabled = unticked === 0;
+    save.textContent = unticked ? 'Stop monitoring ' + unticked + ' series' : 'Save';
+}
+
+function toggleAllMonitored(all) {
+    monitoredBoxes().forEach(function(b) { b.checked = all.checked; });
+    updateMonitoredSave();
 }
 
 // Preserve scan log scroll position across htmx polling swaps

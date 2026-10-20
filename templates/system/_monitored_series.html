@@ -1,0 +1,38 @@
+<article id="monitored-series" class="bordered-article">
+    <h3>Monitored Series</h3>
+    {% if notice %}
+    <p class="tag-replace-notice">{{ notice }}</p>
+    {% endif %}
+    {% if monitored_series %}
+    <p>Untick the series you no longer want checked weekly for new books, then save.</p>
+
+    <form hx-post="{{ url_for('system.system_monitored_series') }}"
+          hx-target="#monitored-series"
+          hx-swap="outerHTML"
+          class="monitored-series-form">
+        <label class="monitored-series-all">
+            <input type="checkbox" checked onchange="toggleAllMonitored(this)"> All
+        </label>
+        <ul class="monitored-series-list">
+            {% for series in monitored_series %}
+            <li>
+                <input type="hidden" name="shown" value="{{ series.id }}">
+                <label>
+                    <input type="checkbox" name="keep" value="{{ series.id }}" checked onchange="updateMonitoredSave()">
+                    <a href="{{ url_for('series.series_detail', id=series.id) }}">{{ series.name }}</a>
+                </label>
+                {% if series.last_check_error %}
+                <span class="detail-chip monitor-chip monitor-chip--error" title="{{ series.last_check_error }}">Monitor error</span>
+                {% endif %}
+                <small class="secondary">
+                    {% if series.last_checked_at %}checked {{ series.last_checked_at.strftime('%Y-%m-%d') }}{% else %}not checked yet{% endif %}
+                </small>
+            </li>
+            {% endfor %}
+        </ul>
+        <button type="submit" class="btn-compact" id="monitored-series-save" disabled>Save</button>
+    </form>
+    {% else %}
+    <p class="secondary">No series are being monitored. Use Monitor for New Books on a series' page to start.</p>
+    {% endif %}
+</article>
