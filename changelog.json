@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.9.2",
+    "date": "2026-10-22",
+    "changes": [
+      "Require certifi 2026.10.19 or later, which stops trusting the certificate authority behind the compromised eMudhra intermediate certificates. Affects the app's own requests to Goodreads, Amazon, Pushover, Wikipedia and Notion"
+    ]
+  },
+  {
     "version": "1.9.1",
     "date": "2026-10-20",
     "changes": [

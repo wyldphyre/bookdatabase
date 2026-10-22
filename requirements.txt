@@ -9,3 +9,7 @@ requests==2.32.5
 beautifulsoup4==4.14.3
 gunicorn==22.0.0
 Pillow==12.3.0
+# Floor, not an exact pin: 2026.10.19 drops the emSign root behind the
+# compromised eMudhra intermediates, and later bundles should still come through.
+# Listing it also changes this file, which busts Docker's cached pip layer.
+certifi>=2026.10.19
