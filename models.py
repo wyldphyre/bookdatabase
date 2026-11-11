@@ -189,9 +189,13 @@ class Book(db.Model):
 
     @property
     def saved(self):
-        cost = self.cost or 0
-        paid = self.paid or 0
-        return cost - paid
+        """cost - paid, or None until both are known. A missing paid isn't
+        zero: a book you don't own (or haven't recorded the price of) would
+        otherwise show its whole cost as saved. Matches the year stats, which
+        only total savings where both are set."""
+        if self.cost is None or self.paid is None:
+            return None
+        return self.cost - self.paid
 
     @property
     def bundle_expected_count(self):
