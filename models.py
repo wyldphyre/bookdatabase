@@ -56,6 +56,11 @@ class Tag(db.Model):
         return tag
 
 
+# Placeholder format for a book whose edition isn't settled yet — typically
+# one you don't own — so format can stay required on every book.
+NOT_SPECIFIED_FORMAT = 'Not Specified'
+
+
 class BookFormat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False, unique=True)
@@ -169,6 +174,11 @@ class Book(db.Model):
     goodreads_url = db.Column(db.String(500))
     amazon_url = db.Column(db.String(500))
     parent_id = db.Column(db.Integer, db.ForeignKey('book.id'), index=True)
+    # Independent flags: a book you don't own can be one you want to read, and
+    # so can one you do. Not indexed — nearly every book is owned and not on
+    # the list, and an index that lopsided steers SQLite to worse plans.
+    owned = db.Column(db.Boolean, nullable=False, default=True, server_default='1')
+    want_to_read = db.Column(db.Boolean, nullable=False, default=False, server_default='0')
 
     authors = db.relationship('Author', secondary=book_authors, back_populates='books')
     tags = db.relationship('Tag', secondary=book_tags, back_populates='books')
@@ -271,21 +281,10 @@ class ReadingQueue(db.Model):
     __tablename__ = 'reading_queue'
     id = db.Column(db.Integer, primary_key=True)
     position = db.Column(db.Integer, nullable=False)
-    book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=True, index=True)
-    external_title = db.Column(db.String(300), nullable=True)
-    external_author = db.Column(db.String(300), nullable=True)
-    external_url = db.Column(db.String(500), nullable=True)
+    book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=False, index=True)
     added_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
 
     book = db.relationship('Book', backref='queue_items')
-
-    @property
-    def display_title(self):
-        return self.book.title if self.book else self.external_title
-
-    @property
-    def display_author(self):
-        return self.book.author_names if self.book else self.external_author
 
 
 class AuthorInfoSuggestion(db.Model):

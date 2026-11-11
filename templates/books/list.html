@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% from "_cover.html" import book_cover %}
 
 {% block title %}Books - Book Database{% endblock %}
 
-{% block page_heading %}{% if filter_status == 'unread' %}Unread {% elif filter_status == 'read' %}Read {% elif filter_status == 'bundle' %}Bundle {% endif %}Books{% endblock %}
+{% block page_heading %}{% if filter_status == 'unread' %}Unread {% elif filter_status == 'read' %}Read {% elif filter_status == 'bundle' %}Bundle {% endif %}{% if filter_status == 'not_owned' %}Books You Don't Own{% elif filter_status == 'want' %}Want to Read{% else %}Books{% endif %}{% endblock %}
 
 {% block content %}
 <header>
@@ -14,6 +15,7 @@
             <ul class="dropdown-menu">
                 <li><a href="#" onclick="promptImportUrl('amazon')">from Amazon URL</a></li>
                 <li><a href="#" onclick="promptImportUrl('goodreads')">from GoodReads</a></li>
+                <li><a href="{{ url_for('books.book_new', owned=0) }}">a book you don't own</a></li>
             </ul>
         </div>
         <div class="filter-tabs">
@@ -21,6 +23,8 @@
             <a href="{{ url_for('books.book_list', per_page=per_page, filter='unread') }}" class="filter-btn{% if filter_status == 'unread' %} active{% endif %}">Unread</a>
             <a href="{{ url_for('books.book_list', per_page=per_page, filter='read') }}" class="filter-btn{% if filter_status == 'read' %} active{% endif %}">Read</a>
             <a href="{{ url_for('books.book_list', per_page=per_page, filter='bundle') }}" class="filter-btn{% if filter_status == 'bundle' %} active{% endif %}">Bundles</a>
+            <a href="{{ url_for('books.book_list', per_page=per_page, filter='not_owned') }}" class="filter-btn{% if filter_status == 'not_owned' %} active{% endif %}">Not Owned</a>
+            <a href="{{ url_for('books.book_list', per_page=per_page, filter='want') }}" class="filter-btn{% if filter_status == 'want' %} active{% endif %}">Want to Read</a>
         </div>
         <label class="per-page-label">
             <span>Per page:</span>
@@ -122,16 +126,7 @@ function changePerPage(value) {
     {% for book in books.items %}
     <div class="book-card-wrapper">
         <a href="{{ url_for('books.book_detail', id=book.id) }}" class="book-card" style="text-decoration: none; color: inherit;">
-            {% set is_read = book.is_completed %}
-            <div class="cover-wrapper">
-                {% if book.cover_image %}
-                <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
-                {% else %}
-                <div class="placeholder-cover">📚</div>
-                {% endif %}
-                {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
-                {% if book.parent_id %}<img src="{{ url_for('static', filename='img/bundle-overlay.svg') }}" class="bundle-overlay" alt="Bundle">{% endif %}
-            </div>
+            {{ book_cover(book) }}
             <div class="book-card-content">
                 <div class="book-card-title" title="{{ book.title }}">{{ book.title }}</div>
                 <div class="book-card-author" title="{{ book.author_names or 'Unknown Author' }}">{{ book.author_names or 'Unknown Author' }}</div>

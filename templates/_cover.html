@@ -1,0 +1,31 @@
+{#
+  One book cover with its overlays, so every page marks a book the same way:
+  read (top-right), part of a bundle (top-left), on the Want to Read list
+  (ribbon), not owned (faded, badge bottom-left) and an optional caller badge
+  such as the series number (bottom-right).
+
+  is_read defaults to book.is_completed, which loads the book's reads; pass
+  it when the caller already knows, or false where reads aren't loaded.
+  full=True shows the full-size image (the book's own page) rather than the
+  thumbnail. markers=False drops the corner badges for covers too small to
+  carry them, keeping only the fade.
+#}
+{% macro book_cover(book, placeholder_class='placeholder-cover', placeholder_text='📚', is_read=none,
+                    badge_text=none, show_bundle=true, full=false, img_class=none, markers=true) %}
+{% set is_read = markers and (book.is_completed if is_read is none else is_read) %}
+<div class="cover-wrapper{% if not book.owned %} cover-wrapper--unowned{% endif %}">
+    {% if book.cover_image %}
+    <img src="{{ url_for('static', filename='uploads/' + book.cover_image) if full else cover_thumb_url(book.cover_image) }}"
+         alt="{{ book.title }}"{% if img_class %} class="{{ img_class }}"{% endif %}{% if not full %} loading="lazy"{% endif %}>
+    {% else %}
+    <div class="{{ placeholder_class }}">{{ placeholder_text }}</div>
+    {% endif %}
+    {% if markers %}
+    {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
+    {% if show_bundle and book.parent_id %}<img src="{{ url_for('static', filename='img/bundle-overlay.svg') }}" class="bundle-overlay" alt="Bundle">{% endif %}
+    {% if book.want_to_read %}<span class="want-ribbon" title="Want to Read"></span>{% endif %}
+    {% if not book.owned %}<span class="unowned-badge">Not owned</span>{% endif %}
+    {% if badge_text %}<span class="cover-badge">{{ badge_text }}</span>{% endif %}
+    {% endif %}
+</div>
+{% endmacro %}

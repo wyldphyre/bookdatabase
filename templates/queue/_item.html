@@ -1,33 +1,24 @@
+{% from "_cover.html" import book_cover %}
 <li class="queue-item" id="queue-item-{{ item.id }}" data-id="{{ item.id }}">
     <span class="drag-handle" title="Drag to reorder">&#8801;</span>
     <div class="queue-item-cover">
-        {% if item.book and item.book.cover_image %}
-        <img src="{{ cover_thumb_url(item.book.cover_image) }}" alt="{{ item.display_title }}" loading="lazy">
-        {% elif item.book %}
-        <div class="queue-cover-placeholder">{{ item.display_title[0] }}</div>
-        {% else %}
-        <div class="queue-cover-placeholder queue-cover-external">&#128279;</div>
-        {% endif %}
+        {{ book_cover(item.book, placeholder_class='queue-cover-placeholder', placeholder_text=item.book.title[0], markers=False) }}
     </div>
     <div class="queue-item-info">
         <div class="queue-item-title">
-            {% if item.book %}
-            <a href="{{ url_for('books.book_detail', id=item.book.id) }}"><strong>{{ item.display_title }}</strong></a>
-            {% else %}
-            <strong>{{ item.display_title }}</strong>
-            {% endif %}
-            {% if item.book and item.book.format %}
+            <a href="{{ url_for('books.book_detail', id=item.book.id) }}"><strong>{{ item.book.title }}</strong></a>
+            {% if item.book.format %}
             <span class="format-tag">{{ item.book.format.name }}</span>
             {% endif %}
+            {% if not item.book.owned %}
+            <span class="format-tag format-tag--unowned">Not owned</span>
+            {% endif %}
         </div>
-        {% if item.display_author %}
-        <small>{{ item.display_author }}</small>
+        {% if item.book.authors %}
+        <small>{{ item.book.author_names }}</small>
         {% endif %}
-        {% if item.book and item.book.series %}
+        {% if item.book.series %}
         <small class="secondary">{{ item.book.series.name }}{% if item.book.series_number %} #{{ item.book.series_number|num }}{% endif %}</small>
-        {% endif %}
-        {% if item.external_url %}
-        <small><a href="{{ item.external_url }}" target="_blank" rel="noopener">{{ item.external_url }}</a></small>
         {% endif %}
     </div>
     <div class="queue-move-dropdown" style="position: relative; flex-shrink: 0;">

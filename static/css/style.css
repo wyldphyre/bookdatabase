@@ -1173,6 +1173,62 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     pointer-events: none;
 }
 
+/* Owned / Want to Read tick boxes on the book form */
+.ownership-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+}
+
+.stat-note {
+    display: block;
+    font-size: 0.75rem;
+}
+
+/* A book you don't own: the faded cover reads at any size, and the badge
+   (bottom-left, the one corner not already used) spells it out. */
+.cover-wrapper--unowned > img:not(.read-overlay):not(.bundle-overlay),
+.cover-wrapper--unowned > div {
+    filter: grayscale(0.7);
+    opacity: 0.75;
+}
+
+.unowned-badge {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.15rem 0.4rem;
+    border-radius: 0 var(--pico-border-radius) 0 0;
+    line-height: 1.3;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+/* Want to Read: a bookmark ribbon hanging from the top edge, left of where
+   the read overlay sits so a book can show both. */
+.want-ribbon {
+    position: absolute;
+    top: 0;
+    right: 32px;
+    width: 14px;
+    height: 22px;
+    background: var(--pico-primary-background);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+}
+
+/* The hero cover is capped at 210px inside a wider column; shrink the
+   wrapper to the image so the corner markers sit on the cover itself. */
+.book-detail .cover-wrapper {
+    width: fit-content;
+    max-width: 100%;
+}
+
 /* Recommendations grid */
 .rec-grid {
     display: grid;
@@ -2382,6 +2438,10 @@ ul.tag-search-results {
         margin: 0 auto;
     }
 
+    .book-detail .cover-wrapper {
+        margin: 0 auto;
+    }
+
 }
 
 /* Mobile: 576px - Layout adaptations */
@@ -2493,24 +2553,6 @@ ul.tag-search-results {
     margin: 0;
 }
 
-.queue-add-external {
-    margin-bottom: 0;
-}
-
-.queue-add-external summary {
-    display: inline-block;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
-
-.queue-add-external form {
-    margin-top: 0.75rem;
-    padding: 1rem;
-    background: var(--pico-card-background-color);
-    border-radius: var(--pico-border-radius);
-    border: 1px solid var(--pico-muted-border-color);
-}
-
 .queue-list {
     list-style: none;
     padding: 0;
@@ -2570,10 +2612,6 @@ ul.tag-search-results {
     border-radius: 3px;
 }
 
-.queue-cover-external {
-    background: linear-gradient(135deg, #64748b 0%, #334155 100%);
-}
-
 .queue-item-info {
     flex: 1;
     min-width: 0;
@@ -2596,6 +2634,11 @@ ul.tag-search-results {
 .queue-item-info small {
     color: var(--pico-muted-color);
     font-size: 0.8rem;
+}
+
+.format-tag--unowned {
+    opacity: 0.8;
+    font-style: italic;
 }
 
 .format-tag {
@@ -2736,29 +2779,6 @@ ul.tag-search-results {
 .rec-card-wrapper .queue-btn {
     align-self: flex-end;
     margin-top: 0.25rem;
-}
-
-/* Queue suggest banner */
-.queue-suggest-banner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin-bottom: 1rem;
-}
-
-.queue-suggest-actions {
-    display: flex;
-    gap: 0.5rem;
-    flex-shrink: 0;
-}
-
-.queue-suggest-actions button,
-.queue-suggest-actions a[role="button"] {
-    margin: 0;
-    padding: 0.3rem 0.75rem;
-    font-size: 0.9rem;
 }
 
 /* Author info suggestion review rows (System page) — distinct from the

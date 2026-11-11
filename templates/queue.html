@@ -6,27 +6,7 @@
 
 {% block content %}
 <div class="queue-header">
-    <details class="queue-add-external">
-        <summary>+ Add External Book</summary>
-        <form class="edit-form"
-              hx-post="{{ url_for('queue.queue_add_external') }}"
-              hx-target="#queue-list"
-              hx-swap="beforeend"
-              hx-on::after-request="if(event.detail.successful){ this.reset(); this.closest('details').removeAttribute('open'); var e=document.querySelector('.queue-empty'); if(e) e.remove(); }">
-            <div class="form-grid">
-                <label>Title (required)
-                    <input type="text" name="title" required placeholder="Book title">
-                </label>
-                <label>Author
-                    <input type="text" name="author" placeholder="Author name">
-                </label>
-            </div>
-            <label>URL (optional)
-                <input type="url" name="url" placeholder="https://...">
-            </label>
-            <button type="submit">Add to Queue</button>
-        </form>
-    </details>
+    <a href="{{ url_for('books.book_new', owned=0, queue=1) }}" class="outline btn-compact" role="button">+ Add a Book You Don't Own</a>
 </div>
 
 {% if items %}

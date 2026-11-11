@@ -1,3 +1,4 @@
+{% from "_cover.html" import book_cover %}
 {# The dashboard's year tab. Included from dashboard.html; expects `year`,
    `current` and `previous` (previous covering the same elapsed days). #}
 
@@ -137,15 +138,7 @@
 <div class="recently-added-scroll recently-added-scroll--wrap">
     {% for book, finish_date in current.finished_books %}
     <a href="{{ url_for('books.book_detail', id=book.id) }}" class="recently-added-card">
-        <div class="cover-wrapper">
-            {% if book.cover_image %}
-            <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
-            {% else %}
-            <div class="recently-added-placeholder">{{ book.title[0] }}</div>
-            {% endif %}
-            <img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">
-            {% if book.parent_id %}<img src="{{ url_for('static', filename='img/bundle-overlay.svg') }}" class="bundle-overlay" alt="Bundle">{% endif %}
-        </div>
+        {{ book_cover(book, placeholder_class='recently-added-placeholder', placeholder_text=book.title[0], is_read=true) }}
         <div class="recently-added-info">
             <strong>{{ book.title }}</strong>
             {% if book.authors %}

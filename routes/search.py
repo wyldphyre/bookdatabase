@@ -135,7 +135,7 @@ def recommendations():
     # Sort by most recently read series first
     continue_reading.sort(key=lambda x: x[2] or datetime.min, reverse=True)
 
-    # --- From the Pile: random unread books ---
+    # --- From the Pile: random unread books you own ---
     # Materialise read/active book IDs once and reuse for both unread queries
     read_book_ids = {r[0] for r in db.session.query(Read.book_id).filter(
         Read.status.in_(['Completed', 'Reading'])
@@ -145,7 +145,8 @@ def recommendations():
         subqueryload(Book.authors),
         joinedload(Book.series)
     ).filter(
-        ~Book.id.in_(read_book_ids)
+        ~Book.id.in_(read_book_ids),
+        Book.owned.is_(True)
     ).order_by(func.random()).limit(5).all()
 
     # --- Recent Additions: newest unread books ---
@@ -231,7 +232,7 @@ def statistics():
     completion_data = {status: count for status, count in completion_stats}
 
     # Summary statistics
-    total_books = Book.query.count()
+    total_books = Book.query.filter(Book.owned.is_(True)).count()
     total_authors = Author.query.filter_by(alias_of_id=None).count()
     total_series = Series.query.count()
     total_reads = Read.query.filter_by(status='Completed').count()

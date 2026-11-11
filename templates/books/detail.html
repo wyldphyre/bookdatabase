@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_cover.html" import book_cover %}
 
 {% block title %}{{ book.title }} - Book Database{% endblock %}
 
@@ -6,18 +7,6 @@
 
 {% block content %}
 <div class="book-detail-page">
-{% if suggest_queue_id %}
-<article class="flash flash-info queue-suggest-banner">
-    <span>This book matches an external queue entry.</span>
-    <div class="queue-suggest-actions">
-        <form method="post" action="{{ url_for('queue.queue_link', item_id=suggest_queue_id) }}">
-            <input type="hidden" name="book_id" value="{{ book.id }}">
-            <button type="submit" class="outline">Link it</button>
-        </form>
-        <a href="{{ url_for('books.book_detail', id=book.id) }}" role="button" class="outline secondary">Dismiss</a>
-    </div>
-</article>
-{% endif %}
 {% if not book.page_count %}
 <article class="flash flash-warning">
     This book has no page count. <a href="{{ url_for('books.book_edit', id=book.id) }}">Edit the book</a> to add one.
@@ -26,14 +15,7 @@
 <div class="book-detail">
     <div>
         {% set is_read = book.is_completed %}
-        <div class="cover-wrapper">
-            {% if book.cover_image %}
-            <img src="{{ url_for('static', filename='uploads/' + book.cover_image) }}" alt="{{ book.title }}" class="book-cover lightbox-trigger">
-            {% else %}
-            <div class="book-cover-placeholder">📚</div>
-            {% endif %}
-            {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
-        </div>
+        {{ book_cover(book, placeholder_class='book-cover-placeholder', is_read=is_read, show_bundle=false, full=true, img_class='book-cover lightbox-trigger') }}
     </div>
 
     <div>
@@ -112,6 +94,12 @@
         {% endif %}
 
         <div class="detail-facts">
+            {% if not book.owned %}
+            <span class="detail-chip">Not owned</span>
+            {% endif %}
+            {% if book.want_to_read %}
+            <span class="detail-chip">Want to Read</span>
+            {% endif %}
             {% if book.format %}
             <span class="detail-fact"><span class="detail-fact-label">Format</span> {{ book.format.name }}</span>
             {% endif %}
@@ -177,6 +165,18 @@
             {% endif %}
             {% endif %}
             <a href="{{ url_for('books.book_edit', id=book.id) }}" role="button" class="outline">Edit Book</a>
+            {% if not book.owned %}
+            <form method="post" action="{{ url_for('books.book_mark_owned', id=book.id) }}" style="display: contents;">
+                <button type="submit" class="outline" title="You've bought it: sets the purchase date to today and opens the edit form">Mark as Owned</button>
+            </form>
+            {% endif %}
+            <form method="post" action="{{ url_for('books.book_toggle_want', id=book.id) }}" style="display: contents;">
+                {% if book.want_to_read %}
+                <button type="submit" class="outline secondary" title="Take off the Want to Read list">&#10003; Want to Read</button>
+                {% else %}
+                <button type="submit" class="outline" title="Add to the Want to Read list">+ Want to Read</button>
+                {% endif %}
+            </form>
             {% set in_queue = book.queue_items | length > 0 %}
             {% if in_queue %}
                 {% set qi = book.queue_items[0] if book.queue_items else None %}
@@ -244,15 +244,7 @@
     <div class="book-grid book-grid--compact">
         {% for child in book.bundle_children %}
         <a href="{{ url_for('books.book_detail', id=child.id) }}" class="book-card" style="text-decoration: none; color: inherit;">
-            {% set child_is_read = child.reads|selectattr('status', 'equalto', 'Completed')|list|length > 0 %}
-            <div class="cover-wrapper">
-                {% if child.cover_image %}
-                <img src="{{ cover_thumb_url(child.cover_image) }}" alt="{{ child.title }}" loading="lazy">
-                {% else %}
-                <div class="placeholder-cover">📚</div>
-                {% endif %}
-                {% if child_is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
-            </div>
+            {{ book_cover(child, show_bundle=false) }}
             <div class="book-card-content">
                 <div class="book-card-title" title="{{ child.title }}">{{ child.title }}</div>
                 <div class="book-card-author" title="{{ child.author_names or 'Unknown Author' }}">{{ child.author_names or 'Unknown Author' }}</div>
@@ -507,17 +499,7 @@ document.addEventListener('click', function(e) {
 
 {% macro related_book_card(b, badge_text=none) %}
 <a href="{{ url_for('books.book_detail', id=b.id) }}" class="book-card" style="text-decoration: none; color: inherit;">
-    {% set is_read = b.is_completed %}
-    <div class="cover-wrapper">
-        {% if b.cover_image %}
-        <img src="{{ cover_thumb_url(b.cover_image) }}" alt="{{ b.title }}" loading="lazy">
-        {% else %}
-        <div class="placeholder-cover">📚</div>
-        {% endif %}
-        {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
-        {% if b.parent_id %}<img src="{{ url_for('static', filename='img/bundle-overlay.svg') }}" class="bundle-overlay" alt="Bundle">{% endif %}
-        {% if badge_text %}<span class="cover-badge">{{ badge_text }}</span>{% endif %}
-    </div>
+    {{ book_cover(b, badge_text=badge_text) }}
     <div class="book-card-content">
         <div class="book-card-title" title="{{ b.title }}">{{ b.title }}</div>
         <div class="book-card-author" title="{{ b.author_names or 'Unknown' }}">{{ b.author_names or 'Unknown' }}</div>

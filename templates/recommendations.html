@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_cover.html" import book_cover %}
 
 {% block title %}Recommendations - Book Database{% endblock %}
 
@@ -13,11 +14,7 @@
         {% for book, last_read, _ in continue_reading %}
         <div class="rec-card-wrapper">
         <a href="{{ url_for('books.book_detail', id=book.id) }}" class="rec-card">
-            {% if book.cover_image %}
-            <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
-            {% else %}
-            <div class="rec-cover-placeholder">{{ book.title[0] }}</div>
-            {% endif %}
+            {{ book_cover(book, placeholder_class='rec-cover-placeholder', placeholder_text=book.title[0], is_read=false) }}
             <div class="rec-info">
                 <strong>{{ book.title }}</strong>
                 {% if book.authors %}
@@ -53,11 +50,7 @@
         {% for book in recent_additions %}
         <div class="rec-card-wrapper">
         <a href="{{ url_for('books.book_detail', id=book.id) }}" class="rec-card">
-            {% if book.cover_image %}
-            <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
-            {% else %}
-            <div class="rec-cover-placeholder">{{ book.title[0] }}</div>
-            {% endif %}
+            {{ book_cover(book, placeholder_class='rec-cover-placeholder', placeholder_text=book.title[0], is_read=false) }}
             <div class="rec-info">
                 <strong>{{ book.title }}</strong>
                 {% if book.authors %}
@@ -90,11 +83,7 @@
         {% for book in from_the_pile %}
         <div class="rec-card-wrapper">
         <a href="{{ url_for('books.book_detail', id=book.id) }}" class="rec-card">
-            {% if book.cover_image %}
-            <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
-            {% else %}
-            <div class="rec-cover-placeholder">{{ book.title[0] }}</div>
-            {% endif %}
+            {{ book_cover(book, placeholder_class='rec-cover-placeholder', placeholder_text=book.title[0], is_read=false) }}
             <div class="rec-info">
                 <strong>{{ book.title }}</strong>
                 {% if book.authors %}

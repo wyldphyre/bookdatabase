@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.10.0",
+    "date": "2026-11-11",
+    "changes": [
+      "Books you don't own. Untick Owned on a book's form (or use \"a book you don't own\" under Add New Book) to keep a book you'd like to read but haven't bought. Its cover is faded with a \"Not owned\" badge everywhere it appears, Date purchased, Paid and Discounts are hidden while it's unowned, and Mark as Owned on its page sets the purchase date to today and opens the form to fill in the rest",
+      "Want to Read list. Tick Want to Read on the form or use the button on a book's page; listed books carry a bookmark ribbon on their cover. Starting a read takes a book off the list, as it already did for the queue",
+      "New \"Not Specified\" format, for a book whose edition isn't settled yet. Format stays required; a book you don't own starts with this one",
+      "Books list filters for Not Owned and Want to Read. Dashboard and Statistics count only books you own, with a \"+ N not owned\" link on the dashboard. From the Pile on Recommendations picks only books you own; Continue Reading and Recent Additions include books you don't",
+      "The queue holds only books now. Its external entries have each become a book you don't own, on the Want to Read list, and \"+ Add External Book\" is replaced by \"+ Add a Book You Don't Own\", which queues the book once saved. Importing an older export converts its external entries the same way"
+    ]
+  },
+  {
     "version": "1.9.2",
     "date": "2026-10-22",
     "changes": [

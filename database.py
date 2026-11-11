@@ -1,9 +1,9 @@
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
-from models import db, BookFormat, AuthorGender
+from models import db, BookFormat, AuthorGender, NOT_SPECIFIED_FORMAT
 
-CURRENT_SCHEMA_VERSION = 14
+CURRENT_SCHEMA_VERSION = 15
 
 
 @event.listens_for(Engine, 'connect')
@@ -73,6 +73,51 @@ def _migrate_data_notified_price(cursor):
     there is no record of which, so the safe baseline is "nothing pending"."""
     cursor.execute("UPDATE price_watch SET notified_price = current_price "
                    "WHERE notified_price IS NULL")
+
+
+def _not_specified_format_id(cursor):
+    """The id of the 'Not Specified' format, creating it if needed. seed_data()
+    runs after migrations, and an import replaces the format table outright,
+    so neither can be relied on to have created it yet."""
+    cursor.execute("SELECT id FROM book_format WHERE name = ?", (NOT_SPECIFIED_FORMAT,))
+    row = cursor.fetchone()
+    if row:
+        return row[0]
+    cursor.execute("INSERT INTO book_format (name) VALUES (?)", (NOT_SPECIFIED_FORMAT,))
+    return cursor.lastrowid
+
+
+def book_from_external_queue_entry(cursor, title, author, url, added_at):
+    """v15: turn a pre-v15 "external" queue entry into a book you don't own.
+
+    Those entries were the only way to queue a book not in the library; now
+    that a book can be marked not owned, the queue holds only real books. The
+    new book is on the Want to Read list, since queueing it said as much, and
+    is dated by when it was queued. Returns the new book's id.
+    """
+    goodreads_url = amazon_url = comment = None
+    if url:
+        if 'goodreads.com' in url:
+            goodreads_url = url
+        elif 'amazon.' in url:
+            amazon_url = url
+        else:
+            comment = url
+    cursor.execute(
+        "INSERT INTO book (title, date_added, format_id, goodreads_url, amazon_url, comment, "
+        "is_book_bundle, owned, want_to_read) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 1)",
+        (title, added_at, _not_specified_format_id(cursor), goodreads_url, amazon_url, comment))
+    book_id = cursor.lastrowid
+    if author:
+        cursor.execute("SELECT id FROM author WHERE lower(name) = lower(?) ORDER BY id LIMIT 1", (author,))
+        row = cursor.fetchone()
+        if row:
+            author_id = row[0]
+        else:
+            cursor.execute("INSERT INTO author (name) VALUES (?)", (author,))
+            author_id = cursor.lastrowid
+        cursor.execute("INSERT INTO book_authors (book_id, author_id) VALUES (?, ?)", (book_id, author_id))
+    return book_id
 
 
 # Every entry here rewrites *data* rather than schema, so it has to be re-run
@@ -235,6 +280,28 @@ def run_migrations():
             _migrate_data_notified_price(cursor)
             conn.commit()
 
+        if version < 15:
+            cursor.execute("PRAGMA table_info(book)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'owned' not in columns:
+                cursor.execute("ALTER TABLE book ADD COLUMN owned BOOLEAN NOT NULL DEFAULT 1")
+            if 'want_to_read' not in columns:
+                cursor.execute("ALTER TABLE book ADD COLUMN want_to_read BOOLEAN NOT NULL DEFAULT 0")
+            cursor.execute("PRAGMA table_info(reading_queue)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'external_title' in columns:
+                cursor.execute("SELECT id, external_title, external_author, external_url, added_at "
+                               "FROM reading_queue WHERE book_id IS NULL")
+                for queue_id, title, author, url, added_at in cursor.fetchall():
+                    if not title:
+                        cursor.execute("DELETE FROM reading_queue WHERE id = ?", (queue_id,))
+                        continue
+                    book_id = book_from_external_queue_entry(cursor, title, author, url, added_at)
+                    cursor.execute("UPDATE reading_queue SET book_id = ? WHERE id = ?", (book_id, queue_id))
+                for column in ('external_title', 'external_author', 'external_url'):
+                    cursor.execute(f"ALTER TABLE reading_queue DROP COLUMN {column}")
+            conn.commit()
+
         if version < CURRENT_SCHEMA_VERSION:
             _set_schema_version(cursor, conn, CURRENT_SCHEMA_VERSION)
     finally:
@@ -252,7 +319,8 @@ def init_db(app):
 def seed_data():
     """Add initial seed data for formats and genders."""
     # Seed book formats
-    formats = ['Kindle', 'Kobo', 'ePub', 'Hardcover', 'Paperback', 'Comic Archive', 'Audiobook', 'PDF']
+    formats = ['Kindle', 'Kobo', 'ePub', 'Hardcover', 'Paperback', 'Comic Archive', 'Audiobook', 'PDF',
+               NOT_SPECIFIED_FORMAT]
     for format_name in formats:
         if not BookFormat.query.filter_by(name=format_name).first():
             db.session.add(BookFormat(name=format_name))

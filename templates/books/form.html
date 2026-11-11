@@ -220,6 +220,22 @@
         </label>
     </div>
 
+    {% set is_owned = book.owned if book else (prefill.get('owned', true) if prefill else true) %}
+    {% set is_wanted = book.want_to_read if book else (prefill.get('want_to_read', false) if prefill else false) %}
+    <fieldset class="ownership-row">
+        <label>
+            <input type="checkbox" name="owned" id="owned-checkbox" {% if is_owned %}checked{% endif %} onchange="updateOwnedFields()">
+            Owned
+        </label>
+        <label>
+            <input type="checkbox" name="want_to_read" {% if is_wanted %}checked{% endif %}>
+            Want to Read
+        </label>
+    </fieldset>
+    {% if add_to_queue %}
+    <input type="hidden" name="add_to_queue" value="1">
+    {% endif %}
+
     <fieldset>
         <legend>Series</legend>
 
@@ -356,7 +372,7 @@
     {% set has_parent = (prefill_parent is defined and prefill_parent) or (book and book.parent_id) %}
     {% if not has_parent %}
     <div class="form-grid">
-        <label>
+        <label class="purchase-only">
             Date Purchased
             <input type="date" name="date_purchased" value="{{ book.date_purchased.strftime('%Y-%m-%d') if book and book.date_purchased else '' }}">
         </label>
@@ -366,12 +382,12 @@
             <input type="number" name="cost" value="{{ book.cost or '' if book else '' }}" step="0.01" min="0">
         </label>
 
-        <label>
+        <label class="purchase-only">
             Discounts
             <input type="number" name="discounts" value="{{ book.discounts or '' if book else '' }}" step="0.01" min="0">
         </label>
 
-        <label>
+        <label class="purchase-only">
             Paid
             <input type="number" name="paid" value="{{ book.paid or '' if book else '' }}" step="0.01" min="0">
         </label>
@@ -512,4 +528,22 @@
         <a href="{{ url_for('books.book_detail', id=book.id) if book else url_for('books.book_list') }}" role="button" class="secondary">Cancel</a>
     </div>
 </form>
+<script>
+// A book you don't own has no purchase to record: hide those fields (Cost
+// stays, as the price you'd pay). Their values are still submitted, so
+// unticking Owned by mistake loses nothing. On a new book, unticking also
+// fills an empty format with Not Specified.
+function updateOwnedFields() {
+    var owned = document.getElementById('owned-checkbox').checked;
+    document.querySelectorAll('.purchase-only').forEach(function(el) { el.hidden = !owned; });
+    var format = document.querySelector('select[name="format_id"]');
+    {% if not book %}
+    if (!owned && !format.value) {
+        var placeholder = Array.prototype.find.call(format.options, function(o) { return o.text.trim() === 'Not Specified'; });
+        if (placeholder) format.value = placeholder.value;
+    }
+    {% endif %}
+}
+updateOwnedFields();
+</script>
 {% endblock %}

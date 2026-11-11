@@ -9,7 +9,8 @@ A personal book database web application for tracking books, authors, series, an
 - **Series Management**: Organize books into series with proper ordering
 - **Bundle/Omnibus Support**: Link child books to a parent bundle, with combined reading history and visual indicators on book covers
 - **Reading Tracking**: Track your reading progress with start/finish dates and status
-- **Reading Queue**: Plan your next reads with a drag-to-reorder queue; supports external (non-library) entries
+- **Reading Queue**: Plan your next reads with a drag-to-reorder queue
+- **Owned & Want to Read**: Keep books you don't own yet alongside your library, and flag any book as one you want to read
 - **Dashboard**: View currently reading books at a glance
 - **Recommendations**: Get suggestions for series continuations, recent additions, and random picks from your library
 - **Statistics**: Charts and summaries of your reading history

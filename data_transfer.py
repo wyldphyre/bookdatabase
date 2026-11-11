@@ -25,7 +25,7 @@ from sqlalchemy import DateTime
 from models import (db, Tag, BookFormat, AuthorGender, Series, Author, Book, Read,
                     ReadingQueue, AuthorInfoSuggestion, PriceWatch, AppSetting, SeriesRelease,
                     book_authors, book_tags, author_tags, series_tags)
-from database import CURRENT_SCHEMA_VERSION, migrate_imported_data
+from database import CURRENT_SCHEMA_VERSION, migrate_imported_data, book_from_external_queue_entry
 from utils import THUMB_SUBFOLDER
 
 EXPORT_FORMAT = 'bookdb-export'
@@ -272,6 +272,13 @@ def apply_import(zip_path, upload_folder):
 
             _backup_database()
 
+            # Before v15 a queue entry could stand in for a book not in the
+            # library. Those rows have no book_id, which the queue no longer
+            # allows, so they're held back and become books you don't own.
+            external_queue = [row for row in data.get('reading_queue', []) if not row.get('book_id')]
+            if external_queue:
+                data['reading_queue'] = [row for row in data['reading_queue'] if row.get('book_id')]
+
             try:
                 for name, table in reversed(EXPORT_TABLES):
                     db.session.execute(table.delete())
@@ -285,6 +292,17 @@ def apply_import(zip_path, upload_folder):
                 # backlist as newly released and announce it. Inside the
                 # transaction, so a failure here rolls the import back too.
                 migrated = migrate_imported_data(manifest.get('schema_version', 0))
+                if external_queue:
+                    cursor = db.session.connection().connection.cursor()
+                    for row in external_queue:
+                        if not row.get('external_title'):
+                            continue
+                        added_at = str(datetime.fromisoformat(row['added_at'])) if row.get('added_at') else str(datetime.now())
+                        book_id = book_from_external_queue_entry(
+                            cursor, row['external_title'], row.get('external_author'),
+                            row.get('external_url'), added_at)
+                        cursor.execute("INSERT INTO reading_queue (id, position, book_id, added_at) "
+                                       "VALUES (?, ?, ?, ?)", (row['id'], row['position'], book_id, added_at))
                 db.session.commit()
                 if migrated:
                     logging.info('Import: applied data migrations %s to the imported rows',

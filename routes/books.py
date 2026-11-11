@@ -6,7 +6,7 @@ from flask import Blueprint, current_app, render_template, request, redirect, ur
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload, subqueryload
 from models import (db, Book, Author, Read, ReadingQueue, BookFormat, Tag, SeriesRelease,
-                    book_tags, RATING_LABELS)
+                    book_tags, RATING_LABELS, NOT_SPECIFIED_FORMAT)
 from utils import (allowed_file, parse_date, parse_float, validate_rating, fetch_cover_image,
                    clean_external_url, generate_thumbnail, delete_thumbnail,
                    MAX_COVER_DOWNLOAD_BYTES)
@@ -25,7 +25,8 @@ def dashboard():
         joinedload(Read.book).subqueryload(Book.authors),
         joinedload(Read.book).joinedload(Book.series)
     ).filter_by(status='Reading').order_by(Read.start_date.desc()).all()
-    total_books = Book.query.count()
+    total_books = Book.query.filter(Book.owned.is_(True)).count()
+    not_owned_count = Book.query.filter(Book.owned.is_(False)).count()
     total_reads = Read.query.filter_by(status='Completed').count()
     recently_added = Book.query.options(
         subqueryload(Book.authors),
@@ -45,7 +46,7 @@ def dashboard():
     ).order_by(last_finished_sq.c.last_finished.desc()).limit(10).all()
 
     # Books spotted on monitored series pages that aren't in the library yet.
-    # Kept out of "Recently Added", which is for books you actually have.
+    # Kept out of "Recently Added", which is for books in the library.
     new_releases = (SeriesRelease.query
                     .filter(SeriesRelease.is_baseline.is_(False),
                             SeriesRelease.dismissed_at.is_(None),
@@ -59,6 +60,7 @@ def dashboard():
                          new_releases=new_releases,
                          active_reads=active_reads,
                          total_books=total_books,
+                         not_owned_count=not_owned_count,
                          total_reads=total_reads,
                          recently_added=recently_added,
                          recently_read=recently_read)
@@ -93,7 +95,7 @@ def book_list():
     # Constrain to valid options
     if per_page not in [10, 25, 50, 100]:
         per_page = 10
-    if filter_status not in ['all', 'unread', 'read', 'bundle']:
+    if filter_status not in ['all', 'unread', 'read', 'bundle', 'not_owned', 'want']:
         filter_status = 'all'
     if pages_filter not in ['lt300', '300to499', '500plus', '']:
         pages_filter = ''
@@ -121,6 +123,10 @@ def book_list():
         )
     elif filter_status == 'bundle':
         query = base.filter(Book.is_book_bundle == True)
+    elif filter_status == 'not_owned':
+        query = base.filter(Book.owned.is_(False))
+    elif filter_status == 'want':
+        query = base.filter(Book.want_to_read.is_(True))
     else:
         query = base
 
@@ -201,7 +207,6 @@ def _reading_history(book):
 def book_detail(id):
     from datetime import date
     book = db.get_or_404(Book, id)
-    suggest_queue_id = request.args.get('suggest_queue', type=int)
     read_entries, read_stats = _reading_history(book)
 
     eager_opts = (
@@ -233,7 +238,6 @@ def book_detail(id):
             .options(*eager_opts).limit(20).all()
 
     return render_template('books/detail.html', book=book, today=date.today().isoformat(),
-                            suggest_queue_id=suggest_queue_id,
                             series_books=series_books, similar_books=similar_books,
                             read_entries=read_entries, read_stats=read_stats)
 
@@ -249,6 +253,14 @@ def book_new():
     prefill = session.pop('book_prefill', None)
     if not prefill and request.args.get('parent_id'):
         prefill = {'parent_id': request.args.get('parent_id', type=int)}
+    # ?owned=0 starts the form as a book you don't own (format Not Specified,
+    # on the Want to Read list); ?queue=1 also queues it once saved.
+    if request.args.get('owned') == '0':
+        prefill = dict(prefill or {}, owned=False, want_to_read=True)
+        if not prefill.get('format_id'):
+            not_specified = BookFormat.query.filter_by(name=NOT_SPECIFIED_FORMAT).first()
+            prefill['format_id'] = not_specified.id if not_specified else None
+    add_to_queue = request.args.get('queue') == '1'
 
     # Resolve prefill tag IDs to Tag objects
     prefill_tags = []
@@ -265,7 +277,8 @@ def book_new():
                          formats=formats,
                          prefill=prefill,
                          prefill_tags=prefill_tags,
-                         prefill_parent=prefill_parent)
+                         prefill_parent=prefill_parent,
+                         add_to_queue=add_to_queue)
 
 
 @books_bp.route('/books/bundle-child-search', endpoint='book_bundle_child_search')
@@ -433,6 +446,8 @@ def save_book(book):
         book.date_purchased = parse_date(request.form.get('date_purchased'))
         book.is_book_bundle = request.form.get('is_book_bundle') == 'on'
         book.bundled_books = request.form.get('bundled_books', '').strip() or None
+    book.owned = request.form.get('owned') == 'on'
+    book.want_to_read = request.form.get('want_to_read') == 'on'
     book.rating = validate_rating(parse_float(request.form.get('rating')))
     book.comment = request.form.get('comment', '').strip() or None
     book.goodreads_url = clean_external_url(request.form.get('goodreads_url', '').strip()) or None
@@ -533,17 +548,12 @@ def save_book(book):
         for child in list(book.bundle_children):
             child.parent_id = None
 
+    if is_new and request.form.get('add_to_queue') == '1':
+        max_pos = db.session.query(db.func.max(ReadingQueue.position)).scalar()
+        db.session.add(ReadingQueue(book_id=book.id, position=1 if max_pos is None else max_pos + 1))
+
     db.session.commit()
     flash('Book saved successfully', 'success')
-
-    # For new books, check if any external queue entry matches this title
-    if is_new:
-        match = ReadingQueue.query.filter(
-            ReadingQueue.book_id.is_(None),
-            db.func.lower(ReadingQueue.external_title) == book.title.lower()
-        ).first()
-        if match:
-            return redirect(url_for('books.book_detail', id=book.id, suggest_queue=match.id))
 
     return redirect(url_for('books.book_detail', id=book.id))
 
@@ -553,6 +563,27 @@ def book_rate(id):
     book = db.get_or_404(Book, id)
     rating = validate_rating(parse_float(request.form.get('rating')))
     book.rating = rating
+    db.session.commit()
+    return redirect(url_for('books.book_detail', id=id))
+
+
+@books_bp.route('/books/<int:id>/mark-owned', methods=['POST'], endpoint='book_mark_owned')
+def book_mark_owned(id):
+    """You've bought a book you didn't own. Purchase date defaults to today;
+    the edit form follows so the price paid and real format can be filled in."""
+    book = db.get_or_404(Book, id)
+    book.owned = True
+    if not book.date_purchased:
+        book.date_purchased = datetime.combine(datetime.now().date(), datetime.min.time())
+    db.session.commit()
+    flash(f'"{book.title}" marked as owned. Fill in what you paid and its format.', 'success')
+    return redirect(url_for('books.book_edit', id=id))
+
+
+@books_bp.route('/books/<int:id>/want', methods=['POST'], endpoint='book_toggle_want')
+def book_toggle_want(id):
+    book = db.get_or_404(Book, id)
+    book.want_to_read = not book.want_to_read
     db.session.commit()
     return redirect(url_for('books.book_detail', id=id))
 
@@ -627,9 +658,10 @@ def read_add(book_id):
     )
     db.session.add(read)
 
-    # Remove from reading queue when a read is started
+    # Starting a read takes the book off the queue and the Want to Read list
     if status == 'Reading':
         ReadingQueue.query.filter_by(book_id=book_id).delete()
+        book.want_to_read = False
 
     db.session.commit()
     flash('Read added successfully', 'success')
@@ -655,6 +687,8 @@ def read_update(id):
         flash('Finish date cannot be before the start date', 'error')
         return redirect(url_for('books.book_detail', id=read.book_id, tab=tab))
 
+    if new_status == 'Reading' and read.status != 'Reading':
+        read.book.want_to_read = False
     read.start_date = start_date
     read.finish_date = finish_date
     read.status = new_status

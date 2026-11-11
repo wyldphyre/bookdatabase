@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_cover.html" import book_cover %}
 
 {% block title %}Series - Book Database{% endblock %}
 
@@ -64,11 +65,7 @@
                     {% for book in series.books|sort_by('series_number') %}
                     {% if loop.index <= 5 %}
                     <a href="{{ url_for('books.book_detail', id=book.id) }}" class="series-cover-link" title="{{ book.title }}{% if book.series_number %} (#{{ book.series_number|num }}){% endif %}">
-                        {% if book.cover_image %}
-                        <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
-                        {% else %}
-                        <div class="series-cover-placeholder">{{ book.title[0] }}</div>
-                        {% endif %}
+                        {{ book_cover(book, placeholder_class='series-cover-placeholder', placeholder_text=book.title[0], markers=false) }}
                     </a>
                     {% endif %}
                     {% endfor %}

@@ -1,3 +1,4 @@
+{% from "_cover.html" import book_cover %}
 {% if query %}
     {% if books %}
     <section class="search-section">
@@ -5,11 +6,7 @@
         <div class="book-grid book-grid--compact">
             {% for book in books %}
             <a href="{{ url_for('books.book_detail', id=book.id) }}" class="book-card" style="text-decoration: none; color: inherit;">
-                {% if book.cover_image %}
-                <img src="{{ cover_thumb_url(book.cover_image) }}" alt="{{ book.title }}" loading="lazy">
-                {% else %}
-                <div class="placeholder-cover">📚</div>
-                {% endif %}
+                {{ book_cover(book, is_read=false) }}
                 <div class="book-card-content">
                     <div class="book-card-title" title="{{ book.title }}">{{ book.title }}</div>
                     <div class="book-card-author" title="{{ book.author_names or 'Unknown Author' }}">{{ book.author_names or 'Unknown Author' }}</div>

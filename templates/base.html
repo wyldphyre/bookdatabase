@@ -24,9 +24,9 @@
 
 {% set ep = (request.endpoint or '').split('.')|last %}
 {% if ep in ['dashboard'] %}{% set active_nav = 'dashboard' %}
-{% elif ep in ['book_list','book_detail','book_new','book_edit','book_import','book_bundle_child_search','search_description','book_rate','book_delete','read_add','read_update','read_delete','read_complete','read_abandon'] %}{% set active_nav = 'books' %}
+{% elif ep in ['book_list','book_detail','book_new','book_edit','book_import','book_bundle_child_search','search_description','book_rate','book_delete','read_add','read_update','read_delete','read_complete','read_abandon','book_mark_owned','book_toggle_want'] %}{% set active_nav = 'books' %}
 {% elif ep in ['search'] %}{% set active_nav = 'search' %}
-{% elif ep in ['queue_list','queue_add','queue_remove','queue_add_external','queue_link','queue_reorder'] %}{% set active_nav = 'queue' %}
+{% elif ep in ['queue_list','queue_add','queue_remove','queue_reorder'] %}{% set active_nav = 'queue' %}
 {% elif ep in ['author_list','author_detail','author_new','author_edit','author_quick_add','author_delete'] %}{% set active_nav = 'authors' %}
 {% elif ep in ['series_list','series_detail','series_new','series_edit','series_delete','series_update_count','series_quick_add','series_check_name'] %}{% set active_nav = 'series' %}
 {% elif ep in ['recommendations'] %}{% set active_nav = 'recommendations' %}
