@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.12.0",
+    "date": "2026-11-11",
+    "changes": [
+      "Monitor Price on books you don't own. On the book's page it adds the book's Amazon link to Price Watch and comes back to the book; once watched, the page shows the current price (and what it was, if it's dropped) and a Watching Price button that opens Price Watch. A book with no Amazon link gets a Monitor Price… button that opens its edit form to add one",
+      "Mark as Owned removes the book's price watch, since there's nothing left to wait for",
+      "The Want to Read list shows the watched price beside each watched book, with an arrow when it has dropped, and each Price Watch entry links to its book when it's in your library"
+    ]
+  },
+  {
     "version": "1.11.0",
     "date": "2026-11-11",
     "changes": [

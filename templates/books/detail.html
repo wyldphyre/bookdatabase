@@ -118,6 +118,11 @@
             {% if read_stats.times_read > 1 %}
             <span class="detail-fact"><span class="detail-fact-label">Read</span> {{ read_stats.times_read }}&times;</span>
             {% endif %}
+            {% if price_watch and price_watch.current_price is not none %}
+            <span class="detail-fact"><span class="detail-fact-label">Watched price</span>
+                <a href="{{ url_for('price_watch.price_watch_list') }}">{{ price_watch.currency or '' }}{{ '%.2f'|format(price_watch.current_price) }}</a>{% if price_watch.dropped %} <span class="secondary">(was {{ price_watch.currency or '' }}{{ '%.2f'|format(price_watch.initial_price) }})</span>{% endif %}
+            </span>
+            {% endif %}
         </div>
 
         {% if book.cost or book.paid or book.discounts %}
@@ -167,8 +172,19 @@
             <a href="{{ url_for('books.book_edit', id=book.id) }}" role="button" class="outline">Edit Book</a>
             {% if not book.owned %}
             <form method="post" action="{{ url_for('books.book_mark_owned', id=book.id) }}" style="display: contents;">
-                <button type="submit" class="outline" title="You've bought it: sets the purchase date to today and opens the edit form">Mark as Owned</button>
+                <button type="submit" class="outline" title="You've bought it: sets the purchase date to today, stops any price watch and opens the edit form">Mark as Owned</button>
             </form>
+            {% if price_watch %}
+            <a href="{{ url_for('price_watch.price_watch_list') }}" role="button" class="outline secondary" title="On the Price Watch list">&#10003; Watching Price</a>
+            {% elif book.amazon_url %}
+            <form method="post" action="{{ url_for('price_watch.price_watch_add') }}" style="display: contents;">
+                <input type="hidden" name="amazon_url" value="{{ book.amazon_url }}">
+                <input type="hidden" name="book_id" value="{{ book.id }}">
+                <button type="submit" class="outline" title="Check its Amazon price daily and notify you when it drops">Monitor Price</button>
+            </form>
+            {% else %}
+            <a href="{{ url_for('books.book_edit', id=book.id) }}" role="button" class="outline secondary" title="Price watching works from the book's Amazon link; add one on the edit form">Monitor Price&hellip;</a>
+            {% endif %}
             {% endif %}
             <form method="post" action="{{ url_for('books.book_toggle_want', id=book.id) }}" style="display: contents;">
                 {% if book.want_to_read %}

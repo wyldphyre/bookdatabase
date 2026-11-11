@@ -1,6 +1,6 @@
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash
 from sqlalchemy.exc import IntegrityError
-from models import db, PriceWatch
+from models import db, PriceWatch, Book
 from utils import clean_external_url
 from scrapers import scrape_amazon, ScrapeBlockedError
 from price_watch import run_price_checks
@@ -12,26 +12,35 @@ price_watch_bp = Blueprint('price_watch', __name__)
 @price_watch_bp.route('/price-watch', endpoint='price_watch_list')
 def price_watch_list():
     watches = PriceWatch.query.order_by(PriceWatch.created_at.desc()).all()
-    return render_template('price_watch/list.html', watches=watches,
+    # Watches are keyed by Amazon URL, not linked to books; a library book
+    # with the same (canonical /dp/ASIN) link is the one being watched.
+    urls = [w.amazon_url for w in watches]
+    books_by_url = {b.amazon_url: b for b in Book.query.filter(Book.amazon_url.in_(urls)).all()} if urls else {}
+    return render_template('price_watch/list.html', watches=watches, books_by_url=books_by_url,
                            pushover_configured=pushover_configured())
 
 
 @price_watch_bp.route('/price-watch/add', methods=['POST'], endpoint='price_watch_add')
 def price_watch_add():
+    """Start watching an Amazon URL. Posted from the Price Watch page, or from
+    a book's page (with book_id), in which case it returns to that book."""
+    book_id = request.form.get('book_id', type=int)
+    back = url_for('books.book_detail', id=book_id) if book_id else url_for('price_watch.price_watch_list')
+
     url = clean_external_url(request.form.get('amazon_url', '').strip())
     if not url:
         flash('An Amazon URL is required', 'error')
-        return redirect(url_for('price_watch.price_watch_list'))
+        return redirect(back)
 
     try:
         data = scrape_amazon(url)
     except ScrapeBlockedError as e:
         flash(str(e), 'error')
-        return redirect(url_for('price_watch.price_watch_list'))
+        return redirect(back)
 
     if not data or data.get('price') is None:
         flash('Could not read a price from that page', 'error')
-        return redirect(url_for('price_watch.price_watch_list'))
+        return redirect(back)
 
     watch = PriceWatch(
         amazon_url=url,
@@ -45,12 +54,12 @@ def price_watch_add():
     db.session.add(watch)
     try:
         db.session.commit()
-        flash(f'Now watching "{watch.title}"', 'success')
+        flash(f'Now watching "{watch.title}" at {watch.currency or ""}{watch.current_price:.2f}', 'success')
     except IntegrityError:
         db.session.rollback()
         flash('You\'re already watching that book', 'error')
 
-    return redirect(url_for('price_watch.price_watch_list'))
+    return redirect(back)
 
 
 @price_watch_bp.route('/price-watch/<int:id>/delete', methods=['DELETE', 'POST'], endpoint='price_watch_delete')

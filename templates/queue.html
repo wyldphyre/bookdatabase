@@ -67,6 +67,10 @@
                     <a href="{{ url_for('series.series_detail', id=book.series.id) }}">{{ book.series.name }}{% if book.series_number %} #{{ book.series_number|num }}{% endif %}</a>
                     {% endif %}
                     {% if book.page_count %}<span>{{ book.page_count }} pages</span>{% endif %}
+                    {% set watch = watches_by_url.get(book.amazon_url) if book.amazon_url else none %}
+                    {% if watch and watch.current_price is not none %}
+                    <a href="{{ url_for('price_watch.price_watch_list') }}" title="Watched price{% if watch.dropped %}, down from {{ watch.currency or '' }}{{ '%.2f'|format(watch.initial_price) }}{% endif %}">{{ watch.currency or '' }}{{ '%.2f'|format(watch.current_price) }}{% if watch.dropped %} &#8595;{% endif %}</a>
+                    {% endif %}
                     {% if not book.owned %}<span class="format-tag format-tag--unowned">Not owned</span>
                     {% elif book.format %}<span class="format-tag">{{ book.format.name }}</span>{% endif %}
                 </div>

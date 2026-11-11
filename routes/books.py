@@ -6,7 +6,7 @@ from flask import Blueprint, current_app, render_template, request, redirect, ur
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload, subqueryload
 from models import (db, Book, Author, Read, ReadingQueue, BookFormat, Tag, SeriesRelease,
-                    book_tags, RATING_LABELS, NOT_SPECIFIED_FORMAT)
+                    PriceWatch, book_tags, RATING_LABELS, NOT_SPECIFIED_FORMAT)
 from utils import (allowed_file, parse_date, parse_float, validate_rating, fetch_cover_image,
                    clean_external_url, generate_thumbnail, delete_thumbnail,
                    MAX_COVER_DOWNLOAD_BYTES)
@@ -237,7 +237,11 @@ def book_detail(id):
             .group_by(Book.id).order_by(shared_count.desc(), Book.title) \
             .options(*eager_opts).limit(20).all()
 
+    # Price watches are keyed by Amazon URL (both stored as canonical /dp/ASIN)
+    price_watch = PriceWatch.query.filter_by(amazon_url=book.amazon_url).first() if book.amazon_url else None
+
     return render_template('books/detail.html', book=book, today=date.today().isoformat(),
+                            price_watch=price_watch,
                             series_books=series_books, similar_books=similar_books,
                             read_entries=read_entries, read_stats=read_stats)
 
@@ -575,8 +579,13 @@ def book_mark_owned(id):
     book.owned = True
     if not book.date_purchased:
         book.date_purchased = datetime.combine(datetime.now().date(), datetime.min.time())
+    # Bought, so there's no longer a price to wait on
+    stopped_watching = 0
+    if book.amazon_url:
+        stopped_watching = PriceWatch.query.filter_by(amazon_url=book.amazon_url).delete()
     db.session.commit()
-    flash(f'"{book.title}" marked as owned. Fill in what you paid and its format.', 'success')
+    flash(f'"{book.title}" marked as owned{" and its price watch removed" if stopped_watching else ""}. '
+          f'Fill in what you paid and its format.', 'success')
     return redirect(url_for('books.book_edit', id=id))
 
 

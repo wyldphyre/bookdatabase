@@ -21,6 +21,10 @@
             <span class="price-drop-pending" title="Dropped from {{ watch.currency or '' }}{{ '%.2f'|format(watch.notified_price) }}, but the notification hasn't gone out yet. It's retried on every check until Pushover accepts it.">notification pending</span>
             {% endif %}
         </small>
+        {% set book = books_by_url.get(watch.amazon_url) if books_by_url is defined else none %}
+        {% if book %}
+        <small><a href="{{ url_for('books.book_detail', id=book.id) }}">In your library{% if not book.owned %} (not owned){% endif %}</a></small>
+        {% endif %}
         {% if watch.last_checked_at %}
         <small class="secondary">Checked {{ watch.last_checked_at.strftime('%b %d, %Y') }}</small>
         {% endif %}
