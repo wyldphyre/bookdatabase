@@ -1,29 +1,123 @@
 {% extends "base.html" %}
 
-{% block title %}Reading Queue - Book Database{% endblock %}
+{% block title %}To Be Read - Book Database{% endblock %}
 
-{% block page_heading %}Reading Queue{% endblock %}
+{% block page_heading %}To Be Read{% endblock %}
 
 {% block content %}
-<div class="queue-header">
-    <a href="{{ url_for('books.book_new', owned=0, queue=1) }}" class="outline btn-compact" role="button">+ Add a Book You Don't Own</a>
+{% from "_cover.html" import book_cover %}
+<section class="tab-group tbr-tabs" data-url-param="tab" data-default-tab="queue">
+    <div class="tab-bar" role="tablist">
+        <button type="button" class="tab-btn{% if tab == 'queue' %} active{% endif %}" data-tab="queue" role="tab" aria-selected="{{ 'true' if tab == 'queue' else 'false' }}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            Queue{% if items %} <span class="tab-count">{{ items|length }}</span>{% endif %}
+        </button>
+        <button type="button" class="tab-btn{% if tab == 'want' %} active{% endif %}" data-tab="want" role="tab" aria-selected="{{ 'true' if tab == 'want' else 'false' }}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            Want to Read{% if want_books %} <span class="tab-count">{{ want_books|length }}</span>{% endif %}
+        </button>
+    </div>
+
+<div class="tab-panel" data-tab-panel="queue"{% if tab != 'queue' %} hidden{% endif %}>
+    <div class="queue-header">
+        <a href="{{ url_for('books.book_new', owned=0, queue=1) }}" class="outline btn-compact" role="button">+ Add a Book You Don't Own</a>
+    </div>
+
+    {% if items %}
+    <ol id="queue-list" class="queue-list">
+        {% for item in items %}
+        {% include 'queue/_item.html' %}
+        {% endfor %}
+    </ol>
+    {% else %}
+    <ol id="queue-list" class="queue-list"></ol>
+    <article class="queue-empty">
+        <p>Your queue is empty. Add books from the <a href="{{ url_for('books.book_list') }}">Books</a>,
+        <a href="{{ url_for('search.recommendations') }}">Recommendations</a>, or book detail pages.</p>
+    </article>
+    {% endif %}
 </div>
 
-{% if items %}
-<ol id="queue-list" class="queue-list">
-    {% for item in items %}
-    {% include 'queue/_item.html' %}
-    {% endfor %}
-</ol>
-{% else %}
-<ol id="queue-list" class="queue-list"></ol>
-<article class="queue-empty">
-    <p>Your queue is empty. Add books from the <a href="{{ url_for('books.book_list') }}">Books</a>,
-    <a href="{{ url_for('search.recommendations') }}">Recommendations</a>, or book detail pages.</p>
-</article>
-{% endif %}
+<div class="tab-panel" data-tab-panel="want"{% if tab != 'want' %} hidden{% endif %}>
+    <div class="queue-header want-header">
+        <a href="{{ url_for('books.book_new', owned=0) }}" class="outline btn-compact" role="button">+ Add a Book You Don't Own</a>
+        {% if want_books|length > 1 %}
+        <div class="filter-tabs want-sort">
+            {% for key, label in [('newest', 'Newest'), ('title', 'Title'), ('shuffle', 'Shuffle')] %}
+            <a href="{{ url_for('queue.queue_list', tab='want', sort=key if key != 'newest' else none) }}" class="filter-btn{% if sort == key %} active{% endif %}">{{ label }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% if want_books %}
+    <div class="want-list">
+        {% for book in want_books %}
+        <article class="want-item" id="want-item-{{ book.id }}">
+            <a href="{{ url_for('books.book_detail', id=book.id) }}" class="want-cover">
+                {{ book_cover(book, placeholder_class='want-cover-placeholder', placeholder_text=book.title[0]) }}
+            </a>
+            <div class="want-info">
+                <h3 class="want-title"><a href="{{ url_for('books.book_detail', id=book.id) }}">{{ book.title }}</a></h3>
+                {% if book.authors %}
+                <p class="want-byline">{{ book.author_names }}</p>
+                {% endif %}
+                <div class="want-meta">
+                    {% if book.series %}
+                    <a href="{{ url_for('series.series_detail', id=book.series.id) }}">{{ book.series.name }}{% if book.series_number %} #{{ book.series_number|num }}{% endif %}</a>
+                    {% endif %}
+                    {% if book.page_count %}<span>{{ book.page_count }} pages</span>{% endif %}
+                    {% if not book.owned %}<span class="format-tag format-tag--unowned">Not owned</span>
+                    {% elif book.format %}<span class="format-tag">{{ book.format.name }}</span>{% endif %}
+                </div>
+            </div>
+            {% if book.description %}
+            <div class="want-blurb">
+                <p class="want-blurb-text">{{ book.description }}</p>
+                <button type="button" class="want-blurb-toggle" onclick="toggleBlurb(this)" hidden>More</button>
+            </div>
+            {% endif %}
+            <div class="want-actions">
+                {% set in_queue = book.queue_items|length > 0 %}
+                {% include 'queue/_button.html' %}
+                <button type="button" class="outline secondary btn-compact"
+                        hx-post="{{ url_for('books.book_toggle_want', id=book.id) }}"
+                        hx-target="#want-item-{{ book.id }}" hx-swap="outerHTML"
+                        title="Take off the Want to Read list">Remove from list</button>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <article class="queue-empty">
+        <p>Nothing on your Want to Read list. Use <strong>+ Want to Read</strong> on a book's page,
+        or add a book you don't own yet.</p>
+    </article>
+    {% endif %}
+</div>
+</section>
 
 <script>
+function toggleBlurb(btn) {
+    var expanded = btn.parentElement.classList.toggle('expanded');
+    btn.textContent = expanded ? 'Less' : 'More';
+}
+
+// Offer More only on blurbs the line clamp actually cut short. Measured again
+// when the tab is shown, since a hidden panel has no layout to measure.
+function showBlurbToggles() {
+    document.querySelectorAll('.want-blurb:not(.expanded) .want-blurb-text').forEach(function(text) {
+        if (text.offsetParent) text.nextElementSibling.hidden = text.scrollHeight <= text.clientHeight + 1;
+    });
+}
+showBlurbToggles();
+// Deferred: the shared tab script (base.html) unhides the panel in its own
+// click handler, which is registered after this one.
+document.querySelector('.tab-btn[data-tab="want"]').addEventListener('click', function() {
+    setTimeout(showBlurbToggles);
+});
+window.addEventListener('resize', showBlurbToggles);
+
 (function() {
     var list = document.getElementById('queue-list');
     if (!list) return;

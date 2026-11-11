@@ -2723,6 +2723,165 @@ ul.tag-search-results {
     color: var(--pico-muted-color);
 }
 
+/* To Be Read → Want to Read: a browsable list. Big covers to catch the eye,
+   the blurb beside them; on a phone the blurb drops below cover and title. */
+.want-header {
+    justify-content: space-between;
+    align-items: center;
+}
+
+.want-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.want-item {
+    display: grid;
+    grid-template-columns: 170px 1fr;
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+        "cover info"
+        "cover blurb"
+        "cover actions";
+    column-gap: 1.5rem;
+    row-gap: 0.6rem;
+    padding: 1.25rem 0;
+    margin: 0;
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.want-item:last-child {
+    border-bottom: none;
+}
+
+.want-cover {
+    grid-area: cover;
+    align-self: start;
+    text-decoration: none;
+}
+
+.want-cover img:not(.read-overlay):not(.bundle-overlay) {
+    display: block;
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: calc(var(--pico-border-radius) * 0.75);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.want-cover-placeholder {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2.5rem;
+    border-radius: calc(var(--pico-border-radius) * 0.75);
+}
+
+.want-info {
+    grid-area: info;
+    min-width: 0;
+}
+
+.want-title {
+    margin: 0 0 0.2rem;
+    font-size: 1.15rem;
+}
+
+.want-title a {
+    text-decoration: none;
+}
+
+.want-byline {
+    margin: 0 0 0.35rem;
+    color: var(--pico-muted-color);
+}
+
+.want-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.9rem;
+    font-size: 0.85rem;
+    color: var(--pico-muted-color);
+}
+
+.want-blurb {
+    grid-area: blurb;
+    min-width: 0;
+}
+
+.want-blurb-text {
+    margin: 0;
+    white-space: pre-line;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 7;
+    line-clamp: 7;
+    overflow: hidden;
+}
+
+.want-blurb.expanded .want-blurb-text {
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    overflow: visible;
+}
+
+.want-blurb-toggle {
+    width: auto;
+    margin: 0.25rem 0 0;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--pico-primary);
+    font-size: 0.85rem;
+}
+
+.want-actions {
+    grid-area: actions;
+    align-self: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* The shared queue button sizes itself for book cards; match it to the
+   compact Remove button beside it. */
+.want-actions .queue-btn {
+    padding: 0.4rem 0.9rem;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+@media (max-width: 576px) {
+    .want-item {
+        grid-template-columns: 100px 1fr;
+        grid-template-rows: auto;
+        grid-template-areas:
+            "cover info"
+            "blurb blurb"
+            "actions actions";
+        column-gap: 1rem;
+    }
+
+    .want-blurb-text {
+        -webkit-line-clamp: 5;
+        line-clamp: 5;
+    }
+
+    .want-title {
+        font-size: 1rem;
+    }
+}
+
 /* Queue button on cards */
 .queue-btn {
     margin: 0 !important;

@@ -585,6 +585,10 @@ def book_toggle_want(id):
     book = db.get_or_404(Book, id)
     book.want_to_read = not book.want_to_read
     db.session.commit()
+    # From the To Be Read page's Want to Read list: the book has just left
+    # the list, so its row is swapped out for nothing.
+    if request.headers.get('HX-Request'):
+        return ''
     return redirect(url_for('books.book_detail', id=id))
 
 

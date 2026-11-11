@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.11.0",
+    "date": "2026-11-11",
+    "changes": [
+      "The Queue page is now To Be Read, with two tabs: Queue (unchanged) and Want to Read. The old /queue address still works",
+      "The Want to Read tab is for browsing: each book has a large cover with its blurb beside it, trimmed to a few lines with More to read the rest. On a phone the blurb sits below the cover. Sort by newest, title or shuffle; each book can be queued or removed from the list in place"
+    ]
+  },
+  {
     "version": "1.10.0",
     "date": "2026-11-11",
     "changes": [

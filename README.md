@@ -9,7 +9,7 @@ A personal book database web application for tracking books, authors, series, an
 - **Series Management**: Organize books into series with proper ordering
 - **Bundle/Omnibus Support**: Link child books to a parent bundle, with combined reading history and visual indicators on book covers
 - **Reading Tracking**: Track your reading progress with start/finish dates and status
-- **Reading Queue**: Plan your next reads with a drag-to-reorder queue
+- **To Be Read**: Plan your next reads with a drag-to-reorder queue, and browse your Want to Read list by cover and blurb
 - **Owned & Want to Read**: Keep books you don't own yet alongside your library, and flag any book as one you want to read
 - **Dashboard**: View currently reading books at a glance
 - **Recommendations**: Get suggestions for series continuations, recent additions, and random picks from your library
@@ -240,6 +240,6 @@ To run backups automatically at 2 AM daily:
 3. **Add Books**: Add books with author and series associations
 4. **Track Reading**: Start a read from the book detail page
 5. **Dashboard**: View your currently reading books
-6. **Reading Queue**: Add books to your queue from any book card or detail page; drag to reorder
+6. **To Be Read**: Add books to your queue from any book card or detail page and drag to reorder; the Want to Read tab lists the books you've flagged, with their covers and blurbs
 7. **Recommendations**: Get reading suggestions based on your library and reading history
 8. **Price Watch**: Paste an Amazon Kindle URL to get notified via Pushover when its price drops

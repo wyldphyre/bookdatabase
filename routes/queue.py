@@ -1,18 +1,45 @@
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, ReadingQueue
 
 queue_bp = Blueprint('queue', __name__)
 
 
+WANT_SORTS = {
+    'newest': Book.date_added.desc(),
+    'title': db.func.lower(Book.title),
+    'shuffle': db.func.random(),
+}
+
+
+# /queue was this page's address before it became To Be Read; kept so old
+# links and bookmarks still land here. url_for builds the first rule
+# registered, which is the lower decorator.
 @queue_bp.route('/queue', endpoint='queue_list')
+@queue_bp.route('/to-be-read', endpoint='queue_list')
 def queue_list():
+    """To Be Read: the ordered queue of what's next, and the Want to Read
+    list laid out for browsing — big covers and the blurb beside them."""
     items = ReadingQueue.query.options(
         joinedload(ReadingQueue.book).joinedload(Book.authors),
         joinedload(ReadingQueue.book).joinedload(Book.series),
         joinedload(ReadingQueue.book).joinedload(Book.format),
     ).order_by(ReadingQueue.position).all()
-    return render_template('queue.html', items=items)
+
+    sort = request.args.get('sort', 'newest')
+    if sort not in WANT_SORTS:
+        sort = 'newest'
+    want_books = Book.query.options(
+        subqueryload(Book.authors),
+        subqueryload(Book.reads),
+        subqueryload(Book.bundle_children),
+        subqueryload(Book.queue_items),
+        joinedload(Book.series),
+        joinedload(Book.format),
+    ).filter(Book.want_to_read.is_(True)).order_by(WANT_SORTS[sort], Book.id).all()
+
+    tab = 'want' if request.args.get('tab') == 'want' else 'queue'
+    return render_template('queue.html', items=items, want_books=want_books, tab=tab, sort=sort)
 
 
 @queue_bp.route('/queue/add', methods=['POST'], endpoint='queue_add')
