@@ -72,6 +72,36 @@ class AmazonPageTest(unittest.TestCase):
         self.assertEqual(self.data['price'], 59.30)
 
 
+class AmazonPhonePageTest(unittest.TestCase):
+    """Amazon's phone layout: #title, #main-image, a collapsed byline, the
+    description in a tab, and print length only in the rich product info."""
+
+    def test_kindle_book_in_a_series(self):
+        url = 'https://www.amazon.com.au/Suncatcher-Sapphic-Western-Wanderers-Book-ebook/dp/B0HCM26DM8'
+        data = parse(parse_amazon, 'amazon-suncatcher-kindle-phone.html.gz', url)
+        self.assertEqual(data['title'], 'Suncatcher')
+        self.assertEqual(data['authors'], ['Mariah Rae Birch'])
+        self.assertEqual(data['series_name'], 'Sapphic Western Wanderers')
+        self.assertEqual(data['series_number'], 1.0)
+        self.assertEqual(data['page_count'], 361)
+        self.assertTrue(data['description'].startswith('A sapphic star-crossed love story'))
+        self.assertIn('81DorDmWE1L', data['cover_url'])
+        self.assertEqual(data['detected_format'], 'Kindle')
+        self.assertEqual(data['price'], 6.99)
+
+    def test_several_authors_and_kindle_unlimited_price(self):
+        url = 'https://www.amazon.com.au/Master-Swords-Omnibus-Books-1-3-ebook/dp/B0FJBNLCJD'
+        data = parse(parse_amazon, 'amazon-master-of-swords-kindle-phone.html.gz', url)
+        self.assertEqual(data['title'], 'Master of Swords Omnibus: Books 1-3')
+        # The byline shows "Marcus Sloss and 1 more"; both are in its secondary view
+        self.assertEqual(data['authors'], ['Marcus Sloss', 'Hunter Dane'])
+        self.assertEqual(data['page_count'], 1089)
+        self.assertTrue(data['description'].startswith('The complete series in a single offering!'))
+        # "$0.00 or $3.99 to buy": the buy price, not the Kindle Unlimited one
+        self.assertEqual(data['price'], 3.99)
+        self.assertNotIn('series_name', data)
+
+
 class KoboPageTest(unittest.TestCase):
     def test_ebook(self):
         url = 'https://www.kobo.com/au/en/ebook/moss-d-in-space-6'

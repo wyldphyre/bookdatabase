@@ -171,13 +171,19 @@ def parse_amazon(soup, url):
     such as the description are present)."""
     data = {}
 
-    # Title
-    title_el = soup.select_one('#productTitle, #ebooksProductTitle')
+    # Title. The phone layout has only #title, which on desktop also wraps
+    # the format ("Kindle Edition"), so it's the fallback.
+    title_el = soup.select_one('#productTitle, #ebooksProductTitle') or soup.select_one('#title')
     if title_el:
         data['title'] = title_el.get_text(strip=True)
 
-    # Authors (get all, deduplicate while preserving order)
-    author_els = soup.select('#bylineInfo .author a, .author a, .contributorNameID')
+    # Authors (get all, deduplicate while preserving order). On the phone
+    # layout a lone author is #bylineContributor; several are collapsed to
+    # "Name and 1 more", with the full list in the byline's secondary view.
+    author_els = soup.select(
+        '#bylineInfo .author a, .author a, .contributorNameID, '
+        '#bylineContributor, #bylineInfo_secondary_view_div .a-text-bold'
+    )
     if author_els:
         seen = set()
         authors = []
@@ -195,7 +201,8 @@ def parse_amazon(soup, url):
         '#bookDescription_feature_div .a-expander-partial-collapse-content, '
         '#productDescription, '
         '#bookDescription_feature_div noscript, '
-        '#bookDescription_feature_div'
+        '#bookDescription_feature_div, '
+        '#drengr_MobileTabbedDescriptionOverviewContent_feature_div'
     )
     if desc_el:
         # Remove "Read more" / "Read less" UI controls before extracting text
@@ -206,7 +213,7 @@ def parse_amazon(soup, url):
         data['description'] = get_text_with_linebreaks(desc_el)
 
     # Cover image
-    img_el = soup.select_one('#imgBlkFront, #ebooksImgBlkFront, #landingImage')
+    img_el = soup.select_one('#imgBlkFront, #ebooksImgBlkFront, #landingImage, #main-image')
     if img_el:
         cover_url = img_el.get('src')
         if not cover_url:
@@ -216,7 +223,10 @@ def parse_amazon(soup, url):
         data['cover_url'] = cover_url
 
     # Page count
-    details = soup.select('#detailBullets_feature_div li, #productDetailsTable .content li')
+    details = soup.select(
+        '#detailBullets_feature_div li, #productDetailsTable .content li, '
+        '[id^="rpi-attribute-book_details-"][id$="_pages"]'  # Print length, phone layout
+    )
     for detail in details:
         text = detail.get_text()
         if 'pages' in text.lower():
@@ -281,7 +291,10 @@ def parse_amazon(soup, url):
     # When there's a Kindle Unlimited "or X to buy" pairing, the buy price is
     # always the last price-like value in the swatch text.
     price_text = None
-    swatch = soup.select_one('#tmmSwatches .a-button-selected, #tmm-grid-swatch-KINDLE')
+    swatch = soup.select_one(
+        '#tmmSwatches .a-button-selected, #tmm-grid-swatch-KINDLE, '
+        '#tp-inline-twister-dim-values-container .a-button-selected'  # phone layout
+    )
     if swatch:
         matches = re.findall(r'([^\d\s]{0,4})\s*([\d,]+\.\d+)', swatch.get_text(' ', strip=True))
         if matches:

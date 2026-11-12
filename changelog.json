@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.14.1",
+    "date": "2026-11-12",
+    "changes": [
+      "Fix adding Amazon books from a phone: Amazon's phone layout couldn't be read at all. Title, every author (not just the first of \"Name and 1 more\"), description, cover, page count, series and price are now read from it"
+    ]
+  },
+  {
     "version": "1.14.0",
     "date": "2026-11-12",
     "changes": [
