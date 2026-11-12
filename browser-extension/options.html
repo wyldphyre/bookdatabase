@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Book Database extension settings</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="options">
+  <h1>Book Database</h1>
+  <p class="muted">Adds the Goodreads, Amazon or Kobo book page you're viewing to your Book Database.</p>
+
+  <form id="settings">
+    <label for="address">Book Database address</label>
+    <input type="url" id="address" placeholder="http://192.168.1.20:5001" required autocomplete="off">
+    <p class="muted">The address you open the app at, including the port, such as <code>http://localhost:5001</code>.
+       Saving asks your browser for permission to contact that address, and only that address.</p>
+    <button type="submit">Save and Test Connection</button>
+  </form>
+
+  <p id="result" class="status" role="status"></p>
+
+  <script src="shared.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

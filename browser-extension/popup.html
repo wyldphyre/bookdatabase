@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Book Database</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="popup">
+  <header class="popup-header">
+    <strong>Book Database</strong>
+    <button type="button" id="open-settings" class="link-button" title="Settings">Settings</button>
+  </header>
+
+  <p id="status" class="status" role="status">Checking connection&hellip;</p>
+
+  <section id="preview" hidden>
+    <div class="preview">
+      <img id="preview-cover" alt="" hidden>
+      <div>
+        <p id="preview-title" class="preview-title"></p>
+        <p id="preview-authors" class="muted"></p>
+        <p id="preview-series" class="muted"></p>
+      </div>
+    </div>
+    <div id="existing" class="existing" hidden>
+      <p><strong>Already in your library?</strong></p>
+      <ul id="existing-list"></ul>
+    </div>
+    <div class="actions">
+      <button type="button" id="add-owned">Add as Owned</button>
+      <button type="button" id="add-not-owned" class="secondary">Add as Not Owned</button>
+    </div>
+  </section>
+
+  <script src="shared.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

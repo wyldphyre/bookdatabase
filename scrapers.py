@@ -353,9 +353,14 @@ def parse_goodreads(soup, url):
     if desc_el:
         data['description'] = get_text_with_linebreaks(desc_el)
 
-    # Cover image
-    img_el = soup.select_one('img.ResponsiveImage, div.BookCover img')
-    if img_el:
+    # Cover image: the book's own, in the page's left column. A page-wide
+    # match can land on another book's cover card instead (readers also
+    # enjoyed, other editions), depending on how the page was put together.
+    img_el = (soup.select_one('.BookPage__bookCover img.ResponsiveImage')
+              or soup.select_one('img.ResponsiveImage, div.BookCover img'))
+    # A cover that failed to load in the browser has been swapped for the
+    # site's placeholder by the <img>'s onerror; that's no cover at all.
+    if img_el and 'no-cover' not in (img_el.get('src') or ''):
         data['cover_url'] = img_el.get('src')
 
     # Page count

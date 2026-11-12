@@ -1,0 +1,153 @@
+:root {
+  --text: #1d2734;
+  --muted: #5d6b7c;
+  --border: #d5dbe3;
+  --primary: #0172ad;
+  --primary-text: #fff;
+  --ok: #1d7a46;
+  --error: #b3261e;
+  --surface: #fff;
+  --surface-alt: #f2f5f8;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #e3e8ef;
+    --muted: #9aa7b6;
+    --border: #39424e;
+    --primary: #3fa9e8;
+    --primary-text: #0b1520;
+    --ok: #5fcf8d;
+    --error: #ff8a80;
+    --surface: #1a1f26;
+    --surface-alt: #232a33;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--text);
+  background: var(--surface);
+}
+
+p { margin: 0 0 0.4rem; }
+
+.muted { color: var(--muted); }
+
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: var(--primary-text);
+  cursor: pointer;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--primary);
+}
+
+button:disabled { opacity: 0.5; cursor: default; }
+
+.link-button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--primary);
+  font-weight: 400;
+}
+
+a { color: var(--primary); }
+
+.status { color: var(--muted); }
+.status--ok { color: var(--ok); }
+.status--error { color: var(--error); }
+
+/* Popup */
+body.popup {
+  width: 370px;
+  padding: 0.75rem 0.9rem 0.9rem;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.5rem;
+}
+
+.preview {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.preview img {
+  width: 72px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: var(--surface-alt);
+}
+
+.preview-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.existing {
+  padding: 0.5rem 0.6rem;
+  margin-bottom: 0.75rem;
+  border-radius: 6px;
+  background: var(--surface-alt);
+}
+
+.existing ul { margin: 0; padding-left: 1.1rem; }
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.actions button { flex: 1; }
+
+/* Settings page */
+body.options {
+  max-width: 560px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.options h1 { font-size: 1.4rem; margin: 0 0 0.25rem; }
+
+.options form { margin: 1.25rem 0 0.75rem; }
+
+.options label { display: block; font-weight: 600; margin-bottom: 0.3rem; }
+
+.options input {
+  width: 100%;
+  font: inherit;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  margin-bottom: 0.4rem;
+}
+
+.options form button { margin-top: 0.5rem; }
+
+code {
+  font-size: 0.92em;
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  background: var(--surface-alt);
+}

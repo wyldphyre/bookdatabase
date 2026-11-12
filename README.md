@@ -54,7 +54,8 @@ book-database/
 ├── app.py              # Flask app factory; registers blueprints, starts background schedulers
 ├── models.py           # SQLAlchemy ORM models
 ├── database.py         # Database initialization, migrations, and seed data
-├── scrapers.py         # Amazon/Goodreads page scraping (book data, prices, series counts)
+├── scrapers.py         # Amazon/Goodreads/Kobo page reading (book data, prices, series counts)
+├── capture.py          # Adding books from pages captured in the browser
 ├── notifications.py    # Pushover notification helper
 ├── price_watch.py      # Daily background price check + manual "Check Now" logic
 ├── series_monitor.py   # Weekly background check of monitored series for new releases
@@ -69,7 +70,10 @@ book-database/
 │   ├── queue.py
 │   ├── search.py
 │   ├── system.py
-│   └── price_watch.py
+│   ├── price_watch.py
+│   └── api.py          # JSON endpoints for the browser extension and Shortcut
+├── browser-extension/  # Chromium extension for adding books from the browser
+├── tests/              # Page parser tests, with saved pages in tests/fixtures/pages
 ├── static/
 │   ├── css/style.css   # Custom CSS overrides
 │   ├── img/            # App icons (favicon, home-screen) + UI overlays
@@ -136,14 +140,63 @@ Checking is deliberately slow - one series a minute, and each series only revisi
 
 ## Adding Books From the Browser
 
-The app can fill in the Add Book form from a Goodreads, Amazon or Kobo book page you have open in your browser, using the page as your browser shows it. Because the app reads your copy of the page rather than downloading its own, sites that block automated requests don't get in the way, and Kobo works even though the app can't fetch from it. Nothing is saved until you review the form and press Save.
+You can add the Goodreads, Amazon or Kobo book page you're looking at straight to the app: from a browser extension in Chrome, Vivaldi, Edge, Brave or any other Chromium browser, or from a Shortcut in Safari's Share menu on iPhone, iPad or Mac. Either way you pick **Owned** or **Not Owned**, and the Add Book form opens filled in from the page for you to review and save. Nothing is saved until you press Save.
 
-Two clients use this: a browser extension for Chromium browsers, and an iOS Shortcut for Safari on iPhone. Both talk to two endpoints:
+The app reads your browser's copy of the page rather than downloading its own, so sites that block automated requests don't get in the way, and Kobo works even though the app can't fetch from it. Genres on the page are only applied if they're already tags; any others are listed under the tag picker with a button to add them. The page's price fills in Cost (the list price, if the page shows a sale).
+
+Both need the device to reach the app: on your home network that's automatic, and away from home it needs a VPN back to it (Tailscale, or your router's VPN).
+
+### Browser extension (Chromium browsers)
+
+The extension lives in `browser-extension/` and is installed straight from that folder; it isn't published to any extension store.
+
+1. Open the browser's extensions page: `vivaldi://extensions` in Vivaldi, `chrome://extensions` in Chrome, `edge://extensions` in Edge, `brave://extensions` in Brave.
+2. Turn on **Developer mode** (a toggle at the top right of that page).
+3. Click **Load unpacked** and choose the `browser-extension` folder from this repository.
+4. Pin the **Book Database** button to the toolbar: click the extensions (puzzle piece) icon and pin it. In Vivaldi, right-click the toolbar and use **Edit** → **Customize Toolbar** if it doesn't appear.
+5. Open the extension's settings (on its card on the extensions page, **Details** → **Extension options**, or **Settings** in its popup). Enter the address you open the app at, including the port - for example `http://192.168.1.20:5001` - and click **Save and Test Connection**. The browser asks for permission to contact that address; allow it. You should see *Connected to Book Database* with the app's version.
+
+To use it, open a book's page on Goodreads, Amazon or Kobo and click the toolbar button. The popup shows the book it found (and warns if it looks like something already in your library); click **Add as Owned** or **Add as Not Owned**.
+
+To update after pulling new code, click the reload icon on the extension's card on the extensions page. If you move the repository folder, remove the extension and load it again from the new location.
+
+What it can access: only the tab you click its button on, and only at that moment - it doesn't run on pages in the background or see other tabs. It can only contact the one address you set (changing the address drops access to the old one), and all its code is in that folder; it loads nothing from the internet.
+
+### Shortcut (Safari on iPhone, iPad and Mac)
+
+Build this once in the **Shortcuts** app; it syncs to your other Apple devices through iCloud. Where a step says to pick a variable (shown in blue, like *Shortcut Input*), tap the field and choose it from the bar of variables above the keyboard.
+
+1. In Shortcuts, tap **+** to make a new shortcut and name it **Add to Book Database**.
+2. Tap the **ⓘ** (details) button, turn on **Show in Share Sheet**, then tap **Done**. At the top of the shortcut, tap the input types and leave only **Safari web pages** selected.
+3. Add **Run JavaScript on Web Page**. Set its input to *Shortcut Input* and replace its script with:
+   ```javascript
+   completion(JSON.stringify({ url: location.href, html: document.documentElement.outerHTML }));
+   ```
+4. Add **Text** and enter the app's address followed by `/api/capture`, for example `http://192.168.1.20:5001/api/capture`.
+5. Add **Get Contents of URL** and set it up:
+   - URL: the *Text* from step 4.
+   - Tap **Show More**. Method: **POST**.
+   - Headers: add one with key `X-Book-Database-Client` and value `shortcut`.
+   - Request Body: **File**, and set the file to *JavaScript Result*.
+6. Add **Get Dictionary Value**: get *Value* for key `error` in *Contents of URL*.
+7. Add **If**: *Dictionary Value* **has any value**. Inside it, add **Show Alert** with *Dictionary Value* as its message, then **Stop This Shortcut**. Leave the **Otherwise** part empty.
+8. After **End If**, add **Get Dictionary Value**: get *Value* for key `summary` in *Contents of URL*.
+9. Add **Choose from Menu**. Set its prompt to that *Dictionary Value* (the book's title and author, plus a warning if it may already be in your library), and name its two options `Owned` and `Not Owned`.
+10. Under **Owned**, add **Get Dictionary Value** for key `add_owned_url` in *Contents of URL*, then **Open URLs** with that *Dictionary Value*.
+11. Under **Not Owned**, add **Get Dictionary Value** for key `add_not_owned_url` in *Contents of URL*, then **Open URLs** with that *Dictionary Value*.
+
+To use it, open a book's page in Safari, tap **Share** (on a Mac, the Share button in Safari's toolbar), then **Add to Book Database**. The first time it runs on each site it asks permission to run JavaScript on that site; choose **Always Allow**. It then shows the book and asks Owned or Not Owned, and opens the filled-in Add Book form in Safari.
+
+If the app can't be reached, Shortcuts shows its own connection error at step 5. On a Mac, if Shortcuts says it can't run JavaScript in Safari, turn on Safari ▸ Settings ▸ Advanced ▸ **Show features for web developers**, then Safari's **Develop** menu ▸ **Allow JavaScript from Apple Events**.
+
+Phone layouts can differ from the desktop pages the app's readers are built from - Amazon's mobile pages in particular. If a page can't be read the Shortcut says so, and the app keeps a copy of the page (the newest five, in `instance/captures/`) so it can be added as a test fixture and the reader fixed; in the meantime, Safari's **Request Desktop Website** (in the **ᴀA** menu) usually works around it.
+
+### How it works
+
+Both clients use two endpoints:
 
 - `GET /api/status` - returns the app's name and version, so a client can confirm its configured address really is this app.
-- `POST /api/capture` - takes JSON `{"url": ..., "html": ...}` for a book page, reads it, and returns a preview (title, authors, series, cover), any library books it may duplicate (same page link, or same title and author), and two form addresses: `add_owned_url` and `add_not_owned_url`. The parsed details are held for 30 minutes, then forgotten.
-
-Genres on a captured page are only applied if they're already tags. Any others are listed under the tag picker with a button that adds them, so a capture never creates tags unless you choose to. The page's price fills in Cost (the list price, if the page shows a sale).
+- `POST /api/capture` - takes JSON `{"url": ..., "html": ...}` for a book page and reads it with the same parsers the URL import uses. It returns a preview (`title`, `authors`, `series_name`, `series_number`, `cover_url`), a one-line `summary`, any library books it may duplicate in `existing` (same page link, or same title and author), and two form addresses, `add_owned_url` and `add_not_owned_url`. The parsed details are held for 30 minutes, then forgotten.
 
 Both endpoints require an `X-Book-Database-Client` header and refuse any request whose `Origin` is a website, so a web page can't call them (see [A Note on Access Control](#a-note-on-access-control)).
 

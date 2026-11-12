@@ -9,6 +9,9 @@ which a web page can only send after a CORS preflight this app never answers —
 and a request that declares a website as its Origin is refused outright. The
 extension's origin is chrome-extension://…, and Shortcuts sends none.
 """
+import os
+import re
+from datetime import datetime
 from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
@@ -24,6 +27,36 @@ CLIENT_HEADER = 'X-Book-Database-Client'
 
 # A rendered Amazon page runs to about 5MB of HTML; leave headroom.
 MAX_CAPTURE_BYTES = 15 * 1024 * 1024
+
+# Pages that couldn't be read are kept (the newest few) in instance/captures,
+# so a site's layout change can be turned into a test fixture and fixed.
+FAILED_CAPTURES_KEPT = 5
+
+
+def _keep_failed_capture(source, html):
+    folder = os.path.join(current_app.instance_path, 'captures')
+    try:
+        os.makedirs(folder, exist_ok=True)
+        name = f"failed-{source}-{datetime.now():%Y%m%d-%H%M%S-%f}.html"
+        with open(os.path.join(folder, name), 'w', encoding='utf-8') as f:
+            f.write(html)
+        kept = sorted(n for n in os.listdir(folder) if re.match(r'failed-.+\.html$', n))
+        for old in kept[:-FAILED_CAPTURES_KEPT]:
+            os.remove(os.path.join(folder, old))
+        current_app.logger.warning('Capture: saved an unreadable %s page as instance/captures/%s', source, name)
+    except OSError:
+        current_app.logger.exception('Capture: could not save the unreadable page')
+
+
+def _summary(prefill, existing):
+    """One line for a client to show as-is (the Shortcut's menu prompt)."""
+    text = prefill.get('title') or 'Untitled'
+    if prefill.get('authors'):
+        text += ' by ' + ', '.join(prefill['authors'])
+    if existing:
+        text += '\nPossibly already in your library: ' + '; '.join(
+            b.title + ('' if b.owned else ' (not owned)') for b in existing)
+    return text
 
 
 @api_bp.before_request
@@ -49,7 +82,8 @@ def capture_page():
     address for adding it as owned or not owned."""
     if (request.content_length or 0) > MAX_CAPTURE_BYTES:
         return jsonify({'error': 'That page is too large to capture'}), 413
-    payload = request.get_json(silent=True) or {}
+    # Whatever the Content-Type: Shortcuts makes setting one fiddly
+    payload = request.get_json(force=True, silent=True) or {}
     url = payload.get('url')
     html = payload.get('html')
     if not isinstance(url, str) or not isinstance(html, str) or not html.strip():
@@ -66,6 +100,7 @@ def capture_page():
         current_app.logger.exception('Capture: parsing a %s page failed', source)
         book_data = None
     if not book_data:
+        _keep_failed_capture(source, html)
         return jsonify({'error': f"Couldn't find the book's details on that {source.title()} page"}), 422
 
     prefill = capture.build_prefill(book_data, create_tags=False)
@@ -79,6 +114,7 @@ def capture_page():
         'series_name': prefill.get('series_name'),
         'series_number': prefill.get('series_number'),
         'cover_url': prefill.get('cover_url'),
+        'summary': _summary(prefill, existing),
         'existing': [{'id': b.id, 'title': b.title, 'owned': b.owned,
                       'url': url_for('books.book_detail', id=b.id, _external=True)} for b in existing],
         'add_owned_url': url_for('books.book_new', capture=token, _external=True),

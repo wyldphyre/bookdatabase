@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.14.0",
+    "date": "2026-11-12",
+    "changes": [
+      "Add books from the browser. A browser extension for Chromium browsers (Vivaldi, Chrome, Edge, Brave) adds the Goodreads, Amazon or Kobo book page you're viewing: its toolbar button checks it can reach the app, shows the book it found (and warns if it looks like one you already have), and opens the Add Book form filled in from the page as Owned or Not Owned. It's installed from the browser-extension folder; see the README",
+      "The same from Safari on iPhone, iPad or Mac, with a Shortcut in the Share menu. The README has step-by-step instructions for building it",
+      "Fix Goodreads imports sometimes taking the cover of another book shown on the page (readers also enjoyed, other editions) instead of the book's own",
+      "Pages that can't be read are kept (the newest five, in instance/captures) so a site's layout change can be turned into a test and fixed"
+    ]
+  },
+  {
     "version": "1.13.0",
     "date": "2026-11-12",
     "changes": [

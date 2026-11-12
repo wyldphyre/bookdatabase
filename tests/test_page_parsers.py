@@ -36,6 +36,8 @@ class GoodreadsPageTest(unittest.TestCase):
         self.assertEqual(self.data['page_count'], 368)
         self.assertTrue(self.data['description'].startswith('USA Today Bestselling author Rebecca Thorne'))
         self.assertEqual(self.data['goodreads_url'], self.URL)
+        # The book's own cover, not another book's card further down the page
+        self.assertTrue(self.data['cover_url'].endswith('240019758.jpg'))
 
     def test_series(self):
         self.assertEqual(self.data['series_name'], "Moss'd in Space")
