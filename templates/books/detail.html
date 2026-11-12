@@ -40,7 +40,13 @@
                         {% endif %}
                     </li>
                     <li><a href="https://app.thestorygraph.com/browse?search_term={{ search_q }}" target="_blank" rel="noopener">Find on StoryGraph</a></li>
-                    <li><a href="https://www.kobo.com/au/en/search?query={{ search_q }}" target="_blank" rel="noopener">Find on Kobo</a></li>
+                    <li>
+                        {% if book.kobo_url %}
+                        <a href="{{ book.kobo_url }}" target="_blank" rel="noopener">View on Kobo</a>
+                        {% else %}
+                        <a href="https://www.kobo.com/au/en/search?query={{ search_q }}" target="_blank" rel="noopener">Find on Kobo</a>
+                        {% endif %}
+                    </li>
                 </ul>
             </div>
         </div>

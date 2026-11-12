@@ -3,7 +3,7 @@ from sqlalchemy.engine import Engine
 
 from models import db, BookFormat, AuthorGender, NOT_SPECIFIED_FORMAT
 
-CURRENT_SCHEMA_VERSION = 15
+CURRENT_SCHEMA_VERSION = 16
 
 
 @event.listens_for(Engine, 'connect')
@@ -300,6 +300,13 @@ def run_migrations():
                     cursor.execute("UPDATE reading_queue SET book_id = ? WHERE id = ?", (book_id, queue_id))
                 for column in ('external_title', 'external_author', 'external_url'):
                     cursor.execute(f"ALTER TABLE reading_queue DROP COLUMN {column}")
+            conn.commit()
+
+        if version < 16:
+            cursor.execute("PRAGMA table_info(book)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'kobo_url' not in columns:
+                cursor.execute("ALTER TABLE book ADD COLUMN kobo_url VARCHAR(500)")
             conn.commit()
 
         if version < CURRENT_SCHEMA_VERSION:

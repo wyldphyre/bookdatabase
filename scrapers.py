@@ -157,8 +157,18 @@ def get_text_with_linebreaks(element):
 
 def scrape_amazon(url):
     """Scrape book data from Amazon."""
-    soup = fetch_page(url)
+    return parse_amazon(fetch_page(url), url)
 
+
+# Amazon's formats, as its format picker names them, mapped to this app's.
+_AMAZON_FORMATS = [('kindle', 'Kindle'), ('hardcover', 'Hardcover'), ('paperback', 'Paperback'),
+                   ('audible', 'Audiobook'), ('audiobook', 'Audiobook')]
+
+
+def parse_amazon(soup, url):
+    """Book data from an Amazon product page, whether fetched here or captured
+    from the browser (where it's the page as rendered, so late-loading parts
+    such as the description are present)."""
     data = {}
 
     # Title
@@ -234,16 +244,34 @@ def scrape_amazon(url):
 
     data['amazon_url'] = url
 
-    # Detect Kindle format from the selected format swatch or ebook-specific page layout
+    # Amazon appends the instalment to the title ("Suncatcher (1)", or
+    # "Title (Series Book 2)"); it belongs in the series fields, not the title.
+    title = data.get('title')
+    if title:
+        m = re.match(r'^(.+?)\s*\((?:(.+?),?\s+(?:Book|#)\s*)?(\d+(?:\.\d+)?)\)$', title, re.IGNORECASE)
+        if m:
+            data['title'] = m.group(1).strip()
+            if m.group(2) and not data.get('series_name'):
+                data['series_name'] = m.group(2).strip()
+            if 'series_number' not in data:
+                data['series_number'] = float(m.group(3))
+
+    # Format: the selected format swatch on older layouts, the format picker's
+    # label ("Hardcover") or the byline's "Format: Hardcover" on current ones.
     format_els = soup.select(
         '#variation_format_name .selection, '
         '#tmmSwatches .a-button-selected .slot-title, '
-        '#tmmSwatches .a-button-selected'
+        '#tmmSwatches .a-button-selected, '
+        '#inline-twister-expanded-dimension-text-media_format, '
+        '#bylineInfo'
     )
-    if any('kindle' in el.get_text(strip=True).lower() for el in format_els):
-        data['detected_format'] = 'Kindle'
-    elif soup.select_one('#ebooksProductTitle'):
-        data['detected_format'] = 'Kindle'
+    format_text = ' '.join(el.get_text(' ', strip=True).lower() for el in format_els)
+    if soup.select_one('#ebooksProductTitle'):
+        format_text = 'kindle ' + format_text
+    for needle, name in _AMAZON_FORMATS:
+        if needle in format_text:
+            data['detected_format'] = name
+            break
 
     # Price - read it from the Kindle format swatch button itself
     # ("Kindle AUD 0.00 or AUD 7.24 to buy"). This is the one element that's
@@ -261,14 +289,19 @@ def scrape_amazon(url):
             price_text = currency + amount
 
     if not price_text:
-        price_el = soup.select_one(
+        # The first match can be an empty placeholder on current layouts, so
+        # take the first one that actually holds a price.
+        for price_el in soup.select(
+            '#apex-pricetopay-accessibility-label, '
             '#corePriceDisplay_desktop_feature_div .a-price .a-offscreen, '
             '#kindle-price, '
             '.kindle-price, '
             '.a-price .a-offscreen'
-        )
-        if price_el:
+        ):
             price_text = price_el.get_text(strip=True)
+            if re.search(r'\d', price_text):
+                break
+            price_text = None
 
     if price_text:
         m = re.match(r'^([^\d]*)([\d,]+\.?\d*)', price_text)
@@ -284,8 +317,11 @@ def scrape_amazon(url):
 
 def scrape_goodreads(url):
     """Scrape book data from Goodreads."""
-    soup = fetch_page(url)
+    return parse_goodreads(fetch_page(url), url)
 
+
+def parse_goodreads(soup, url):
+    """Book data from a Goodreads book page, fetched or captured."""
     data = {}
 
     # Title
@@ -349,8 +385,11 @@ def scrape_goodreads(url):
         else:
             data['series_name'] = series_text
 
-    # Genres/tags
-    genre_els = soup.select('span.BookPageMetadataSection__genreButton a, a[href*="/genres/"]')
+    # Genres/tags. The book's own genre list only — a page-wide match on
+    # genre links also picks up the site's "Browse" menu, which tagged every
+    # book with Comics, Graphic Novels and the rest of the menu.
+    genre_els = (soup.select('span.BookPageMetadataSection__genreButton a')
+                 or soup.select('[data-testid="genresList"] a[href*="/genres/"]'))
     if genre_els:
         seen = set()
         genres = []
@@ -366,6 +405,95 @@ def scrape_goodreads(url):
     data['goodreads_url'] = url
 
     return data if data.get('title') else None
+
+
+def parse_kobo(soup, url):
+    """Book data from a Kobo ebook or audiobook page. Only ever captured from
+    the browser; there's no server-side fetch for Kobo."""
+    data = {}
+
+    title_el = soup.select_one('h1[data-testid="book-title"]')
+    if title_el:
+        data['title'] = title_el.get_text(strip=True)
+
+    details = soup.select_one('[data-testid="book-metadata-details"]') or soup
+    authors = []
+    for el in details.select('a[href*="/author/"]'):
+        name = el.get_text(strip=True)
+        if name and name not in authors:
+            authors.append(name)
+    if authors:
+        data['authors'] = authors
+
+    # "Book 1 - Series Name": the number is in the group's label, the name in its link
+    series_el = details.select_one('a[href*="/series/"]')
+    if series_el:
+        data['series_name'] = series_el.get_text(strip=True)
+        data['series_url'] = urljoin(url, series_el.get('href', '')).split('?')[0]
+        group = series_el.find_parent(attrs={'aria-label': True})
+        m = re.search(r'Book\s+(\d+(?:\.\d+)?)', group.get('aria-label', '') if group else '')
+        if m:
+            data['series_number'] = float(m.group(1))
+
+    desc_el = soup.select_one('[data-testid="rte-description-synopsis"]')
+    if desc_el:
+        data['description'] = get_text_with_linebreaks(desc_el)
+
+    # The <img> carries the cover once rendered; a saved copy of the page
+    # rewrites it to a local file, so fall back to the <source> beside it.
+    img_el = soup.select_one('[data-testid="book-cover-container"] img')
+    cover_url = img_el.get('src') if img_el else None
+    if not cover_url or not re.match(r'^(https?:)?//', cover_url):
+        source_el = soup.select_one('[data-testid="book-cover-container"] source')
+        cover_url = source_el.get('srcset', '').split()[0] if source_el and source_el.get('srcset') else None
+    if cover_url:
+        data['cover_url'] = 'https:' + cover_url if cover_url.startswith('//') else cover_url
+
+    pages_el = soup.select_one('[data-testid="book-details-stat-Book"]')
+    if pages_el:
+        m = re.search(r'(\d[\d,]*)\s*Pages', pages_el.get_text(' ', strip=True), re.IGNORECASE)
+        if m:
+            data['page_count'] = int(m.group(1).replace(',', ''))
+
+    # The buy pad's price block: "$7.02 AUD", or during a sale
+    # "Save 9 % List Price: $7.80 AUD . $7.02 AUD" — the price you'd pay last.
+    price_el = soup.select_one('[data-testid="book-buy-pad"] [data-testid="price"]')
+    if price_el:
+        text = price_el.get_text(' ', strip=True)
+        prices = re.findall(r'([^\d\s]{0,4})\s*([\d,]+\.\d+)', text)
+        if prices:
+            data['currency'] = prices[-1][0]
+            data['price'] = float(prices[-1][1].replace(',', ''))
+            if len(prices) > 1 and 'list price' in text.lower():
+                data['list_price'] = float(prices[0][1].replace(',', ''))
+
+    data['detected_format'] = 'Audiobook' if '/audiobook/' in url else 'Kobo'
+    data['kobo_url'] = url
+
+    return data if data.get('title') else None
+
+
+# A book page on each site a page can be captured from, as (source, parser).
+_BOOK_PAGES = [
+    (re.compile(r'(^|\.)goodreads\.com$'), re.compile(r'^/(?:[a-z]{2}/)?book/show/\d+'), 'goodreads', parse_goodreads),
+    (re.compile(r'(^|\.)amazon\.[a-z.]+$'), re.compile(r'/(?:dp|gp/product)/[A-Za-z0-9]{10}'), 'amazon', parse_amazon),
+    (re.compile(r'(^|\.)kobo\.com$'), re.compile(r'/(?:ebook|audiobook)/[^/]+'), 'kobo', parse_kobo),
+]
+
+
+def book_page_parser(url):
+    """(source, parser) for a supported book page URL, or (None, None)."""
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return None, None
+    if parsed.scheme not in ('http', 'https'):
+        return None, None
+    host = (parsed.hostname or '').lower()
+    for host_re, path_re, source, parser in _BOOK_PAGES:
+        if host_re.search(host) and path_re.search(parsed.path):
+            return source, parser
+    return None, None
 
 
 def scrape_amazon_series(url):

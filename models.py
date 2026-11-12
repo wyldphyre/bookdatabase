@@ -173,6 +173,7 @@ class Book(db.Model):
     comment = db.Column(db.Text)
     goodreads_url = db.Column(db.String(500))
     amazon_url = db.Column(db.String(500))
+    kobo_url = db.Column(db.String(500))
     parent_id = db.Column(db.Integer, db.ForeignKey('book.id'), index=True)
     # Independent flags: a book you don't own can be one you want to read, and
     # so can one you do. Not indexed — nearly every book is owned and not on

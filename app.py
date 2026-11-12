@@ -8,7 +8,7 @@ from price_watch import start_price_watch_scheduler
 from series_monitor import start_series_monitor_scheduler
 from utils import THUMB_SUBFOLDER, start_thumbnail_backfill
 
-APP_VERSION = '1.12.1'
+APP_VERSION = '1.13.0'
 
 
 def create_app():
@@ -42,6 +42,7 @@ def create_app():
     from routes.search import search_bp
     from routes.system import system_bp
     from routes.price_watch import price_watch_bp
+    from routes.api import api_bp
     app.register_blueprint(books_bp)
     app.register_blueprint(authors_bp)
     app.register_blueprint(series_bp)
@@ -49,6 +50,7 @@ def create_app():
     app.register_blueprint(search_bp)
     app.register_blueprint(system_bp)
     app.register_blueprint(price_watch_bp)
+    app.register_blueprint(api_bp)
 
     # Context processor
     @app.context_processor
@@ -87,6 +89,10 @@ def create_app():
             # curl, scripts and the like send neither. A browser can't be made
             # to omit both on a cross-site write, so refusing here would only
             # break local tooling without closing anything.
+            return None
+        # The browser extension posts captured pages from its own origin. Only
+        # /api/ accepts that, and checks its client header itself (routes/api.py).
+        if urlparse(stated).scheme == 'chrome-extension' and request.blueprint == 'api':
             return None
         if urlparse(stated).netloc != request.host:
             logging.warning('Blocked cross-site %s to %s (origin %r)',

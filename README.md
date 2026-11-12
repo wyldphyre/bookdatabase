@@ -134,11 +134,24 @@ Checks read whichever series page you've recorded - Goodreads first, then Amazon
 
 Checking is deliberately slow - one series a minute, and each series only revisited weekly - to stay well clear of the rate limits described under [Price Watch](#price-watch). If a site blocks the app mid-run, checking backs off rather than continuing.
 
+## Adding Books From the Browser
+
+The app can fill in the Add Book form from a Goodreads, Amazon or Kobo book page you have open in your browser, using the page as your browser shows it. Because the app reads your copy of the page rather than downloading its own, sites that block automated requests don't get in the way, and Kobo works even though the app can't fetch from it. Nothing is saved until you review the form and press Save.
+
+Two clients use this: a browser extension for Chromium browsers, and an iOS Shortcut for Safari on iPhone. Both talk to two endpoints:
+
+- `GET /api/status` - returns the app's name and version, so a client can confirm its configured address really is this app.
+- `POST /api/capture` - takes JSON `{"url": ..., "html": ...}` for a book page, reads it, and returns a preview (title, authors, series, cover), any library books it may duplicate (same page link, or same title and author), and two form addresses: `add_owned_url` and `add_not_owned_url`. The parsed details are held for 30 minutes, then forgotten.
+
+Genres on a captured page are only applied if they're already tags. Any others are listed under the tag picker with a button that adds them, so a capture never creates tags unless you choose to. The page's price fills in Cost (the list price, if the page shows a sale).
+
+Both endpoints require an `X-Book-Database-Client` header and refuse any request whose `Origin` is a website, so a web page can't call them (see [A Note on Access Control](#a-note-on-access-control)).
+
 ## A Note on Access Control
 
 The app has no login: anyone who can reach it on your network can use it. It's built for a single user on a private network, and adding accounts would be the change to make if that ever stops being true.
 
-State-changing requests (anything that isn't a GET) are checked to make sure they came from a page of this app rather than another site. Without that, a malicious page open in your browser could quietly POST to the app's address - deleting books, or triggering the import that replaces the whole database - without the attacker needing any access to your network. Requests that send no `Origin` or `Referer` at all, such as `curl` or a script, are allowed through: a browser can't be made to omit both on a cross-site write, so refusing them would only break local tooling.
+State-changing requests (anything that isn't a GET) are checked to make sure they came from a page of this app rather than another site. Without that, a malicious page open in your browser could quietly POST to the app's address - deleting books, or triggering the import that replaces the whole database - without the attacker needing any access to your network. Requests that send no `Origin` or `Referer` at all, such as `curl` or a script, are allowed through: a browser can't be made to omit both on a cross-site write, so refusing them would only break local tooling. The one exception is the browser extension's own origin (`chrome-extension://…`), which is accepted on `/api/` only.
 
 ## Docker Deployment
 
@@ -232,6 +245,16 @@ To run backups automatically at 2 AM daily:
 3. Copy `books.db` to `./data/instance/`
 4. Copy the `uploads/` folder to `./data/uploads/`
 5. Start the container: `docker compose -f docker-compose.prod.yml up -d`
+
+## Tests
+
+The page parsers are tested against saved copies of real Goodreads, Amazon and Kobo pages in `tests/fixtures/pages/`. Run them from the repository root:
+
+```bash
+python -m unittest discover tests
+```
+
+When a site changes its layout and imports or captures start coming back wrong, save the new page from the browser, add it as a fixture (gzipped; scripts, styles and SVG can be stripped since the parsers never read them), and fix the parser until the tests pass.
 
 ## Usage
 

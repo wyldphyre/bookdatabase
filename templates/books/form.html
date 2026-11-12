@@ -379,7 +379,7 @@
 
         <label>
             Cost
-            <input type="number" name="cost" value="{{ book.cost or '' if book else '' }}" step="0.01" min="0">
+            <input type="number" name="cost" value="{{ book.cost or '' if book else (prefill.cost if prefill and prefill.cost else '') }}" step="0.01" min="0">
         </label>
 
         <label class="purchase-only">
@@ -513,6 +513,11 @@
             Amazon URL
             <input type="url" name="amazon_url" value="{{ prefill.amazon_url if prefill and prefill.amazon_url else (book.amazon_url or '' if book else '') }}" placeholder="https://www.amazon.com/dp/...">
         </label>
+
+        <label>
+            Kobo URL
+            <input type="url" name="kobo_url" value="{{ prefill.kobo_url if prefill and prefill.kobo_url else (book.kobo_url or '' if book else '') }}" placeholder="https://www.kobo.com/.../ebook/...">
+        </label>
     </div>
 
     <label>
@@ -522,6 +527,15 @@
 
     {% set selected_tags = book.tags if book else (prefill_tags if prefill_tags is defined else []) %}
     {% include '_tag_picker.html' %}
+    {% if prefill and prefill.new_genres %}
+    {# Genres from a captured page that aren't tags yet. Capturing doesn't
+       create tags, so they're offered here for one click instead. #}
+    <p class="prefill-notice" id="new-genres-notice">
+        Genres on the page that aren't tags yet: {{ prefill.new_genres|join(', ') }}.
+        <button type="button" class="outline secondary btn-compact" data-genres="{{ prefill.new_genres|join('\n') }}"
+                onclick="addTagList(this.dataset.genres).then(function(ok) { if (ok) document.getElementById('new-genres-notice').remove(); })">Add as new tags</button>
+    </p>
+    {% endif %}
 
     <div class="detail-actions">
         <button type="submit">{{ 'Update' if book else 'Add' }} Book</button>

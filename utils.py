@@ -156,10 +156,10 @@ def validate_rating(rating):
 
 
 def clean_external_url(url):
-    """Strip tracking/search cruft from Goodreads, Amazon, and StoryGraph URLs.
+    """Strip tracking/search cruft from Goodreads, Amazon, StoryGraph and Kobo URLs.
 
     Amazon links are canonicalized to a bare https://domain/dp/ASIN form.
-    Goodreads/StoryGraph links keep their path (it's a meaningful id, not
+    Goodreads/StoryGraph/Kobo links keep their path (it's a meaningful id, not
     tracking) but lose the query string and fragment.
     Unrecognized domains are returned unchanged.
     """
@@ -181,7 +181,7 @@ def clean_external_url(url):
             return f'{parsed.scheme}://{parsed.netloc}/dp/{match.group(1).upper()}'
         return parsed._replace(query='', fragment='').geturl()
 
-    if 'goodreads.com' in host or 'thestorygraph.com' in host:
+    if 'goodreads.com' in host or 'thestorygraph.com' in host or 'kobo.com' in host:
         return parsed._replace(query='', fragment='').geturl()
 
     return url

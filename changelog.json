@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.13.0",
+    "date": "2026-11-12",
+    "changes": [
+      "Groundwork for adding books from the browser: the app can now read a Goodreads, Amazon or Kobo book page sent from your browser and open the Add Book form filled in from it, ready to review and save as owned or not owned. The browser extension and iPhone Shortcut that use this come next",
+      "Kobo book pages can be read: title, authors, series, description, cover, page count and price. Books gain a Kobo URL field, and a book with one gets View on Kobo in its page menu",
+      "Fix Goodreads imports adding every genre from the site's Browse menu (Comics, Graphic Novels and so on) to a book's tags; only the book's own genres are used now",
+      "Amazon pages on the current layout: the format (Hardcover, Paperback, Kindle, Audiobook) and price are read again, and a title like \"Suncatcher (1)\" has its instalment moved into the series number",
+      "Importing a book from a URL now fills in Cost from the page's price",
+      "Tests for the Goodreads, Amazon and Kobo page readers, run with python -m unittest discover tests"
+    ]
+  },
+  {
     "version": "1.12.1",
     "date": "2026-11-11",
     "changes": [

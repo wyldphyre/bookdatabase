@@ -29,3 +29,6 @@ data/
 # IDE
 .vscode/
 .idea/
+
+# Full saved web pages (trimmed copies live in tests/fixtures/pages)
+book_webpage_examples/

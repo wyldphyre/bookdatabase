@@ -10,6 +10,7 @@ from models import (db, Book, Author, Read, ReadingQueue, BookFormat, Tag, Serie
 from utils import (allowed_file, parse_date, parse_float, validate_rating, fetch_cover_image,
                    clean_external_url, generate_thumbnail, delete_thumbnail,
                    MAX_COVER_DOWNLOAD_BYTES)
+import capture
 from scrapers import (scrape_amazon, scrape_goodreads, search_amazon_for_book,
                       search_goodreads_for_book, ScrapeBlockedError)
 
@@ -253,8 +254,15 @@ def book_new():
 
     formats = BookFormat.query.all()
 
-    # Check for pre-filled data from import, or parent_id query param
-    prefill = session.pop('book_prefill', None)
+    # Pre-filled data from a page captured in the browser, an import, or a
+    # parent_id query param
+    prefill = None
+    if request.args.get('capture'):
+        prefill = capture.collect(request.args.get('capture'))
+        if prefill is None:
+            flash('That captured page has expired. Capture it again to fill in the form.', 'warning')
+    if prefill is None:
+        prefill = session.pop('book_prefill', None)
     if not prefill and request.args.get('parent_id'):
         prefill = {'parent_id': request.args.get('parent_id', type=int)}
     # ?owned=0 starts the form as a book you don't own (format Not Specified,
@@ -334,18 +342,7 @@ def book_import():
     try:
         book_data = scraper(url)
         if book_data:
-            # Auto-create tags from genres
-            if book_data.get('genres'):
-                book_data['tag_ids'] = [Tag.find_or_create(name).id for name in book_data['genres']]
-                db.session.commit()
-
-            # Map detected format (e.g. Kindle) to a format_id
-            detected_format = book_data.pop('detected_format', None)
-            if detected_format:
-                format_match = BookFormat.query.filter(db.func.lower(BookFormat.name) == detected_format.lower()).first()
-                if format_match:
-                    book_data['format_id'] = format_match.id
-
+            book_data = capture.build_prefill(book_data, create_tags=True)
             if parent_id:
                 book_data['parent_id'] = parent_id
             session['book_prefill'] = book_data
@@ -456,6 +453,7 @@ def save_book(book):
     book.comment = request.form.get('comment', '').strip() or None
     book.goodreads_url = clean_external_url(request.form.get('goodreads_url', '').strip()) or None
     book.amazon_url = clean_external_url(request.form.get('amazon_url', '').strip()) or None
+    book.kobo_url = clean_external_url(request.form.get('kobo_url', '').strip()) or None
 
     # Handle authors
     author_ids = request.form.getlist('authors')
