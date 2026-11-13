@@ -238,8 +238,7 @@ def book_detail(id):
             .group_by(Book.id).order_by(shared_count.desc(), Book.title) \
             .options(*eager_opts).limit(20).all()
 
-    # Price watches are keyed by Amazon URL (both stored as canonical /dp/ASIN)
-    price_watch = PriceWatch.query.filter_by(amazon_url=book.amazon_url).first() if book.amazon_url else None
+    price_watch = PriceWatch.by_asin().get(book.amazon_asin) if book.amazon_asin else None
 
     return render_template('books/detail.html', book=book, today=date.today().isoformat(),
                             price_watch=price_watch,
@@ -579,11 +578,15 @@ def book_rate(id):
 
 
 def _stop_price_watch(book):
-    """Remove the price watch on a book's Amazon link (watches are keyed by
-    it); returns how many were removed. The caller commits."""
-    if not book.amazon_url:
+    """Remove any price watch on the book's Amazon ASIN, from whichever
+    Amazon site; returns how many were removed. The caller commits."""
+    asin = book.amazon_asin
+    if not asin:
         return 0
-    return PriceWatch.query.filter_by(amazon_url=book.amazon_url).delete()
+    watches = [w for w in PriceWatch.query.all() if w.asin == asin]
+    for watch in watches:
+        db.session.delete(watch)
+    return len(watches)
 
 
 @books_bp.route('/books/<int:id>/mark-owned', methods=['POST'], endpoint='book_mark_owned')

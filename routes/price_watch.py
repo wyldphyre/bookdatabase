@@ -1,7 +1,8 @@
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash
 from sqlalchemy.exc import IntegrityError
 from models import db, PriceWatch, Book
-from utils import clean_external_url
+from sqlalchemy import or_
+from utils import amazon_asin, clean_external_url
 from scrapers import scrape_amazon, ScrapeBlockedError
 from price_watch import run_price_checks
 from notifications import pushover_configured
@@ -12,11 +13,14 @@ price_watch_bp = Blueprint('price_watch', __name__)
 @price_watch_bp.route('/price-watch', endpoint='price_watch_list')
 def price_watch_list():
     watches = PriceWatch.query.order_by(PriceWatch.created_at.desc()).all()
-    # Watches are keyed by Amazon URL, not linked to books; a library book
-    # with the same (canonical /dp/ASIN) link is the one being watched.
-    urls = [w.amazon_url for w in watches]
-    books_by_url = {b.amazon_url: b for b in Book.query.filter(Book.amazon_url.in_(urls)).all()} if urls else {}
-    return render_template('price_watch/list.html', watches=watches, books_by_url=books_by_url,
+    # Watches aren't linked to books; a library book whose Amazon link has
+    # the same ASIN (on any Amazon site) is the one being watched.
+    asins = {w.asin for w in watches if w.asin}
+    books_by_asin = {}
+    if asins:
+        candidates = Book.query.filter(or_(*[Book.amazon_url.like(f'%{a}%') for a in asins])).all()
+        books_by_asin = {b.amazon_asin: b for b in candidates if b.amazon_asin in asins}
+    return render_template('price_watch/list.html', watches=watches, books_by_asin=books_by_asin,
                            pushover_configured=pushover_configured())
 
 
@@ -30,6 +34,11 @@ def price_watch_add():
     url = clean_external_url(request.form.get('amazon_url', '').strip())
     if not url:
         flash('An Amazon URL is required', 'error')
+        return redirect(back)
+    # The same book on another Amazon site is the same watch
+    asin = amazon_asin(url)
+    if asin and asin in PriceWatch.by_asin():
+        flash('You\'re already watching that book', 'error')
         return redirect(back)
 
     try:

@@ -292,31 +292,34 @@ def parse_amazon(soup, url):
     # Audible add-on deal) that a generic price selector would pick up instead.
     # When there's a Kindle Unlimited "or X to buy" pairing, the buy price is
     # always the last price-like value in the swatch text.
+    #
+    # Selectors are tried one at a time, most specific first: a single
+    # comma-joined select returns matches in page order, which would let a
+    # promo price that happens to come earlier on the page win.
     price_text = None
-    swatch = soup.select_one(
-        '#tmmSwatches .a-button-selected, #tmm-grid-swatch-KINDLE, '
-        '#tp-inline-twister-dim-values-container .a-button-selected'  # phone layout
-    )
-    if swatch:
-        matches = re.findall(r'([^\d\s]{0,4})\s*([\d,]+\.\d+)', swatch.get_text(' ', strip=True))
-        if matches:
-            currency, amount = matches[-1]
-            price_text = currency + amount
+    for selector in ('#tmmSwatches .a-button-selected',
+                     '#tmm-grid-swatch-KINDLE',
+                     '#tp-inline-twister-dim-values-container .a-button-selected'):  # phone layout
+        swatch = soup.select_one(selector)
+        if swatch:
+            matches = re.findall(r'([^\d\s]{0,4})\s*([\d,]+\.\d+)', swatch.get_text(' ', strip=True))
+            if matches:
+                currency, amount = matches[-1]
+                price_text = currency + amount
+                break
 
     if not price_text:
-        # The first match can be an empty placeholder on current layouts, so
-        # take the first one that actually holds a price.
-        for price_el in soup.select(
-            '#apex-pricetopay-accessibility-label, '
-            '#corePriceDisplay_desktop_feature_div .a-price .a-offscreen, '
-            '#kindle-price, '
-            '.kindle-price, '
-            '.a-price .a-offscreen'
-        ):
-            price_text = price_el.get_text(strip=True)
-            if re.search(r'\d', price_text):
+        # An element can be an empty placeholder on current layouts, so take
+        # the first that actually holds a price.
+        for selector in ('#apex-pricetopay-accessibility-label',
+                         '#corePriceDisplay_desktop_feature_div .a-price .a-offscreen',
+                         '#kindle-price',
+                         '.kindle-price',
+                         '.a-price .a-offscreen'):
+            price_text = next((t for t in (el.get_text(strip=True) for el in soup.select(selector))
+                               if re.search(r'\d', t)), None)
+            if price_text:
                 break
-            price_text = None
 
     if price_text:
         m = re.match(r'^([^\d]*)([\d,]+\.?\d*)', price_text)
@@ -436,9 +439,12 @@ def parse_kobo(soup, url):
     if title_el:
         data['title'] = title_el.get_text(strip=True)
 
-    details = soup.select_one('[data-testid="book-metadata-details"]') or soup
+    # Authors and series only from the book's own details: the rest of the
+    # page has other books' (recommendations, "also by"). Without the block,
+    # better none than wrong ones.
+    details = soup.select_one('[data-testid="book-metadata-details"]')
     authors = []
-    for el in details.select('a[href*="/author/"]'):
+    for el in details.select('a[href*="/author/"]') if details else []:
         name = el.get_text(strip=True)
         if name and name not in authors:
             authors.append(name)
@@ -446,7 +452,7 @@ def parse_kobo(soup, url):
         data['authors'] = authors
 
     # "Book 1 - Series Name": the number is in the group's label, the name in its link
-    series_el = details.select_one('a[href*="/series/"]')
+    series_el = details.select_one('a[href*="/series/"]') if details else None
     if series_el:
         data['series_name'] = series_el.get_text(strip=True)
         data['series_url'] = urljoin(url, series_el.get('href', '')).split('?')[0]

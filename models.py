@@ -2,6 +2,8 @@ import re
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 
+from utils import amazon_asin as _amazon_asin
+
 db = SQLAlchemy()
 
 RATING_LABELS = {
@@ -189,6 +191,10 @@ class Book(db.Model):
     parent = db.relationship('Book', remote_side='Book.id', foreign_keys=[parent_id], backref='bundle_children')
 
     @property
+    def amazon_asin(self):
+        return _amazon_asin(self.amazon_url)
+
+    @property
     def saved(self):
         """cost - paid, or None until both are known. A missing paid isn't
         zero: a book you don't own (or haven't recorded the price of) would
@@ -351,6 +357,17 @@ class PriceWatch(db.Model):
     last_checked_at = db.Column(db.DateTime)
     last_error = db.Column(db.String(300))
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+
+    @property
+    def asin(self):
+        return _amazon_asin(self.amazon_url)
+
+    @classmethod
+    def by_asin(cls):
+        """Every watch, keyed by ASIN. Watches aren't linked to books; a book
+        is the one being watched when its Amazon link has the same ASIN, on
+        whichever Amazon site. A watch list is short, so it's loaded whole."""
+        return {w.asin: w for w in cls.query.order_by(cls.created_at).all() if w.asin}
 
     @property
     def dropped(self):

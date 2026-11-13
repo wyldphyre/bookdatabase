@@ -15,6 +15,7 @@ from bs4 import BeautifulSoup
 
 from capture import _url_key
 from scrapers import book_page_parser, parse_amazon, parse_goodreads, parse_kobo
+from utils import amazon_asin
 
 FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures', 'pages')
 
@@ -134,6 +135,12 @@ class AmazonTitleAndFormatTest(unittest.TestCase):
                            '<div id="bylineInfo">Author (Author) See all formats: Kindle Edition</div>')
         self.assertEqual(data['detected_format'], 'Paperback')
 
+    def test_price_to_pay_beats_an_earlier_promo_price(self):
+        data = self.amazon('<span id="productTitle">T</span>'
+                           '<div class="promo"><span class="a-price"><span class="a-offscreen">$0.99</span></span></div>'
+                           '<span id="apex-pricetopay-accessibility-label">$12.50</span>')
+        self.assertEqual(data['price'], 12.50)
+
     def test_byline_format_when_nothing_selected(self):
         data = self.amazon('<span id="productTitle">T</span><div id="bylineInfo">Format: Hardcover</div>')
         self.assertEqual(data['detected_format'], 'Hardcover')
@@ -167,6 +174,14 @@ class KoboPageTest(unittest.TestCase):
         self.assertEqual(data['title'], 'Lilith Vol. 1')
         self.assertEqual(data['authors'], ['Corin Howell'])
         self.assertEqual(data['page_count'], 128)
+
+    def test_no_details_block_means_no_authors_from_elsewhere(self):
+        html = ('<h1 data-testid="book-title">T</h1>'
+                '<section class="recommendations"><a href="/au/en/author/someone-else">Someone Else</a>'
+                '<a href="/au/en/series/other-series">Other Series</a></section>')
+        data = parse_kobo(BeautifulSoup(html, 'html.parser'), 'https://www.kobo.com/au/en/ebook/t')
+        self.assertNotIn('authors', data)
+        self.assertNotIn('series_name', data)
 
     def test_audiobook_format(self):
         data = parse(parse_kobo, 'kobo-mossd-in-space.html.gz', 'https://www.kobo.com/au/en/audiobook/moss-d-in-space-5')
@@ -205,6 +220,13 @@ class UrlKeyTest(unittest.TestCase):
                          _url_key('https://www.amazon.com.au/dp/B0HFBPRB78'))
         self.assertEqual(_url_key('https://www.kobo.com/au/en/ebook/suncatcher-9'),
                          _url_key('https://www.kobo.com/us/en/ebook/suncatcher-9?sId=1'))
+
+    def test_asin_matches_across_amazon_sites(self):
+        self.assertEqual(amazon_asin('https://www.amazon.com/dp/b0hfbprb78'),
+                         amazon_asin('https://www.amazon.com.au/Suncatcher/dp/B0HFBPRB78/ref=x'))
+        self.assertEqual(amazon_asin('https://www.amazon.com/gp/product/B0HFBPRB78?th=1'), 'B0HFBPRB78')
+        self.assertIsNone(amazon_asin('https://www.amazon.com/s?k=suncatcher'))
+        self.assertIsNone(amazon_asin(None))
 
     def test_different_books_differ(self):
         self.assertNotEqual(_url_key('https://www.goodreads.com/book/show/1'),

@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.14.3",
+    "date": "2026-11-13",
+    "changes": [
+      "Price watches match books on any Amazon site: a book linked to amazon.com shows the price of a watch added from amazon.com.au, owning it removes that watch, and watching the same book from a second Amazon site is refused as a duplicate",
+      "On To Be Read, removing a book updates the tab's count and shows the empty-list message when the last one goes, without reloading the page",
+      "Amazon prices come from the edition's own price first, so a promotional price that happens to appear earlier on the page is no longer taken instead",
+      "Kobo pages only take authors and series from the book's own details, never from recommendations elsewhere on the page",
+      "The capture size limit now also applies to pages sent without a declared size"
+    ]
+  },
+  {
     "version": "1.14.2",
     "date": "2026-11-13",
     "changes": [

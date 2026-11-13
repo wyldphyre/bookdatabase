@@ -38,13 +38,12 @@ def queue_list():
         joinedload(Book.format),
     ).filter(Book.want_to_read.is_(True)).order_by(WANT_SORTS[sort], Book.id).all()
 
-    # Current price for any Want to Read book being watched (matched by URL)
-    urls = [b.amazon_url for b in want_books if b.amazon_url]
-    watches_by_url = {w.amazon_url: w for w in PriceWatch.query.filter(PriceWatch.amazon_url.in_(urls)).all()} if urls else {}
+    # Current price for any Want to Read book being watched (matched by ASIN)
+    watches_by_asin = PriceWatch.by_asin() if any(b.amazon_url for b in want_books) else {}
 
     tab = 'want' if request.args.get('tab') == 'want' else 'queue'
     return render_template('queue.html', items=items, want_books=want_books, tab=tab, sort=sort,
-                           watches_by_url=watches_by_url)
+                           watches_by_asin=watches_by_asin)
 
 
 @queue_bp.route('/queue/add', methods=['POST'], endpoint='queue_add')

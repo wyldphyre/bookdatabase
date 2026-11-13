@@ -9,6 +9,7 @@ which a web page can only send after a CORS preflight this app never answers —
 and a request that declares a website as its Origin is refused outright. The
 extension's origin is chrome-extension://…, and Shortcuts sends none.
 """
+import json
 import os
 import re
 from datetime import datetime
@@ -16,6 +17,7 @@ from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 from flask import Blueprint, current_app, jsonify, request, url_for
+from werkzeug.exceptions import RequestEntityTooLarge
 
 import capture
 from scrapers import book_page_parser
@@ -84,10 +86,24 @@ def capture_page():
     form. Takes JSON {"url": the page's address, "html": its rendered HTML}.
     Returns a preview, any library books it may duplicate, and the form's
     address for adding it as owned or not owned."""
-    if (request.content_length or 0) > MAX_CAPTURE_BYTES:
+    # The limit is applied as the body is read, so a chunked upload (no
+    # Content-Length) is held to it too, not only to the app-wide one. Werkzeug
+    # stops a chunked body at the limit rather than raising, so one byte of
+    # headroom tells a body that hit it from one that fits.
+    request.max_content_length = MAX_CAPTURE_BYTES + 1
+    try:
+        raw = request.get_data(cache=False)
+    except RequestEntityTooLarge:
+        raw = None
+    if raw is None or len(raw) > MAX_CAPTURE_BYTES:
         return jsonify({'error': 'That page is too large to capture'}), 413
     # Whatever the Content-Type: Shortcuts makes setting one fiddly
-    payload = request.get_json(force=True, silent=True) or {}
+    try:
+        payload = json.loads(raw)
+    except ValueError:
+        payload = None
+    if not isinstance(payload, dict):
+        payload = {}
     url = payload.get('url')
     html = payload.get('html')
     if not isinstance(url, str) or not isinstance(html, str) or not html.strip():

@@ -155,6 +155,14 @@ def validate_rating(rating):
     return float(rating)
 
 
+def amazon_asin(url):
+    """The ASIN in an Amazon product link (upper-cased), or None. The same
+    book has the same ASIN on every Amazon site, so links are matched on it
+    rather than on the whole URL."""
+    m = re.search(r'/(?:dp|gp/product)/([A-Za-z0-9]{10})(?:[/?#]|$)', url or '')
+    return m.group(1).upper() if m else None
+
+
 def clean_external_url(url):
     """Strip tracking/search cruft from Goodreads, Amazon, StoryGraph and Kobo URLs.
 
