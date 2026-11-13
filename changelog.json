@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.14.4",
+    "date": "2026-11-13",
+    "changes": [
+      "Adding a book that's on sale (a Kobo page showing both its list price and the sale price) fills in Cost with the list price and Paid with the sale price, so Saved shows the discount. Not on sale, Paid is left for you to fill in, and a book added as not owned never gets one"
+    ]
+  },
+  {
     "version": "1.14.3",
     "date": "2026-11-13",
     "changes": [

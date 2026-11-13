@@ -270,6 +270,9 @@ def book_new():
     # on the Want to Read list); ?queue=1 also queues it once saved.
     if request.args.get('owned') == '0':
         prefill = dict(prefill or {}, owned=False, want_to_read=True)
+        # Nothing's been paid for a book you don't own, sale or not; Cost
+        # keeps the full price
+        prefill.pop('paid', None)
         if not prefill.get('format_id'):
             not_specified = BookFormat.query.filter_by(name=NOT_SPECIFIED_FORMAT).first()
             prefill['format_id'] = not_specified.id if not_specified else None

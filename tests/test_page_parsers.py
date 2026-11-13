@@ -13,7 +13,7 @@ import unittest
 
 from bs4 import BeautifulSoup
 
-from capture import _url_key
+from capture import _url_key, build_prefill
 from scrapers import book_page_parser, parse_amazon, parse_goodreads, parse_kobo
 from utils import amazon_asin
 
@@ -186,6 +186,26 @@ class KoboPageTest(unittest.TestCase):
     def test_audiobook_format(self):
         data = parse(parse_kobo, 'kobo-mossd-in-space.html.gz', 'https://www.kobo.com/au/en/audiobook/moss-d-in-space-5')
         self.assertEqual(data['detected_format'], 'Audiobook')
+
+
+class PrefillPriceTest(unittest.TestCase):
+    """On sale: the full price is Cost and the sale price Paid."""
+
+    def test_sale(self):
+        self.assertEqual(build_prefill({'price': 7.02, 'list_price': 7.80}, create_tags=False),
+                         {'cost': 7.80, 'paid': 7.02})
+
+    def test_kobo_sale_page(self):
+        data = parse(parse_kobo, 'kobo-suncatcher.html.gz', 'https://www.kobo.com/au/en/ebook/suncatcher-9')
+        data.pop('detected_format')
+        prefill = build_prefill(data, create_tags=False)
+        self.assertEqual((prefill['cost'], prefill['paid']), (7.80, 7.02))
+
+    def test_not_on_sale_leaves_paid_blank(self):
+        self.assertEqual(build_prefill({'price': 12.99, 'currency': '$'}, create_tags=False), {'cost': 12.99})
+
+    def test_list_price_not_above_price_isnt_a_sale(self):
+        self.assertEqual(build_prefill({'price': 12.99, 'list_price': 12.99}, create_tags=False), {'cost': 12.99})
 
 
 class BookPageDetectionTest(unittest.TestCase):

@@ -70,13 +70,20 @@ def build_prefill(book_data, create_tags):
         if format_match:
             prefill['format_id'] = format_match.id
 
-    # Cost is the book's full price — Saved is worked out as cost - paid — so
-    # during a sale it's the list price; what you paid is yours to fill in.
-    price = prefill.pop('list_price', None) or prefill.pop('price', None)
-    prefill.pop('price', None)
+    # Cost is the book's full price and Paid what it sells for now (Saved is
+    # cost - paid), so on sale the list price is Cost and the sale price Paid.
+    # Not on sale, Paid is left for you: the price shown isn't necessarily
+    # what you paid. book_new drops Paid for a book added as not owned.
+    list_price = prefill.pop('list_price', None)
+    price = prefill.pop('price', None)
     prefill.pop('currency', None)
-    if price is not None:
+    if list_price and price is not None and list_price > price:
+        prefill['cost'] = list_price
+        prefill['paid'] = price
+    elif price is not None:
         prefill['cost'] = price
+    elif list_price:
+        prefill['cost'] = list_price
 
     return prefill
 

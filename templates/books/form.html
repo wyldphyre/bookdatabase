@@ -389,7 +389,7 @@
 
         <label class="purchase-only">
             Paid
-            <input type="number" name="paid" value="{{ book.paid or '' if book else '' }}" step="0.01" min="0">
+            <input type="number" name="paid" value="{{ book.paid or '' if book else (prefill.paid if prefill and prefill.paid else '') }}" step="0.01" min="0">
         </label>
     </div>
     {% endif %}
