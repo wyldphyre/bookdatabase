@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.14.2",
+    "date": "2026-11-13",
+    "changes": [
+      "Ticking Owned on a book's edit form now removes its price watch, as Mark as Owned already did, so a book you've bought stops being checked and notified about",
+      "Fix Amazon titles ending in a year or edition, like \"Fahrenheit 451 (2003)\", being cut short with the number taken as a series number. \"(Series: Book 1)\" and \"(Book 1)\" are now moved into the series fields too",
+      "Amazon imports and captures take the format from the selected edition before the byline, which can mention other editions",
+      "Fix an import that never reached the Add Book form filling in a later, unrelated new book",
+      "Fix keeping pages that couldn't be read: the newest five are kept whichever site they're from, rather than a new one being discarded straight away"
+    ]
+  },
+  {
     "version": "1.14.1",
     "date": "2026-11-12",
     "changes": [

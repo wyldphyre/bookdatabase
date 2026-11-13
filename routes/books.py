@@ -255,14 +255,16 @@ def book_new():
     formats = BookFormat.query.all()
 
     # Pre-filled data from a page captured in the browser, an import, or a
-    # parent_id query param
+    # parent_id query param. An import's prefill is taken from the session
+    # either way, so one left by an unfinished import can't turn up later.
+    session_prefill = session.pop('book_prefill', None)
     prefill = None
     if request.args.get('capture'):
         prefill = capture.collect(request.args.get('capture'))
         if prefill is None:
             flash('That captured page has expired. Capture it again to fill in the form.', 'warning')
-    if prefill is None:
-        prefill = session.pop('book_prefill', None)
+    elif session_prefill:
+        prefill = session_prefill
     if not prefill and request.args.get('parent_id'):
         prefill = {'parent_id': request.args.get('parent_id', type=int)}
     # ?owned=0 starts the form as a book you don't own (format Not Specified,
@@ -433,6 +435,7 @@ def save_book(book):
     # them recorded before it was attached to the bundle.
     form_parent_id = request.form.get('parent_id', type=int)
     has_parent = form_parent_id is not None or book.parent_id is not None
+    was_owned = not is_new and book.owned
 
     book.subtitle = request.form.get('subtitle', '').strip() or None
     book.description = request.form.get('description', '').strip() or None
@@ -454,6 +457,12 @@ def save_book(book):
     book.goodreads_url = clean_external_url(request.form.get('goodreads_url', '').strip()) or None
     book.amazon_url = clean_external_url(request.form.get('amazon_url', '').strip()) or None
     book.kobo_url = clean_external_url(request.form.get('kobo_url', '').strip()) or None
+
+    # Bought (ticked Owned here rather than with Mark as Owned), so there's no
+    # longer a price to wait on
+    stopped_watching = 0
+    if book.owned and not was_owned and book.amazon_url:
+        stopped_watching = _stop_price_watch(book)
 
     # Handle authors
     author_ids = request.form.getlist('authors')
@@ -555,7 +564,7 @@ def save_book(book):
         db.session.add(ReadingQueue(book_id=book.id, position=1 if max_pos is None else max_pos + 1))
 
     db.session.commit()
-    flash('Book saved successfully', 'success')
+    flash('Book saved successfully' + (' and its price watch removed' if stopped_watching else ''), 'success')
 
     return redirect(url_for('books.book_detail', id=book.id))
 
@@ -569,6 +578,14 @@ def book_rate(id):
     return redirect(url_for('books.book_detail', id=id))
 
 
+def _stop_price_watch(book):
+    """Remove the price watch on a book's Amazon link (watches are keyed by
+    it); returns how many were removed. The caller commits."""
+    if not book.amazon_url:
+        return 0
+    return PriceWatch.query.filter_by(amazon_url=book.amazon_url).delete()
+
+
 @books_bp.route('/books/<int:id>/mark-owned', methods=['POST'], endpoint='book_mark_owned')
 def book_mark_owned(id):
     """You've bought a book you didn't own. Purchase date defaults to today;
@@ -578,9 +595,7 @@ def book_mark_owned(id):
     if not book.date_purchased:
         book.date_purchased = datetime.combine(datetime.now().date(), datetime.min.time())
     # Bought, so there's no longer a price to wait on
-    stopped_watching = 0
-    if book.amazon_url:
-        stopped_watching = PriceWatch.query.filter_by(amazon_url=book.amazon_url).delete()
+    stopped_watching = _stop_price_watch(book)
     db.session.commit()
     flash(f'"{book.title}" marked as owned{" and its price watch removed" if stopped_watching else ""}. '
           f'Fill in what you paid and its format.', 'success')

@@ -102,6 +102,43 @@ class AmazonPhonePageTest(unittest.TestCase):
         self.assertNotIn('series_name', data)
 
 
+class AmazonTitleAndFormatTest(unittest.TestCase):
+    """Small hand-made pages for title clean-up and format precedence."""
+
+    def amazon(self, body):
+        return parse_amazon(BeautifulSoup(f'<html><body>{body}</body></html>', 'html.parser'),
+                            'https://www.amazon.com/dp/B000000000')
+
+    def title(self, title):
+        return self.amazon(f'<span id="productTitle">{title}</span>')
+
+    def test_instalment_in_title(self):
+        for title, expected in [
+            ('Suncatcher (1)', ('Suncatcher', None, 1.0)),
+            ('Title (Some Series Book 2)', ('Title', 'Some Series', 2.0)),
+            ('Spellmonger (Spellmonger Series: Book 1)', ('Spellmonger', 'Spellmonger Series', 1.0)),
+            ('Title (Some Series, #3)', ('Title', 'Some Series', 3.0)),
+            ('Station Eleven (Book 1)', ('Station Eleven', None, 1.0)),
+        ]:
+            data = self.title(title)
+            self.assertEqual((data['title'], data.get('series_name'), data.get('series_number')), expected, title)
+
+    def test_year_or_edition_stays_in_title(self):
+        data = self.title('Fahrenheit 451 (2003)')
+        self.assertEqual(data['title'], 'Fahrenheit 451 (2003)')
+        self.assertNotIn('series_number', data)
+
+    def test_selected_format_beats_byline(self):
+        data = self.amazon('<span id="productTitle">T</span>'
+                           '<span id="inline-twister-expanded-dimension-text-media_format">Paperback</span>'
+                           '<div id="bylineInfo">Author (Author) See all formats: Kindle Edition</div>')
+        self.assertEqual(data['detected_format'], 'Paperback')
+
+    def test_byline_format_when_nothing_selected(self):
+        data = self.amazon('<span id="productTitle">T</span><div id="bylineInfo">Format: Hardcover</div>')
+        self.assertEqual(data['detected_format'], 'Hardcover')
+
+
 class KoboPageTest(unittest.TestCase):
     def test_ebook(self):
         url = 'https://www.kobo.com/au/en/ebook/moss-d-in-space-6'

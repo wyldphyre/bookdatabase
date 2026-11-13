@@ -254,34 +254,36 @@ def parse_amazon(soup, url):
 
     data['amazon_url'] = url
 
-    # Amazon appends the instalment to the title ("Suncatcher (1)", or
-    # "Title (Series Book 2)"); it belongs in the series fields, not the title.
+    # Amazon appends the instalment to the title ("Suncatcher (1)", "Title
+    # (Series Book 2)", "(Series: Book 1)", "(Book 1)"); it belongs in the
+    # series fields, not the title. A bare number is only taken when it's
+    # short, so a year or edition ("Fahrenheit 451 (2003)") stays put.
     title = data.get('title')
     if title:
-        m = re.match(r'^(.+?)\s*\((?:(.+?),?\s+(?:Book|#)\s*)?(\d+(?:\.\d+)?)\)$', title, re.IGNORECASE)
+        m = re.match(r'^(.+?)\s*\((?:(?:(.+?)[,:]?\s+)?(?:Book|#)\s*(\d+(?:\.\d+)?)|(\d{1,3}(?:\.\d+)?))\)$',
+                     title, re.IGNORECASE)
         if m:
             data['title'] = m.group(1).strip()
             if m.group(2) and not data.get('series_name'):
                 data['series_name'] = m.group(2).strip()
             if 'series_number' not in data:
-                data['series_number'] = float(m.group(3))
+                data['series_number'] = float(m.group(3) or m.group(4))
 
-    # Format: the selected format swatch on older layouts, the format picker's
-    # label ("Hardcover") or the byline's "Format: Hardcover" on current ones.
-    format_els = soup.select(
-        '#variation_format_name .selection, '
-        '#tmmSwatches .a-button-selected .slot-title, '
-        '#tmmSwatches .a-button-selected, '
-        '#inline-twister-expanded-dimension-text-media_format, '
-        '#bylineInfo'
-    )
-    format_text = ' '.join(el.get_text(' ', strip=True).lower() for el in format_els)
+    # Format: the selected format swatch on older layouts or the format
+    # picker's label ("Hardcover") on current ones, and only failing those the
+    # byline's "Format: Hardcover" — the byline can mention other editions.
     if soup.select_one('#ebooksProductTitle'):
-        format_text = 'kindle ' + format_text
-    for needle, name in _AMAZON_FORMATS:
-        if needle in format_text:
-            data['detected_format'] = name
-            break
+        data['detected_format'] = 'Kindle'
+    else:
+        for selector in ('#variation_format_name .selection, '
+                         '#tmmSwatches .a-button-selected, '
+                         '#inline-twister-expanded-dimension-text-media_format',
+                         '#bylineInfo'):
+            format_text = ' '.join(el.get_text(' ', strip=True).lower() for el in soup.select(selector))
+            name = next((name for needle, name in _AMAZON_FORMATS if needle in format_text), None)
+            if name:
+                data['detected_format'] = name
+                break
 
     # Price - read it from the Kindle format swatch button itself
     # ("Kindle AUD 0.00 or AUD 7.24 to buy"). This is the one element that's

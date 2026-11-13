@@ -40,7 +40,11 @@ def _keep_failed_capture(source, html):
         name = f"failed-{source}-{datetime.now():%Y%m%d-%H%M%S-%f}.html"
         with open(os.path.join(folder, name), 'w', encoding='utf-8') as f:
             f.write(html)
-        kept = sorted(n for n in os.listdir(folder) if re.match(r'failed-.+\.html$', n))
+        # Oldest first by the timestamp in the name; the site comes before it,
+        # so a plain name sort would prune by site instead of by age.
+        kept = sorted((m.group(1), n) for n in os.listdir(folder)
+                      if (m := re.match(r'failed-.+-(\d{8}-\d{6}-\d{6})\.html$', n)))
+        kept = [n for _, n in kept]
         for old in kept[:-FAILED_CAPTURES_KEPT]:
             os.remove(os.path.join(folder, old))
         current_app.logger.warning('Capture: saved an unreadable %s page as instance/captures/%s', source, name)
