@@ -4,7 +4,7 @@ from itertools import groupby
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from sqlalchemy.orm import subqueryload
 from models import db, Book, Author, AuthorGender, AuthorInfoSuggestion, Tag
-from utils import clean_external_url
+from utils import clean_external_url, parse_id_list
 from author_info import lookup_author_info
 
 authors_bp = Blueprint('authors', __name__)
@@ -113,11 +113,7 @@ def save_author(author):
 def author_search():
     """Search authors for the book form's author picker."""
     query = request.args.get('q', '').strip()
-    exclude_str = request.args.get('exclude', '')
-
-    exclude_ids = []
-    if exclude_str:
-        exclude_ids = [int(x) for x in exclude_str.split(',') if x.strip().isdigit()]
+    exclude_ids = parse_id_list(request.args.get('exclude'))
 
     if len(query) < 1:
         return ''

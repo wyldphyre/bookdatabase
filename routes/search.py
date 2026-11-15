@@ -166,18 +166,18 @@ def recommendations():
 
 @search_bp.route('/statistics', endpoint='statistics')
 def statistics():
-    from collections import defaultdict
     from models import book_authors
 
-    # Author gender breakdown
+    # Author gender breakdown. Primary authors only, as in the author total
+    # below and the dashboard: a pen name is the same person, not another one.
     gender_stats = db.session.query(
         AuthorGender.name,
         func.count(Author.id)
-    ).outerjoin(Author, Author.gender_id == AuthorGender.id)\
+    ).outerjoin(Author, (Author.gender_id == AuthorGender.id) & Author.alias_of_id.is_(None))\
      .group_by(AuthorGender.id, AuthorGender.name).all()
 
     # Count authors with no gender set
-    no_gender_count = Author.query.filter_by(gender_id=None).count()
+    no_gender_count = Author.query.filter_by(gender_id=None, alias_of_id=None).count()
     gender_data = {name: count for name, count in gender_stats if count > 0}
     if no_gender_count > 0:
         gender_data['Not Set'] = no_gender_count

@@ -6,8 +6,8 @@ from flask import Blueprint, current_app, render_template, request, redirect, ur
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload, subqueryload
 from models import (db, Book, Author, Read, ReadingQueue, BookFormat, Tag, SeriesRelease,
-                    PriceWatch, book_tags, RATING_LABELS, NOT_SPECIFIED_FORMAT)
-from utils import (allowed_file, parse_date, parse_float, validate_rating, fetch_cover_image,
+                    PriceWatch, book_tags, NOT_SPECIFIED_FORMAT)
+from utils import (allowed_file, parse_date, parse_float, parse_id_list, validate_rating, fetch_cover_image,
                    cover_image_extension, NotACoverImageError,
                    clean_external_url, generate_thumbnail, delete_thumbnail,
                    MAX_COVER_DOWNLOAD_BYTES)
@@ -152,7 +152,7 @@ def tag_browse():
     page = request.args.get('page', 1, type=int)
     per_page = 25
 
-    tag_ids = [int(x) for x in request.args.get('ids', '').split(',') if x.strip().isdigit()]
+    tag_ids = parse_id_list(request.args.get('ids'))
     selected_tags = Tag.query.filter(Tag.id.in_(tag_ids)).order_by(Tag.name).all() if tag_ids else []
 
     books = None

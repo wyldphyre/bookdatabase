@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.15.2",
+    "date": "2026-11-15",
+    "changes": [
+      "Series book counts from the System page's scan and a series' Update Count now read the series page the same way series monitoring does, so they can't disagree about how many books a series has. Where a page doesn't state a count, the numbered books it lists are counted",
+      "Statistics: the author gender breakdown counts each author once, leaving out their pen names, as the author total and the dashboard already did",
+      "Tidying with no visible change: unused code removed (including the one-off Notion import scripts), and duplicated code merged, such as the two System page scans now sharing one implementation"
+    ]
+  },
+  {
     "version": "1.15.1",
     "date": "2026-11-15",
     "changes": [

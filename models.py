@@ -129,11 +129,6 @@ class SeriesRelease(db.Model):
 
     book = db.relationship('Book')
 
-    @property
-    def is_outstanding(self):
-        """Shown on the dashboard: genuinely new, still unowned, not dismissed."""
-        return not self.is_baseline and self.dismissed_at is None and self.book_id is None
-
 
 class Author(db.Model):
     id = db.Column(db.Integer, primary_key=True)

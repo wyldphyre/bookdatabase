@@ -59,6 +59,7 @@ book-database/
 ├── notifications.py    # Pushover notification helper
 ├── price_watch.py      # Daily background price check + manual "Check Now" logic
 ├── series_monitor.py   # Weekly background check of monitored series for new releases
+├── background_scan.py  # The System page scans (series counts, author info): thread, progress, pause/stop
 ├── utils.py            # Shared helpers (URL cleaning, validation, parsing)
 ├── logging_config.py   # Logging setup: stderr plus a rotating file in instance/logs
 ├── requirements.txt    # Python dependencies

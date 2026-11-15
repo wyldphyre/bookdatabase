@@ -77,7 +77,6 @@ def queue_add():
 def queue_remove(item_id):
     item = db.get_or_404(ReadingQueue, item_id)
     book = item.book
-    book_id = item.book_id
     db.session.delete(item)
     db.session.commit()
 

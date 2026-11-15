@@ -1,17 +1,17 @@
 import os
 import json
 import logging
-import time
 import threading
 from datetime import date, datetime
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, send_file, jsonify
 from sqlalchemy.orm import joinedload
 from models import db, Book, Series, Tag, Author, AuthorGender, AuthorInfoSuggestion, set_setting
-from scrapers import scrape_goodreads_series, scrape_amazon_series, ScrapeBlockedError
+from scrapers import scrape_goodreads_series, scrape_amazon_series
 from author_info import lookup_author_info
 from notifications import (send_pushover_notification, get_pushover_priority, pushover_configured,
                            PUSHOVER_PRIORITIES, VALID_PRIORITIES, PRIORITY_SETTING_KEY)
-from utils import start_thumbnail_backfill, parse_tag_list
+from utils import start_thumbnail_backfill, parse_tag_list, parse_id_list
+from background_scan import BackgroundScan
 from data_transfer import (build_export_zip, validate_import_zip, apply_import,
                            ImportValidationError, ImportCoverError, PRE_IMPORT_BACKUP_NAME)
 
@@ -19,32 +19,9 @@ system_bp = Blueprint('system', __name__)
 
 logger = logging.getLogger(__name__)
 
-series_scan = {
-    'status': 'idle',
-    'progress': 0,
-    'total': 0,
-    'current_series': '',
-    'updated': 0,
-    'results': [],
-    'paused': False,
-    'stop_requested': False,
-    'stop_reason': '',
-}
-series_scan_lock = threading.Lock()
-
-author_scan = {
-    'status': 'idle',
-    'progress': 0,
-    'total': 0,
-    'current_author': '',
-    'suggestions_found': 0,
-    'synced': 0,
-    'results': [],
-    'paused': False,
-    'stop_requested': False,
-    'stop_reason': '',
-}
-author_scan_lock = threading.Lock()
+# The System page's two scans; see background_scan.py
+series_scan = BackgroundScan('Series scan', 'series', counters=('updated',))
+author_scan = BackgroundScan('Author scan', 'author', counters=('suggestions_found', 'synced'))
 
 export_state = {
     'status': 'idle',       # idle, building, ready, error
@@ -60,14 +37,6 @@ export_state = {
 export_lock = threading.Lock()
 
 
-def _snapshot(scan, lock):
-    """Return a consistent copy of a scan dict under lock."""
-    with lock:
-        s = dict(scan)
-        s['results'] = list(scan['results'])
-    return s
-
-
 @system_bp.route('/system', endpoint='system')
 def system():
     changelog_path = os.path.join(current_app.root_path, 'changelog.json')
@@ -77,8 +46,8 @@ def system():
     except (OSError, ValueError):
         changelog = []
     return render_template('system.html',
-                           series_scan=_snapshot(series_scan, series_scan_lock),
-                           author_scan=_snapshot(author_scan, author_scan_lock),
+                           series_scan=series_scan.snapshot(),
+                           author_scan=author_scan.snapshot(),
                            suggestions=_load_suggestions(),
                            version=current_app.config['APP_VERSION'],
                            changelog=changelog,
@@ -308,238 +277,99 @@ def system_pushover_test():
     return redirect(url_for('system.system'))
 
 
+def _series_scan_progress():
+    return render_template('system/_series_scan_progress.html', scan=series_scan.snapshot())
+
+
 @system_bp.route('/system/scan-series', methods=['POST'], endpoint='scan_series_start')
 def scan_series_start():
-    with series_scan_lock:
-        # Refuse while a scan thread is alive ('paused' included — resetting its
-        # state here would unpause it and leave two threads running).
-        already_active = series_scan['status'] in ('running', 'paused')
-        if not already_active:
-            series_scan.update({
-                'status': 'running',
-                'progress': 0,
-                'total': 0,
-                'current_series': '',
-                'updated': 0,
-                'results': [],
-                'paused': False,
-                'stop_requested': False,
-                'stop_reason': '',
-            })
-
-    if not already_active:
-        _app = current_app._get_current_object()
-        thread = threading.Thread(target=run_series_scan, args=(_app,), daemon=True, name='series-scan')
-        thread.start()
-
-    return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan, series_scan_lock))
+    series_scan.start(current_app._get_current_object(), _series_to_scan, _scan_one_series,
+                      item_name=lambda series: series.name)
+    return _series_scan_progress()
 
 
 @system_bp.route('/system/scan-series/progress', endpoint='scan_series_progress')
 def scan_series_progress():
-    return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan, series_scan_lock))
+    return _series_scan_progress()
 
 
 @system_bp.route('/system/scan-series/pause', methods=['POST'], endpoint='scan_series_pause')
 def scan_series_pause():
-    with series_scan_lock:
-        if series_scan['status'] == 'running':
-            series_scan['paused'] = True
-            series_scan['status'] = 'paused'
-        elif series_scan['status'] == 'paused':
-            series_scan['paused'] = False
-            series_scan['status'] = 'running'
-    return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan, series_scan_lock))
+    series_scan.toggle_pause()
+    return _series_scan_progress()
 
 
 @system_bp.route('/system/scan-series/stop', methods=['POST'], endpoint='scan_series_stop')
 def scan_series_stop():
-    with series_scan_lock:
-        series_scan['stop_requested'] = True
-    return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan, series_scan_lock))
+    series_scan.stop()
+    return _series_scan_progress()
 
 
-def run_series_scan(app):
-    """Background thread that scans Goodreads/Amazon for series book counts."""
-    try:
-        _run_series_scan(app)
-    except Exception as e:
-        logger.exception('Series scan aborted')
-        # Without this, an uncaught error would leave the status stuck at
-        # 'running' with the progress bar frozen and polling forever — and
-        # scan_series_start refuses to start another while it is.
-        with series_scan_lock:
-            series_scan['results'].append({'series': '(scan aborted)', 'status': 'error', 'message': str(e)})
-            series_scan['current_series'] = ''
-            series_scan['status'] = 'stopped'
+def _series_to_scan(scan):
+    """Every series with a Goodreads or Amazon page to read its count from."""
+    return Series.query.filter(
+        (Series.goodreads_url.isnot(None) & (Series.goodreads_url != '')) |
+        (Series.amazon_url.isnot(None) & (Series.amazon_url != ''))
+    ).order_by(Series.name).all()
 
 
-def _run_series_scan(app):
-    with app.app_context():
-        all_series = Series.query.filter(
-            (Series.goodreads_url.isnot(None) & (Series.goodreads_url != '')) |
-            (Series.amazon_url.isnot(None) & (Series.amazon_url != ''))
-        ).order_by(Series.name).all()
+def _scan_one_series(scan, series):
+    """Read a series' book count, Goodreads first, and raise the recorded
+    number if the page lists more."""
+    count = source = None
+    if series.goodreads_url:
+        count = scrape_goodreads_series(series.goodreads_url)
+        if count is not None:
+            source = 'Goodreads'
+    if count is None and series.amazon_url:
+        count = scrape_amazon_series(series.amazon_url)
+        if count is not None:
+            source = 'Amazon'
 
-        with series_scan_lock:
-            series_scan['total'] = len(all_series)
-        logger.info('Series scan: checking %d series', len(all_series))
+    if count is None:
+        scan.add_result(series.name, 'not_found')
+        return
+    old_count = series.number_in_series
+    if old_count is None or count > old_count:
+        series.number_in_series = count
+        db.session.commit()
+        scan.add_result(series.name, 'updated', counter='updated',
+                        old_count=old_count, new_count=count, source=source)
+    else:
+        scan.add_result(series.name, 'unchanged', count=count, source=source)
 
-        for i, series in enumerate(all_series):
-            if series_scan['stop_requested']:
-                with series_scan_lock:
-                    series_scan['status'] = 'stopped'
-                    series_scan['current_series'] = ''
-                return
 
-            while series_scan['paused']:
-                if series_scan['stop_requested']:
-                    with series_scan_lock:
-                        series_scan['status'] = 'stopped'
-                        series_scan['current_series'] = ''
-                    return
-                time.sleep(0.5)
-
-            with series_scan_lock:
-                series_scan['current_series'] = series.name
-                series_scan['progress'] = i
-
-            try:
-                count = None
-                source = None
-                if series.goodreads_url:
-                    count = scrape_goodreads_series(series.goodreads_url)
-                    if count is not None:
-                        source = 'Goodreads'
-                if count is None and series.amazon_url:
-                    count = scrape_amazon_series(series.amazon_url)
-                    if count is not None:
-                        source = 'Amazon'
-
-                if count is not None:
-                    old_count = series.number_in_series
-                    if old_count is None or count > old_count:
-                        series.number_in_series = count
-                        db.session.commit()
-                        with series_scan_lock:
-                            series_scan['updated'] += 1
-                            series_scan['results'].append({
-                                'series': series.name,
-                                'status': 'updated',
-                                'old_count': old_count,
-                                'new_count': count,
-                                'source': source,
-                            })
-                    else:
-                        with series_scan_lock:
-                            series_scan['results'].append({
-                                'series': series.name,
-                                'status': 'unchanged',
-                                'count': count,
-                                'source': source,
-                            })
-                else:
-                    with series_scan_lock:
-                        series_scan['results'].append({
-                            'series': series.name,
-                            'status': 'not_found',
-                        })
-
-            except ScrapeBlockedError as e:
-                # The site is turning us away — the rest of the run would fail
-                # identically, so stop rather than hammering it.
-                with series_scan_lock:
-                    series_scan['results'].append({
-                        'series': series.name,
-                        'status': 'blocked',
-                        'message': str(e),
-                    })
-                    series_scan['stop_reason'] = str(e)
-                    series_scan['stop_requested'] = True
-                break
-            except Exception as e:
-                # Leave the session usable. Without this a failed write — an
-                # IntegrityError, or SQLite refusing a locked database while the
-                # web side writes — leaves the transaction poisoned, and the next
-                # series' attribute access outside this try raises
-                # PendingRollbackError, which escapes to the thread guard and ends
-                # the whole run.
-                logger.warning('Series scan: %r failed', series.name, exc_info=True)
-                db.session.rollback()
-                with series_scan_lock:
-                    series_scan['results'].append({
-                        'series': series.name,
-                        'status': 'error',
-                        'message': str(e),
-                    })
-
-            time.sleep(2)
-
-        with series_scan_lock:
-            # A scan that broke out early (the site blocked us, or the user
-            # pressed Stop) hasn't covered its total. Filling the bar and
-            # calling it complete would claim the whole run happened and
-            # hide the stop_reason, which only the 'stopped' branch shows.
-            stopped_early = series_scan['stop_requested']
-            if not stopped_early:
-                series_scan['progress'] = series_scan['total']
-            series_scan['current_series'] = ''
-            series_scan['status'] = 'stopped' if stopped_early else 'complete'
-            done = series_scan['progress']
-        logger.info('Series scan: %s after %d of %d', 'stopped' if stopped_early else 'finished',
-                    done, len(all_series))
+def _author_scan_progress():
+    return render_template('system/_author_scan_progress.html', scan=author_scan.snapshot())
 
 
 @system_bp.route('/system/scan-authors', methods=['POST'], endpoint='scan_authors_start')
 def scan_authors_start():
-    with author_scan_lock:
-        # Refuse while a scan thread is alive ('paused' included — resetting its
-        # state here would unpause it and leave two threads running).
-        already_active = author_scan['status'] in ('running', 'paused')
-        if not already_active:
-            author_scan.update({
-                'status': 'running',
-                'progress': 0,
-                'total': 0,
-                'current_author': '',
-                'suggestions_found': 0,
-                'synced': 0,
-                'results': [],
-                'paused': False,
-                'stop_requested': False,
-                'stop_reason': '',
-            })
-
-    if not already_active:
-        _app = current_app._get_current_object()
-        thread = threading.Thread(target=run_author_scan, args=(_app,), daemon=True, name='author-scan')
-        thread.start()
-
-    return render_template('system/_author_scan_progress.html', scan=_snapshot(author_scan, author_scan_lock))
+    author_scan.start(current_app._get_current_object(), _authors_to_scan, _scan_one_author,
+                      item_name=lambda author: author.name)
+    return _author_scan_progress()
 
 
 @system_bp.route('/system/scan-authors/progress', endpoint='scan_authors_progress')
 def scan_authors_progress():
-    return render_template('system/_author_scan_progress.html', scan=_snapshot(author_scan, author_scan_lock))
+    return _author_scan_progress()
 
 
 @system_bp.route('/system/scan-authors/pause', methods=['POST'], endpoint='scan_authors_pause')
 def scan_authors_pause():
-    with author_scan_lock:
-        if author_scan['status'] == 'running':
-            author_scan['paused'] = True
-            author_scan['status'] = 'paused'
-        elif author_scan['status'] == 'paused':
-            author_scan['paused'] = False
-            author_scan['status'] = 'running'
-    return render_template('system/_author_scan_progress.html', scan=_snapshot(author_scan, author_scan_lock))
+    author_scan.toggle_pause()
+    return _author_scan_progress()
 
 
 @system_bp.route('/system/scan-authors/stop', methods=['POST'], endpoint='scan_authors_stop')
 def scan_authors_stop():
-    with author_scan_lock:
-        author_scan['stop_requested'] = True
-    return render_template('system/_author_scan_progress.html', scan=_snapshot(author_scan, author_scan_lock))
+    author_scan.stop()
+    return _author_scan_progress()
+
+
+def _unknown_gender_id():
+    unknown = AuthorGender.query.filter(db.func.lower(AuthorGender.name) == 'unknown').first()
+    return unknown.id if unknown else -1
 
 
 def _author_needs_info(author, unknown_id):
@@ -551,8 +381,7 @@ def _author_needs_info(author, unknown_id):
 def _sync_author_aliases():
     """Copy gender/pronouns between alias and primary author records when one
     side has the data and the other doesn't. Returns list of synced names."""
-    unknown = AuthorGender.query.filter(db.func.lower(AuthorGender.name) == 'unknown').first()
-    unknown_id = unknown.id if unknown else -1
+    unknown_id = _unknown_gender_id()
     synced = []
     for alias in Author.query.filter(Author.alias_of_id.isnot(None)).all():
         primary = alias.alias_of
@@ -574,141 +403,48 @@ def _sync_author_aliases():
     return synced
 
 
-def run_author_scan(app):
-    """Background thread that looks up gender/pronouns for authors missing
-    them and records suggestions for review. Never writes to the author
-    directly, except for the alias<->primary sync pre-pass."""
-    try:
-        _run_author_scan(app)
-    except Exception as e:
-        logger.exception('Author scan aborted')
-        # Without this, an uncaught error would leave the status stuck at
-        # 'running' with the progress bar frozen and polling forever.
-        with author_scan_lock:
-            author_scan['results'].append({'author': '(scan aborted)', 'status': 'error', 'message': str(e)})
-            author_scan['current_author'] = ''
-            author_scan['status'] = 'stopped'
+def _authors_to_scan(scan):
+    """Primary authors missing pronouns or a gender, after a free pre-pass that
+    copies either between aliases and their primary record."""
+    for name in _sync_author_aliases():
+        scan.add_result(name, 'synced', counter='synced')
+    unknown_id = _unknown_gender_id()
+    return Author.query.filter(
+        Author.alias_of_id.is_(None),
+        db.or_(
+            Author.pronouns.is_(None), Author.pronouns == '',
+            Author.gender_id.is_(None), Author.gender_id == unknown_id,
+        )
+    ).order_by(Author.name).all()
 
 
-def _run_author_scan(app):
-    with app.app_context():
-        # Free pre-pass: sync data between aliases and their primary record
-        synced = _sync_author_aliases()
-        with author_scan_lock:
-            author_scan['synced'] = len(synced)
-            for name in synced:
-                author_scan['results'].append({'author': name, 'status': 'synced'})
+def _scan_one_author(scan, author):
+    """Look up an author's gender and pronouns and record a suggestion for
+    review. Never writes to the author itself."""
+    needs_pronouns, needs_gender = _author_needs_info(author, _unknown_gender_id())
+    info = lookup_author_info(author.name, author.goodreads_url, author.website)
 
-        unknown = AuthorGender.query.filter(db.func.lower(AuthorGender.name) == 'unknown').first()
-        unknown_id = unknown.id if unknown else -1
+    suggested_pronouns = info['pronouns'] if info and needs_pronouns else None
+    suggested_gender = None
+    if info and needs_gender and info['gender']:
+        suggested_gender = AuthorGender.query.filter(
+            db.func.lower(AuthorGender.name) == info['gender'].lower()).first()
 
-        authors = Author.query.filter(
-            Author.alias_of_id.is_(None),
-            db.or_(
-                Author.pronouns.is_(None), Author.pronouns == '',
-                Author.gender_id.is_(None), Author.gender_id == unknown_id,
-            )
-        ).order_by(Author.name).all()
-
-        with author_scan_lock:
-            author_scan['total'] = len(authors)
-        logger.info('Author scan: %d alias record(s) synced, looking up %d author(s)', len(synced), len(authors))
-
-        for i, author in enumerate(authors):
-            if author_scan['stop_requested']:
-                with author_scan_lock:
-                    author_scan['status'] = 'stopped'
-                    author_scan['current_author'] = ''
-                return
-
-            while author_scan['paused']:
-                if author_scan['stop_requested']:
-                    with author_scan_lock:
-                        author_scan['status'] = 'stopped'
-                        author_scan['current_author'] = ''
-                    return
-                time.sleep(0.5)
-
-            with author_scan_lock:
-                author_scan['current_author'] = author.name
-                author_scan['progress'] = i
-
-            needs_pronouns, needs_gender = _author_needs_info(author, unknown_id)
-
-            try:
-                info = lookup_author_info(author.name, author.goodreads_url, author.website)
-
-                suggested_pronouns = info['pronouns'] if info and needs_pronouns else None
-                suggested_gender = None
-                if info and needs_gender and info['gender']:
-                    suggested_gender = AuthorGender.query.filter(
-                        db.func.lower(AuthorGender.name) == info['gender'].lower()).first()
-
-                if suggested_pronouns or suggested_gender:
-                    AuthorInfoSuggestion.query.filter_by(author_id=author.id).delete()
-                    db.session.add(AuthorInfoSuggestion(
-                        author_id=author.id,
-                        suggested_gender_id=suggested_gender.id if suggested_gender else None,
-                        suggested_pronouns=suggested_pronouns,
-                        evidence=info['evidence'],
-                        source_url=info['source_url'],
-                    ))
-                    db.session.commit()
-                    with author_scan_lock:
-                        author_scan['suggestions_found'] += 1
-                        author_scan['results'].append({
-                            'author': author.name,
-                            'status': 'suggested',
-                            'pronouns': suggested_pronouns,
-                            'gender': suggested_gender.name if suggested_gender else None,
-                        })
-                else:
-                    with author_scan_lock:
-                        author_scan['results'].append({
-                            'author': author.name,
-                            'status': 'not_found',
-                        })
-
-            except ScrapeBlockedError as e:
-                # The site is turning us away — the rest of the run would fail
-                # identically, so stop rather than hammering it.
-                with author_scan_lock:
-                    author_scan['results'].append({
-                        'author': author.name,
-                        'status': 'blocked',
-                        'message': str(e),
-                    })
-                    author_scan['stop_reason'] = str(e)
-                    author_scan['stop_requested'] = True
-                break
-            except Exception as e:
-                # See the series scan: without this the session stays poisoned
-                # and every later item fails too.
-                logger.warning('Author scan: %r failed', author.name, exc_info=True)
-                db.session.rollback()
-                with author_scan_lock:
-                    author_scan['results'].append({
-                        'author': author.name,
-                        'status': 'error',
-                        'message': str(e),
-                    })
-
-            # Brief delay to be polite to the sources
-            time.sleep(2)
-
-        with author_scan_lock:
-            # A scan that broke out early (the site blocked us, or the user
-            # pressed Stop) hasn't covered its total. Filling the bar and
-            # calling it complete would claim the whole run happened and
-            # hide the stop_reason, which only the 'stopped' branch shows.
-            stopped_early = author_scan['stop_requested']
-            if not stopped_early:
-                author_scan['progress'] = author_scan['total']
-            author_scan['current_author'] = ''
-            author_scan['status'] = 'stopped' if stopped_early else 'complete'
-            done = author_scan['progress']
-        logger.info('Author scan: %s after %d of %d', 'stopped' if stopped_early else 'finished',
-                    done, len(authors))
+    if not (suggested_pronouns or suggested_gender):
+        scan.add_result(author.name, 'not_found')
+        return
+    AuthorInfoSuggestion.query.filter_by(author_id=author.id).delete()
+    db.session.add(AuthorInfoSuggestion(
+        author_id=author.id,
+        suggested_gender_id=suggested_gender.id if suggested_gender else None,
+        suggested_pronouns=suggested_pronouns,
+        evidence=info['evidence'],
+        source_url=info['source_url'],
+    ))
+    db.session.commit()
+    scan.add_result(author.name, 'suggested', counter='suggestions_found',
+                    pronouns=suggested_pronouns,
+                    gender=suggested_gender.name if suggested_gender else None)
 
 
 @system_bp.route('/system/author-suggestions/<int:id>/accept', methods=['POST'], endpoint='author_suggestion_accept')
@@ -845,11 +581,7 @@ def system_tag_delete(id):
 def tag_search():
     """Search tags for the tag picker."""
     query = request.args.get('q', '').strip()
-    exclude_str = request.args.get('exclude', '')
-
-    exclude_ids = []
-    if exclude_str:
-        exclude_ids = [int(x) for x in exclude_str.split(',') if x.strip().isdigit()]
+    exclude_ids = parse_id_list(request.args.get('exclude'))
 
     if len(query) < 1:
         return ''

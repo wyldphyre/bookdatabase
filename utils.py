@@ -156,6 +156,12 @@ def parse_date(date_str):
         return None
 
 
+def parse_id_list(text):
+    """The ids in a comma-separated list ("3,17, 42"), skipping anything that
+    isn't one."""
+    return [int(x) for x in (text or '').split(',') if x.strip().isdigit()]
+
+
 def parse_float(value):
     """Parse string to float, return None if invalid."""
     if not value:
@@ -222,9 +228,9 @@ def clean_external_url(url):
     host = (parsed.hostname or '').lower()
 
     if 'amazon.' in host:
-        match = re.search(r'/(?:dp|gp/product)/([A-Za-z0-9]{10})', parsed.path)
-        if match:
-            return f'{parsed.scheme}://{parsed.netloc}/dp/{match.group(1).upper()}'
+        asin = amazon_asin(parsed.path)
+        if asin:
+            return f'{parsed.scheme}://{parsed.netloc}/dp/{asin}'
         return parsed._replace(query='', fragment='').geturl()
 
     if 'goodreads.com' in host or 'thestorygraph.com' in host or 'kobo.com' in host:

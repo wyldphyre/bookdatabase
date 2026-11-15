@@ -1759,23 +1759,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     background: rgba(128, 128, 128, 0.15) !important;
 }
 
-.dropdown-menu button.menu-item {
-    display: block;
-    width: 100%;
-    margin: 0;
-    padding: 0.4rem 1rem;
-    background: none;
-    border: none;
-    box-shadow: none;
-    /* inherit, not var(--pico-color): Pico redefines --pico-color to the
-       inverse (white) on button elements */
-    color: inherit;
-    font-size: inherit;
-    line-height: inherit;
-    text-align: left;
-    cursor: pointer;
-}
-
 /* Price watch: a drop that was found but not yet sent. Amber like the
    Goodreads dot — something is owed, nothing is broken. */
 .price-drop-pending {

@@ -14,6 +14,9 @@ import unittest
 from bs4 import BeautifulSoup
 
 from capture import _url_key, build_prefill
+from unittest import mock
+
+import scrapers
 from scrapers import book_page_parser, parse_amazon, parse_goodreads, parse_kobo
 from utils import amazon_asin
 
@@ -206,6 +209,53 @@ class PrefillPriceTest(unittest.TestCase):
 
     def test_list_price_not_above_price_isnt_a_sale(self):
         self.assertEqual(build_prefill({'price': 12.99, 'list_price': 12.99}, create_tags=False), {'cost': 12.99})
+
+
+class SeriesPageTest(unittest.TestCase):
+    """Series pages, as read by series monitoring and by the series count
+    (System page scan, a series' Update Count)."""
+
+    def soup(self, fixture):
+        with gzip.open(os.path.join(FIXTURES, fixture), 'rt', encoding='utf-8') as f:
+            return BeautifulSoup(f.read(), 'html.parser')
+
+    def test_goodreads(self):
+        with mock.patch.object(scrapers, 'fetch_page', return_value=self.soup('goodreads-series-monster-girls-in-space.html.gz')):
+            detail = scrapers.scrape_goodreads_series_detail('https://www.goodreads.com/series/1')
+            count = scrapers.scrape_goodreads_series('https://www.goodreads.com/series/1')
+        self.assertEqual((detail['count'], count, len(detail['books'])), (9, 9, 9))
+        self.assertEqual(detail['books'][0], {'title': "To Valor's Bid", 'series_number': 1.0,
+                                              'url': 'https://www.goodreads.com/book/show/215155562-to-valor-s-bid'})
+        self.assertEqual([b['series_number'] for b in detail['books']], [float(n) for n in range(1, 10)])
+
+    def test_amazon(self):
+        url = 'https://www.amazon.com.au/dp/B0CZN48ZQ4'
+        with mock.patch.object(scrapers, 'fetch_page', return_value=self.soup('amazon-series-monster-girls-in-space.html.gz')):
+            detail = scrapers.scrape_amazon_series_detail(url)
+            count = scrapers.scrape_amazon_series(url)
+        self.assertEqual((detail['count'], count, len(detail['books'])), (9, 9, 9))
+        self.assertEqual(detail['books'][8]['series_number'], 9.0)
+        self.assertEqual(detail['books'][8]['url'], 'https://www.amazon.com.au/gp/product/B0HLGFJL67')
+
+    def test_count_falls_back_to_numbered_entries(self):
+        books = [{'title': 'A', 'series_number': 1.0, 'url': None},
+                 {'title': 'A box set', 'series_number': None, 'url': None},
+                 {'title': 'B', 'series_number': 2.0, 'url': None}]
+        read = lambda url: {'count': None, 'books': books}
+        self.assertEqual(scrapers._series_page_count(read, 'u'), 2)
+        unnumbered = lambda url: {'count': None, 'books': books[1:2]}
+        self.assertEqual(scrapers._series_page_count(unnumbered, 'u'), 1)
+        self.assertIsNone(scrapers._series_page_count(lambda url: {'count': None, 'books': []}, 'u'))
+
+    def test_unreadable_page_is_none_but_a_block_still_raises(self):
+        def broken(url):
+            raise ValueError('layout changed')
+        self.assertIsNone(scrapers._series_page_count(broken, 'u'))
+
+        def blocked(url):
+            raise scrapers.ScrapeBlockedError('blocked')
+        with self.assertRaises(scrapers.ScrapeBlockedError):
+            scrapers._series_page_count(blocked, 'u')
 
 
 class BookPageDetectionTest(unittest.TestCase):

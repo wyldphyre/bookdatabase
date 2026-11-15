@@ -536,33 +536,6 @@ def book_page_parser(url):
     return None, None
 
 
-def scrape_amazon_series(url):
-    """Scrape series page from Amazon to get book count."""
-    try:
-        soup = fetch_page(url)
-
-        # Look for book count in series page
-        # Amazon shows "X books" or "X titles" in series
-        count_el = soup.select_one('.series-childAsin-count, .seriesHeader span')
-        if count_el:
-            text = count_el.get_text()
-            match = re.search(r'(\d+)\s*(?:book|title|item)', text, re.IGNORECASE)
-            if match:
-                return int(match.group(1))
-
-        # Alternative: count items in series list
-        items = soup.select('.series-childAsin-item, .seriesItem')
-        if items:
-            return len(items)
-
-        return None
-    except ScrapeBlockedError:
-        raise
-    except Exception:
-        logger.warning('Reading the series page %s failed', url, exc_info=True)
-        return None
-
-
 def _parse_amazon_series_books(soup, base_url):
     """Every entry listed on an Amazon Kindle series page, in page order.
 
@@ -670,42 +643,32 @@ def _parse_series_count(soup):
     return None
 
 
-def scrape_goodreads_series(url):
-    """Scrape series page from Goodreads to get book count."""
+def _series_page_count(read_detail, url):
+    """The number of books a series page lists, from the same reading of the
+    page the series monitor uses: its stated count, or failing that how many
+    numbered entries it lists (all entries if none are numbered). None if the
+    page couldn't be read; a site turning the request away still raises."""
     try:
-        soup = fetch_page(url)
-
-        # Goodreads shows "X primary works, Y total" or just lists books
-        # Look for the count text
-        count_el = soup.select_one('.responsiveSeriesHeader__subtitle, .seriesDesc')
-        if count_el:
-            text = count_el.get_text()
-            # Match "X primary works" or "X works"
-            match = re.search(r'(\d+)\s*(?:primary\s+)?works?', text, re.IGNORECASE)
-            if match:
-                return int(match.group(1))
-
-        # Alternative: count book entries
-        items = soup.select('.listWithDividers__item, .bookTitle')
-        if items:
-            # Filter to only numbered entries (main series books)
-            numbered_count = 0
-            for item in items:
-                num_el = item.select_one('.responsiveBook__seriesNum, .bookMeta')
-                if num_el:
-                    text = num_el.get_text()
-                    if re.search(r'^#?\d+(\.\d+)?$', text.strip()):
-                        numbered_count += 1
-            if numbered_count > 0:
-                return numbered_count
-            return len(items)
-
-        return None
+        detail = read_detail(url)
     except ScrapeBlockedError:
         raise
     except Exception:
         logger.warning('Reading the series page %s failed', url, exc_info=True)
         return None
+    if detail['count'] is not None:
+        return detail['count']
+    numbered = [b for b in detail['books'] if b['series_number'] is not None]
+    return len(numbered) or len(detail['books']) or None
+
+
+def scrape_amazon_series(url):
+    """How many books an Amazon series page lists (see _series_page_count)."""
+    return _series_page_count(scrape_amazon_series_detail, url)
+
+
+def scrape_goodreads_series(url):
+    """How many books a Goodreads series page lists (see _series_page_count)."""
+    return _series_page_count(scrape_goodreads_series_detail, url)
 
 
 def search_amazon_for_book(title, author):

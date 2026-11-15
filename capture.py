@@ -12,6 +12,7 @@ import time
 
 from models import db, Book, BookFormat, Tag
 from series_monitor import match_key
+from utils import amazon_asin
 
 # Long enough to review the form and reload it; the token is only ever handed
 # straight to the tab that opens the form.
@@ -96,9 +97,8 @@ def _url_key(url):
     m = re.search(r'goodreads\.com/(?:[a-z]{2}/)?book/show/(\d+)', url)
     if m:
         return 'goodreads:' + m.group(1)
-    m = re.search(r'amazon\.[a-z.]+/(?:.*/)?(?:dp|gp/product)/([A-Za-z0-9]{10})', url)
-    if m:
-        return 'amazon:' + m.group(1).upper()
+    if re.search(r'amazon\.[a-z.]+/', url) and amazon_asin(url):
+        return 'amazon:' + amazon_asin(url)
     m = re.search(r'kobo\.com/(?:[a-z]{2}/[a-z]{2}/)?((?:ebook|audiobook)/[^/?#]+)', url)
     if m:
         return 'kobo:' + m.group(1).lower()
