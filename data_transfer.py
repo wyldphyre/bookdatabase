@@ -28,6 +28,8 @@ from models import (db, Tag, BookFormat, AuthorGender, Series, Author, Book, Rea
 from database import CURRENT_SCHEMA_VERSION, migrate_imported_data, book_from_external_queue_entry
 from utils import THUMB_SUBFOLDER
 
+logger = logging.getLogger(__name__)
+
 EXPORT_FORMAT = 'bookdb-export'
 PRE_IMPORT_BACKUP_NAME = 'books_pre_import.db'
 EXPORT_TMP_PREFIX = 'bookdb-export-build-'
@@ -305,7 +307,7 @@ def apply_import(zip_path, upload_folder):
                                        "VALUES (?, ?, ?, ?)", (row['id'], row['position'], book_id, added_at))
                 db.session.commit()
                 if migrated:
-                    logging.info('Import: applied data migrations %s to the imported rows',
+                    logger.info('Import: applied data migrations %s to the imported rows',
                                  ', '.join(f'v{v}' for v in migrated))
             except Exception:
                 db.session.rollback()

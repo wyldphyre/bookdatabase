@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 import time
 import threading
 from datetime import date, datetime
@@ -15,6 +16,8 @@ from data_transfer import (build_export_zip, validate_import_zip, apply_import,
                            ImportValidationError, ImportCoverError, PRE_IMPORT_BACKUP_NAME)
 
 system_bp = Blueprint('system', __name__)
+
+logger = logging.getLogger(__name__)
 
 series_scan = {
     'status': 'idle',
@@ -105,6 +108,8 @@ def system_monitored_series():
         series.monitored = False
         series.last_check_error = None
     db.session.commit()
+    if to_stop:
+        logger.info('Stopped monitoring %d series: %s', len(to_stop), ', '.join(repr(s.name) for s in to_stop))
 
     notice = f'Stopped monitoring {len(to_stop)} series.' if to_stop else None
     return render_template('system/_monitored_series.html',
@@ -144,7 +149,7 @@ def system_export_start():
                                 size_label='', built_at='', book_count=0,
                                 cover_count=0, error='')
             _app = current_app._get_current_object()
-            thread = threading.Thread(target=run_export_build, args=(_app,), daemon=True)
+            thread = threading.Thread(target=run_export_build, args=(_app,), daemon=True, name='export')
             thread.start()
     return render_template('system/_export_progress.html', export=_export_snapshot())
 
@@ -173,6 +178,7 @@ def run_export_build(app):
             export_state['progress'] = done
             export_state['total'] = total
 
+    logger.info('Export: building')
     try:
         with app.app_context():
             zip_path, manifest = build_export_zip(app.config['UPLOAD_FOLDER'],
@@ -185,7 +191,10 @@ def run_export_build(app):
                                 built_at=datetime.now().strftime('%H:%M'),
                                 book_count=manifest['counts']['book'],
                                 cover_count=manifest['cover_count'])
+        logger.info('Export: ready, %d books and %d covers in %.0f MB', manifest['counts']['book'],
+                    manifest['cover_count'], size / (1024 * 1024))
     except Exception as e:
+        logger.exception('Export failed')
         with export_lock:
             export_state.update(status='error', error=str(e))
 
@@ -200,7 +209,10 @@ def system_import_upload():
     file.save(path)
     try:
         validate_import_zip(path)
+        logger.info('Import: %s uploaded (%.0f MB), waiting for confirmation', file.filename,
+                    os.path.getsize(path) / (1024 * 1024))
     except ImportValidationError as e:
+        logger.warning('Import: %s refused: %s', file.filename, e)
         os.unlink(path)
         flash(str(e), 'error')
     return redirect(url_for('system.system') + '#import-export')
@@ -220,19 +232,25 @@ def system_import_confirm():
         flash('An export is currently building — wait for it to finish before importing', 'error')
         return redirect(url_for('system.system') + '#import-export')
     try:
+        logger.info('Import: replacing the library from the uploaded export')
         result = apply_import(path, current_app.config['UPLOAD_FOLDER'])
+        logger.info('Import: complete, %d books, %d authors, %d series, %d reads and %d covers; '
+                    'the previous database was saved as %s', result['books'], result['authors'],
+                    result['series'], result['reads'], result['covers'], PRE_IMPORT_BACKUP_NAME)
         start_thumbnail_backfill(current_app.config['UPLOAD_FOLDER'])
         flash(f"Import complete: {result['books']} books, {result['authors']} authors, "
               f"{result['series']} series, {result['reads']} reads and {result['covers']} covers restored. "
               f"The previous database was saved as {PRE_IMPORT_BACKUP_NAME}. "
               f"Cover thumbnails are being regenerated in the background.", 'success')
     except ImportValidationError as e:
+        logger.warning('Import: refused: %s', e)
         flash(str(e), 'error')
     except ImportCoverError as e:
         # The rows are imported; only the cover files are suspect.
+        logger.exception('Import: data imported, but replacing the covers failed')
         flash(str(e), 'error')
     except Exception as e:
-        current_app.logger.exception('Import failed')
+        logger.exception('Import failed')
         db.session.rollback()
         flash(f'Import failed and the database was left unchanged: {e}', 'error')
     finally:
@@ -246,6 +264,7 @@ def system_import_cancel():
     path = _pending_import_path()
     if os.path.exists(path):
         os.unlink(path)
+        logger.info('Import: cancelled')
     return redirect(url_for('system.system') + '#import-export')
 
 
@@ -310,7 +329,7 @@ def scan_series_start():
 
     if not already_active:
         _app = current_app._get_current_object()
-        thread = threading.Thread(target=run_series_scan, args=(_app,), daemon=True)
+        thread = threading.Thread(target=run_series_scan, args=(_app,), daemon=True, name='series-scan')
         thread.start()
 
     return render_template('system/_series_scan_progress.html', scan=_snapshot(series_scan, series_scan_lock))
@@ -345,6 +364,7 @@ def run_series_scan(app):
     try:
         _run_series_scan(app)
     except Exception as e:
+        logger.exception('Series scan aborted')
         # Without this, an uncaught error would leave the status stuck at
         # 'running' with the progress bar frozen and polling forever — and
         # scan_series_start refuses to start another while it is.
@@ -363,6 +383,7 @@ def _run_series_scan(app):
 
         with series_scan_lock:
             series_scan['total'] = len(all_series)
+        logger.info('Series scan: checking %d series', len(all_series))
 
         for i, series in enumerate(all_series):
             if series_scan['stop_requested']:
@@ -443,6 +464,7 @@ def _run_series_scan(app):
                 # series' attribute access outside this try raises
                 # PendingRollbackError, which escapes to the thread guard and ends
                 # the whole run.
+                logger.warning('Series scan: %r failed', series.name, exc_info=True)
                 db.session.rollback()
                 with series_scan_lock:
                     series_scan['results'].append({
@@ -463,6 +485,9 @@ def _run_series_scan(app):
                 series_scan['progress'] = series_scan['total']
             series_scan['current_series'] = ''
             series_scan['status'] = 'stopped' if stopped_early else 'complete'
+            done = series_scan['progress']
+        logger.info('Series scan: %s after %d of %d', 'stopped' if stopped_early else 'finished',
+                    done, len(all_series))
 
 
 @system_bp.route('/system/scan-authors', methods=['POST'], endpoint='scan_authors_start')
@@ -487,7 +512,7 @@ def scan_authors_start():
 
     if not already_active:
         _app = current_app._get_current_object()
-        thread = threading.Thread(target=run_author_scan, args=(_app,), daemon=True)
+        thread = threading.Thread(target=run_author_scan, args=(_app,), daemon=True, name='author-scan')
         thread.start()
 
     return render_template('system/_author_scan_progress.html', scan=_snapshot(author_scan, author_scan_lock))
@@ -556,6 +581,7 @@ def run_author_scan(app):
     try:
         _run_author_scan(app)
     except Exception as e:
+        logger.exception('Author scan aborted')
         # Without this, an uncaught error would leave the status stuck at
         # 'running' with the progress bar frozen and polling forever.
         with author_scan_lock:
@@ -586,6 +612,7 @@ def _run_author_scan(app):
 
         with author_scan_lock:
             author_scan['total'] = len(authors)
+        logger.info('Author scan: %d alias record(s) synced, looking up %d author(s)', len(synced), len(authors))
 
         for i, author in enumerate(authors):
             if author_scan['stop_requested']:
@@ -657,6 +684,7 @@ def _run_author_scan(app):
             except Exception as e:
                 # See the series scan: without this the session stays poisoned
                 # and every later item fails too.
+                logger.warning('Author scan: %r failed', author.name, exc_info=True)
                 db.session.rollback()
                 with author_scan_lock:
                     author_scan['results'].append({
@@ -678,6 +706,9 @@ def _run_author_scan(app):
                 author_scan['progress'] = author_scan['total']
             author_scan['current_author'] = ''
             author_scan['status'] = 'stopped' if stopped_early else 'complete'
+            done = author_scan['progress']
+        logger.info('Author scan: %s after %d of %d', 'stopped' if stopped_early else 'finished',
+                    done, len(authors))
 
 
 @system_bp.route('/system/author-suggestions/<int:id>/accept', methods=['POST'], endpoint='author_suggestion_accept')
@@ -710,6 +741,7 @@ def author_suggestion_accept_all():
             suggestion.author.pronouns = suggestion.suggested_pronouns
         db.session.delete(suggestion)
     db.session.commit()
+    logger.info('Applied all %d author info suggestion(s)', len(suggestions))
     flash(f'Applied {len(suggestions)} author info suggestion(s)', 'success')
     return redirect(url_for('system.system'))
 
@@ -732,8 +764,10 @@ def system_tag_rename(id):
     existing = Tag.query.filter(db.func.lower(Tag.name) == new_name.lower(), Tag.id != id).first()
     if existing:
         return render_template('system/_tag_row.html', tag=tag, error=f'A tag named "{existing.name}" already exists')
+    old_name = tag.name
     tag.name = new_name
     db.session.commit()
+    logger.info('Renamed tag %r to %r', old_name, new_name)
     return render_template('system/_tag_row.html', tag=tag)
 
 
@@ -786,6 +820,8 @@ def system_tag_replace(id):
     tag.series = []
     db.session.delete(tag)
     db.session.commit()
+    logger.info('Replaced tag %r with %r on %d book(s), %d author(s) and %d series', old_name,
+                target.name, counts['book'], counts['author'], counts['series'])
 
     return results(notice=f'Replaced "{old_name}" with "{target.name}" on '
                           f'{counts["book"]} book(s), {counts["author"]} author(s) '
@@ -795,11 +831,13 @@ def system_tag_replace(id):
 @system_bp.route('/system/tags/<int:id>/delete', methods=['DELETE', 'POST'], endpoint='system_tag_delete')
 def system_tag_delete(id):
     tag = db.get_or_404(Tag, id)
+    name = tag.name
     tag.books = []
     tag.authors = []
     tag.series = []
     db.session.delete(tag)
     db.session.commit()
+    logger.info('Deleted tag %r', name)
     return ''
 
 

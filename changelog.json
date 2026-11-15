@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.15.0",
+    "date": "2026-11-15",
+    "changes": [
+      "The app now keeps a log, for working out what happened when something goes wrong. It's written to instance/logs/app.log (data/instance/logs on the production host), which survives redeploys and rotates at 5MB keeping the five previous files, and to the console / docker logs",
+      "The log records every change made (books, authors and series added, updated or deleted, captures, imports and exports, tag changes), the background jobs and their results (price checks, series monitoring, scans), and anything that went wrong, with details. Several failures that used to leave no trace are now recorded, such as an export that failed or a single price check that couldn't be done",
+      "LOG_LEVEL in .env sets how much is logged: DEBUG, INFO (the default), WARNING or ERROR. See the README's Logging section"
+    ]
+  },
+  {
     "version": "1.14.4",
     "date": "2026-11-13",
     "changes": [

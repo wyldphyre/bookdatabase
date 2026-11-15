@@ -1,3 +1,4 @@
+import logging
 import os
 import html
 from datetime import datetime
@@ -15,6 +16,8 @@ from scrapers import (scrape_amazon, scrape_goodreads, search_amazon_for_book,
                       search_goodreads_for_book, ScrapeBlockedError)
 
 books_bp = Blueprint('books', __name__)
+
+logger = logging.getLogger(__name__)
 
 
 @books_bp.route('/', endpoint='dashboard')
@@ -346,16 +349,19 @@ def book_import():
     try:
         book_data = scraper(url)
         if book_data:
+            logger.info('Imported %r from %s for the Add Book form', book_data.get('title'), url)
             book_data = capture.build_prefill(book_data, create_tags=True)
             if parent_id:
                 book_data['parent_id'] = parent_id
             session['book_prefill'] = book_data
             flash('Book data imported. Please review and save.', 'success')
         else:
+            logger.warning('Importing from %s found no book details', url)
             flash('Could not extract book data from URL', 'warning')
     except ScrapeBlockedError as e:
         flash(str(e), 'error')
     except Exception as e:
+        logger.warning('Importing %s from %s failed', source, url, exc_info=True)
         flash(f'Error importing book: {str(e)}', 'error')
 
     return redirect(url_for('books.book_new'))
@@ -397,6 +403,7 @@ def search_description():
     except ScrapeBlockedError as e:
         return jsonify({'error': str(e)}), 503
     except Exception as e:
+        logger.warning('Description search for %r failed', title, exc_info=True)
         return jsonify({'error': f'Failed to search: {str(e)}'}), 500
 
 
@@ -539,6 +546,7 @@ def save_book(book):
             generate_thumbnail(current_app.config['UPLOAD_FOLDER'], filename)
             book.cover_image = filename
         except Exception as e:
+            logger.warning('Downloading the cover for %r from %s failed', book.title, cover_url, exc_info=True)
             flash(f'Could not download cover image: {str(e)}', 'warning')
 
     if is_new:
@@ -566,6 +574,8 @@ def save_book(book):
         db.session.add(ReadingQueue(book_id=book.id, position=1 if max_pos is None else max_pos + 1))
 
     db.session.commit()
+    logger.info('%s book %d %r%s', 'Added' if is_new else 'Updated', book.id, book.title,
+                ' and removed its price watch' if stopped_watching else '')
     flash('Book saved successfully' + (' and its price watch removed' if stopped_watching else ''), 'success')
 
     return redirect(url_for('books.book_detail', id=book.id))
@@ -603,6 +613,8 @@ def book_mark_owned(id):
     # Bought, so there's no longer a price to wait on
     stopped_watching = _stop_price_watch(book)
     db.session.commit()
+    logger.info('Marked book %d %r as owned%s', id, book.title,
+                ' and removed its price watch' if stopped_watching else '')
     flash(f'"{book.title}" marked as owned{" and its price watch removed" if stopped_watching else ""}. '
           f'Fill in what you paid and its format.', 'success')
     return redirect(url_for('books.book_edit', id=id))
@@ -644,8 +656,10 @@ def book_delete(id):
     # release as "already owned", the entry would be hidden forever despite
     # the book being gone. Unlinking puts it back on the list.
     SeriesRelease.query.filter_by(book_id=id).update({'book_id': None})
+    title = book.title
     db.session.delete(book)
     db.session.commit()
+    logger.info('Deleted book %d %r', id, title)
     flash('Book deleted successfully', 'success')
 
     if request.headers.get('HX-Request'):

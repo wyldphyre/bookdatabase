@@ -17,6 +17,8 @@ from scrapers import (scrape_goodreads_series_detail, scrape_amazon_series_detai
                       ScrapeBlockedError)
 from notifications import send_pushover_notification
 
+logger = logging.getLogger(__name__)
+
 # How stale a series' last check must be before it's due again.
 CHECK_INTERVAL_SECONDS = 7 * 24 * 60 * 60
 # Gap between checking one series and the next.
@@ -85,7 +87,7 @@ def resolve_series_url(series):
         except ScrapeBlockedError:
             raise
         except Exception:
-            logging.warning('Series URL lookup failed for %r via %r', series.name, book.title,
+            logger.warning('Series URL lookup failed for %r via %r', series.name, book.title,
                             exc_info=True)
 
     for book in [b for b in series.books if b.title][:URL_RESOLUTION_ATTEMPTS]:
@@ -99,7 +101,7 @@ def resolve_series_url(series):
         except ScrapeBlockedError:
             raise
         except Exception:
-            logging.warning('Series URL lookup failed for %r', series.name, exc_info=True)
+            logger.warning('Series URL lookup failed for %r', series.name, exc_info=True)
     return None, None
 
 
@@ -134,7 +136,7 @@ def read_series_page(series):
             failures.append(f'{name} is blocking automated requests')
             continue
         except Exception:
-            logging.warning('Series page fetch failed for %r at %s', series.name, url, exc_info=True)
+            logger.warning('Series page fetch failed for %r at %s', series.name, url, exc_info=True)
             failures.append(f'{name} page could not be fetched')
             continue
         if detail.get('books'):
@@ -267,19 +269,21 @@ def run_due_series_check(app):
             series.last_check_error = str(e)[:300]
             series.last_checked_at = datetime.now()
             db.session.commit()
-            logging.warning('Series monitor blocked while checking %r: %s', name, e)
+            logger.warning('Series monitor blocked while checking %r: %s', name, e)
             raise
         except Exception as e:
             db.session.rollback()
             series.last_check_error = str(e)[:300]
             series.last_checked_at = datetime.now()
             db.session.commit()
-            logging.warning('Series check failed for %r', name, exc_info=True)
+            logger.warning('Series check failed for %r', name, exc_info=True)
             return True
 
         if releases:
-            logging.info('Series monitor: %d new in %r', len(releases), name)
+            logger.info('Series monitor: %d new in %r', len(releases), name)
             notify_new_releases(series, releases)
+        else:
+            logger.debug('Series monitor: nothing new in %r', name)
         return True
 
 
@@ -295,10 +299,12 @@ def start_series_monitor_scheduler(app):
             except ScrapeBlockedError:
                 # Being turned away means backing off entirely, not moving on
                 # to the next series and asking again immediately.
+                logger.info('Series monitor backing off for %d minutes', BLOCKED_BACKOFF_SECONDS // 60)
                 time.sleep(BLOCKED_BACKOFF_SECONDS)
                 continue
             except Exception:
-                logging.warning('Series monitor iteration failed', exc_info=True)
+                logger.exception('Series monitor iteration failed')
             time.sleep(SERIES_SPACING_SECONDS)
 
-    threading.Thread(target=loop, daemon=True).start()
+    threading.Thread(target=loop, daemon=True, name='series-monitor').start()
+    logger.info('Series monitor started')

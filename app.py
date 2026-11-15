@@ -1,22 +1,31 @@
 import os
+import time
 import logging
 from urllib.parse import urlparse
-from flask import Flask, request, url_for
+from flask import Flask, g, request, url_for
+from logging_config import configure_logging, LOG_FILE_NAME
 from models import db
 from database import init_db
 from price_watch import start_price_watch_scheduler
 from series_monitor import start_series_monitor_scheduler
 from utils import THUMB_SUBFOLDER, start_thumbnail_backfill
 
-APP_VERSION = '1.14.4'
+APP_VERSION = '1.15.0'
+
+logger = logging.getLogger(__name__)
+request_logger = logging.getLogger('requests')
+
+# A request taking longer than this is logged as a warning whatever it was
+SLOW_REQUEST_SECONDS = 3
 
 
 def create_app():
     app = Flask(__name__)
+    configure_logging(os.path.join(app.instance_path, 'logs'))
 
     _secret_key = os.environ.get('SECRET_KEY')
     if not _secret_key:
-        logging.warning('SECRET_KEY env var not set — using insecure development default. Set SECRET_KEY for production.')
+        logger.warning('SECRET_KEY env var not set — using insecure development default. Set SECRET_KEY for production.')
         _secret_key = 'dev-secret-key-change-in-production'
     app.config['SECRET_KEY'] = _secret_key
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///books.db'
@@ -77,6 +86,31 @@ def create_app():
     # putting a token in ~30 forms plus every htmx call.
     SAFE_METHODS = {'GET', 'HEAD', 'OPTIONS'}
 
+    # One line per request, after it's answered. Anything that changes data,
+    # and anything that failed, is logged at INFO, which gives a record of
+    # what was done and when; plain page views only at DEBUG, as they'd swamp
+    # it. Static files (covers, CSS) aren't logged at all. Registered first so
+    # the timer starts before the cross-site check can answer a request.
+    @app.before_request
+    def start_request_timer():
+        g.request_started = time.perf_counter()
+
+    @app.after_request
+    def log_request(response):
+        if request.path.startswith('/static/'):
+            return response
+        started = g.get('request_started')
+        seconds = time.perf_counter() - started if started is not None else 0
+        if seconds >= SLOW_REQUEST_SECONDS or response.status_code >= 500:
+            level = logging.WARNING
+        elif request.method not in SAFE_METHODS or response.status_code >= 400:
+            level = logging.INFO
+        else:
+            level = logging.DEBUG
+        request_logger.log(level, '%s in %.0f ms%s', response.status_code, seconds * 1000,
+                           ' (slow)' if seconds >= SLOW_REQUEST_SECONDS else '')
+        return response
+
     @app.before_request
     def reject_cross_site_writes():
         if request.method in SAFE_METHODS:
@@ -95,7 +129,7 @@ def create_app():
         if urlparse(stated).scheme == 'chrome-extension' and request.blueprint == 'api':
             return None
         if urlparse(stated).netloc != request.host:
-            logging.warning('Blocked cross-site %s to %s (origin %r)',
+            logger.warning('Blocked cross-site %s to %s (origin %r)',
                             request.method, request.path, stated)
             return ('This request came from another site and was blocked.', 403)
         return None
@@ -164,6 +198,12 @@ def create_app():
 
 app = create_app()
 init_db(app)
+# Not from the debug server's reloader parent, which only watches for changes
+if __name__ != '__main__' or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+    logger.info('Book Database %s started (database %s, log %s, level %s)', APP_VERSION,
+                os.path.join(app.instance_path, 'books.db'),
+                os.path.join(app.instance_path, 'logs', LOG_FILE_NAME),
+                logging.getLevelName(logging.getLogger().level))
 
 if __name__ == '__main__':
     # Debug server: this module runs in both the reloader parent and the

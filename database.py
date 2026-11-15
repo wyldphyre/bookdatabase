@@ -1,7 +1,11 @@
+import logging
+
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
 from models import db, BookFormat, AuthorGender, NOT_SPECIFIED_FORMAT
+
+logger = logging.getLogger(__name__)
 
 CURRENT_SCHEMA_VERSION = 16
 
@@ -311,6 +315,7 @@ def run_migrations():
 
         if version < CURRENT_SCHEMA_VERSION:
             _set_schema_version(cursor, conn, CURRENT_SCHEMA_VERSION)
+            logger.info('Database schema migrated from version %d to %d', version, CURRENT_SCHEMA_VERSION)
     finally:
         conn.close()
 

@@ -1,3 +1,4 @@
+import logging
 from itertools import groupby
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
@@ -7,6 +8,8 @@ from utils import clean_external_url
 from author_info import lookup_author_info
 
 authors_bp = Blueprint('authors', __name__)
+
+logger = logging.getLogger(__name__)
 
 
 @authors_bp.route('/authors', endpoint='author_list')
@@ -101,6 +104,7 @@ def save_author(author):
     if is_new:
         db.session.add(author)
     db.session.commit()
+    logger.info('%s author %d %r', 'Added' if is_new else 'Updated', author.id, author.name)
     flash('Author saved successfully', 'success')
     return redirect(url_for('authors.author_detail', id=author.id))
 
@@ -159,6 +163,7 @@ def author_lookup_info():
     try:
         info = lookup_author_info(name, goodreads_url, website)
     except Exception as e:
+        logger.warning('Author info lookup for %r failed', name, exc_info=True)
         return jsonify({'error': f'Lookup failed: {e}'}), 500
 
     if not info:
@@ -187,8 +192,10 @@ def author_delete(id):
     Author.query.filter_by(alias_of_id=id).update({'alias_of_id': None})
     # Remove any pending info suggestion
     AuthorInfoSuggestion.query.filter_by(author_id=id).delete()
+    name = author.name
     db.session.delete(author)
     db.session.commit()
+    logger.info('Deleted author %d %r', id, name)
     flash('Author deleted successfully', 'success')
 
     if request.headers.get('HX-Request'):

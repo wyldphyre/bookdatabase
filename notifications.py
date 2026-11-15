@@ -6,6 +6,8 @@ import requests
 
 from models import get_setting
 
+logger = logging.getLogger(__name__)
+
 PRIORITY_SETTING_KEY = 'pushover_priority'
 DEFAULT_PRIORITY = 0
 
@@ -41,7 +43,7 @@ def pushover_configured():
 def send_pushover_notification(title, message, url=None):
     """Send a push notification via Pushover. Returns True on success."""
     if not pushover_configured():
-        logging.warning('Pushover not configured (PUSHOVER_USER_KEY/PUSHOVER_APP_TOKEN) — skipping notification')
+        logger.warning('Pushover not configured (PUSHOVER_USER_KEY/PUSHOVER_APP_TOKEN) — skipping notification')
         return False
     user_key = os.environ['PUSHOVER_USER_KEY']
     app_token = os.environ['PUSHOVER_APP_TOKEN']
@@ -69,9 +71,10 @@ def send_pushover_notification(title, message, url=None):
         response = requests.post('https://api.pushover.net/1/messages.json', data=payload, timeout=10)
         result = response.json()
         if result.get('status') != 1:
-            logging.warning('Pushover rejected the notification: %s', result.get('errors') or response.text)
+            logger.warning('Pushover rejected the notification: %s', result.get('errors') or response.text)
             return False
+        logger.info('Pushover notification sent: %s', title)
         return True
     except Exception:
-        logging.warning('Pushover notification failed', exc_info=True)
+        logger.warning('Pushover notification failed', exc_info=True)
         return False

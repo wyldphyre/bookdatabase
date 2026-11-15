@@ -13,4 +13,5 @@ services:
       - SECRET_KEY=${SECRET_KEY:-}
       - PUSHOVER_USER_KEY=${PUSHOVER_USER_KEY:-}
       - PUSHOVER_APP_TOKEN=${PUSHOVER_APP_TOKEN:-}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     restart: unless-stopped

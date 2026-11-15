@@ -1,3 +1,4 @@
+import logging
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash
 from sqlalchemy.exc import IntegrityError
 from models import db, PriceWatch, Book
@@ -8,6 +9,8 @@ from price_watch import run_price_checks
 from notifications import pushover_configured
 
 price_watch_bp = Blueprint('price_watch', __name__)
+
+logger = logging.getLogger(__name__)
 
 
 @price_watch_bp.route('/price-watch', endpoint='price_watch_list')
@@ -63,6 +66,8 @@ def price_watch_add():
     db.session.add(watch)
     try:
         db.session.commit()
+        logger.info('Watching the price of %r (%s) from %s%.2f', watch.title, url,
+                    watch.currency or '', watch.current_price)
         flash(f'Now watching "{watch.title}" at {watch.currency or ""}{watch.current_price:.2f}', 'success')
     except IntegrityError:
         db.session.rollback()
@@ -74,8 +79,10 @@ def price_watch_add():
 @price_watch_bp.route('/price-watch/<int:id>/delete', methods=['DELETE', 'POST'], endpoint='price_watch_delete')
 def price_watch_delete(id):
     watch = db.get_or_404(PriceWatch, id)
+    title = watch.title
     db.session.delete(watch)
     db.session.commit()
+    logger.info('Stopped watching the price of %r', title)
 
     if request.headers.get('HX-Request'):
         return '', 200

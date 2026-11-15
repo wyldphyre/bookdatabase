@@ -8,10 +8,13 @@ never used to guess, since pen names and initials make that unreliable.
 """
 
 import re
+import logging
 import requests
 from urllib.parse import quote
 
 from scrapers import fetch_page
+
+logger = logging.getLogger(__name__)
 
 API_HEADERS = {'User-Agent': 'BookDatabase/1.0 (personal library app)'}
 
@@ -170,7 +173,7 @@ def lookup_author_info(name, goodreads_url=None, website=None):
         try:
             suggestion = _pronouns_from_text(bio_from_goodreads(goodreads_url), goodreads_url)
         except Exception:
-            pass
+            logger.warning('Author lookup for %r: Goodreads bio failed', name, exc_info=True)
 
     # 2. Wikidata structured gender + Wikipedia lead for pronoun evidence.
     if not suggestion:
@@ -192,7 +195,7 @@ def lookup_author_info(name, goodreads_url=None, website=None):
                     'source_url': entity_url,
                 }
         except Exception:
-            pass
+            logger.warning('Author lookup for %r: Wikidata/Wikipedia failed', name, exc_info=True)
 
     # 3. The author's own website bio.
     if not suggestion and website:
@@ -200,6 +203,6 @@ def lookup_author_info(name, goodreads_url=None, website=None):
             text = fetch_page(website).get_text(' ', strip=True)
             suggestion = _pronouns_from_text(text, website)
         except Exception:
-            pass
+            logger.warning('Author lookup for %r: website %s failed', name, website, exc_info=True)
 
     return suggestion

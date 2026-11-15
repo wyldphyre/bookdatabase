@@ -2,10 +2,13 @@ import os
 import re
 import csv
 import socket
+import logging
 import ipaddress
 import threading
 from datetime import datetime
 from urllib.parse import urlparse, urljoin
+
+logger = logging.getLogger(__name__)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
@@ -57,6 +60,7 @@ def generate_thumbnail(upload_folder, filename):
             img.save(dst, quality=80)
             return True
     except Exception:
+        logger.debug('No thumbnail made for %s', filename, exc_info=True)
         return False
 
 
@@ -76,6 +80,7 @@ def backfill_thumbnails(upload_folder):
     lock so an import-triggered run can't race a still-running startup run,
     and the prune tolerates files vanishing between listdir and remove."""
     with _backfill_lock:
+        made = 0
         thumbs_dir = os.path.join(upload_folder, THUMB_SUBFOLDER)
         try:
             os.makedirs(thumbs_dir, exist_ok=True)
@@ -90,7 +95,10 @@ def backfill_thumbnails(upload_folder):
                     continue
                 if os.path.isfile(os.path.join(upload_folder, entry)) and \
                         not os.path.exists(thumb_path(upload_folder, entry)):
-                    generate_thumbnail(upload_folder, entry)
+                    if generate_thumbnail(upload_folder, entry):
+                        made += 1
+            if made:
+                logger.info('Thumbnails: made %d missing thumbnail(s)', made)
         except FileNotFoundError:
             # An import wiped the folder out from under us mid-run; the
             # post-import backfill will regenerate everything.
@@ -98,7 +106,7 @@ def backfill_thumbnails(upload_folder):
 
 
 def start_thumbnail_backfill(upload_folder):
-    threading.Thread(target=backfill_thumbnails, args=(upload_folder,), daemon=True).start()
+    threading.Thread(target=backfill_thumbnails, args=(upload_folder,), daemon=True, name='thumbnails').start()
 
 
 def allowed_file(filename):
@@ -205,8 +213,12 @@ def _is_safe_cover_url(url):
         if not hostname:
             return False
         addr = ipaddress.ip_address(socket.gethostbyname(hostname))
-        return not (addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved)
+        if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
+            logger.warning('Refused cover URL %s: %s is not a public address', url, addr)
+            return False
+        return True
     except Exception:
+        logger.warning('Refused cover URL %s: could not resolve it', url, exc_info=True)
         return False
 
 

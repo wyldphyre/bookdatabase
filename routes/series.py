@@ -1,3 +1,4 @@
+import logging
 import html
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from sqlalchemy import func
@@ -7,6 +8,8 @@ from scrapers import scrape_goodreads_series, scrape_amazon_series, ScrapeBlocke
 from utils import clean_external_url
 
 series_bp = Blueprint('series', __name__)
+
+logger = logging.getLogger(__name__)
 
 
 @series_bp.route('/series', endpoint='series_list')
@@ -126,6 +129,7 @@ def save_series(series):
     if is_new:
         db.session.add(series)
     db.session.commit()
+    logger.info('%s series %d %r', 'Added' if is_new else 'Updated', series.id, series.name)
     flash('Series saved successfully', 'success')
     return redirect(url_for('series.series_detail', id=series.id))
 
@@ -135,8 +139,10 @@ def series_delete(id):
     series = db.get_or_404(Series, id)
     # Remove series from books (but don't delete books)
     Book.query.filter_by(series_id=id).update({'series_id': None, 'series_number': None})
+    name = series.name
     db.session.delete(series)
     db.session.commit()
+    logger.info('Deleted series %d %r', id, name)
     flash('Series deleted successfully', 'success')
 
     if request.headers.get('HX-Request'):

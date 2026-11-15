@@ -6,6 +6,8 @@ import requests as http_requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
 
+logger = logging.getLogger(__name__)
+
 
 # Worth refreshing every so often: claiming a long-obsolete browser is one of
 # the cheaper signals sites use to pick out automated traffic. This is the
@@ -125,8 +127,20 @@ def fetch_page(url):
         'Cache-Control': 'max-age=0',
     }
     throttle(parsed.netloc)
-    response = http_requests.get(url, headers=headers, timeout=15, allow_redirects=True)
-    _detect_block(response, parsed.netloc)
+    started = time.monotonic()
+    try:
+        response = http_requests.get(url, headers=headers, timeout=15, allow_redirects=True)
+    except http_requests.RequestException as e:
+        logger.warning('Fetching %s failed: %s', url, e)
+        raise
+    logger.debug('Fetched %s: HTTP %d in %.1f s', url, response.status_code, time.monotonic() - started)
+    try:
+        _detect_block(response, parsed.netloc)
+    except ScrapeBlockedError:
+        logger.warning('%s turned the request away (HTTP %d, %s)', parsed.netloc, response.status_code, url)
+        raise
+    if not response.ok:
+        logger.warning('Fetching %s returned HTTP %d', url, response.status_code)
     response.raise_for_status()
     return BeautifulSoup(response.text, 'html.parser')
 
@@ -545,6 +559,7 @@ def scrape_amazon_series(url):
     except ScrapeBlockedError:
         raise
     except Exception:
+        logger.warning('Reading the series page %s failed', url, exc_info=True)
         return None
 
 
@@ -602,7 +617,7 @@ def scrape_amazon_series_detail(url):
     books = _parse_amazon_series_books(soup, url)
     count = _parse_amazon_series_count(soup)
     if count is not None and books and count > len(books):
-        logging.warning('Amazon series page %s says %d books but only %d are listed in the page',
+        logger.warning('Amazon series page %s says %d books but only %d are listed in the page',
                         url, count, len(books))
     return {'count': count, 'books': books}
 
@@ -689,6 +704,7 @@ def scrape_goodreads_series(url):
     except ScrapeBlockedError:
         raise
     except Exception:
+        logger.warning('Reading the series page %s failed', url, exc_info=True)
         return None
 
 
@@ -719,6 +735,7 @@ def search_amazon_for_book(title, author):
         except ScrapeBlockedError:
             raise
         except Exception:
+            logger.warning('Amazon search on %s failed', domain, exc_info=True)
             continue
 
     return None
@@ -780,6 +797,6 @@ def search_goodreads_for_book(title, author):
     except ScrapeBlockedError:
         raise
     except Exception:
-        pass
+        logger.warning('Goodreads search for %r failed', title, exc_info=True)
 
     return None

@@ -60,6 +60,7 @@ book-database/
 ├── price_watch.py      # Daily background price check + manual "Check Now" logic
 ├── series_monitor.py   # Weekly background check of monitored series for new releases
 ├── utils.py            # Shared helpers (URL cleaning, validation, parsing)
+├── logging_config.py   # Logging setup: stderr plus a rotating file in instance/logs
 ├── requirements.txt    # Python dependencies
 ├── README.md
 ├── changelog.json      # Version history
@@ -216,10 +217,12 @@ Create a `.env` file in the project root (it's gitignored, so it never gets comm
 SECRET_KEY=some-random-string
 PUSHOVER_USER_KEY=your-pushover-user-key
 PUSHOVER_APP_TOKEN=your-pushover-application-token
+LOG_LEVEL=INFO
 ```
 
 - `SECRET_KEY` - used to sign Flask session cookies. Falls back to an insecure development default (with a startup warning) if unset. **Set this on the production host**: generate one with `python -c "import secrets; print(secrets.token_hex(32))"` and put it in `.env`. Until v1.1.1 the compose files hardcoded a placeholder, which meant the `.env` value was ignored and the startup warning never fired.
 - `PUSHOVER_USER_KEY` / `PUSHOVER_APP_TOKEN` - optional. Required only for [Price Watch](#price-watch) notifications. Get both from [pushover.net](https://pushover.net/) (the user key from your dashboard, the app token by creating an application). When unset, price drops are kept as pending until they can be sent, the Price Watch page shows a warning, and the "Send Test Notification" button on the System page is hidden.
+- `LOG_LEVEL` - optional, `INFO` by default. How much goes in the [log](#logging): `DEBUG`, `INFO`, `WARNING` or `ERROR`.
 
 `docker-compose.yml`/`docker-compose.prod.yml` read these via `${VARNAME}` substitution, which Docker Compose resolves automatically from a `.env` file in the same directory - the compose files themselves never contain real secrets.
 
@@ -298,6 +301,30 @@ To run backups automatically at 2 AM daily:
 3. Copy `books.db` to `./data/instance/`
 4. Copy the `uploads/` folder to `./data/uploads/`
 5. Start the container: `docker compose -f docker-compose.prod.yml up -d`
+
+## Logging
+
+The app writes a log to two places:
+
+- **`instance/logs/app.log`** - on the production host, `data/instance/logs/app.log`. It survives restarts and redeploys, and rotates at 5MB, keeping the five previous files (`app.log.1` is the most recent), so it never takes more than about 30MB.
+- **The console** - the terminal running `python app.py`, or `docker logs <container>` under Docker (gone once the container is recreated).
+
+Each line has the time, level, the part of the app that wrote it, and what was running - the request, or the background job:
+
+```
+2026-11-15 09:08:19,821 INFO    routes.books [POST /books/new] Added book 1041 'Logging Test Book'
+2026-11-15 09:08:19,821 INFO    requests [POST /books/new] 302 in 2 ms
+2026-11-15 09:08:19,899 INFO    price_watch [price-watch] Price drop for 'Watched A': $9 -> $5 (notified)
+```
+
+What's recorded at each `LOG_LEVEL`:
+
+- **`INFO`** (default) - every request that changes something, with its result and how long it took; what it did where the address alone doesn't say (books, authors and series added, updated or deleted, with their names; captures; imports and exports; tag changes); background jobs (price checks, series monitoring, scans) and their results; and everything below.
+- **`WARNING`** - things that went wrong but were handled: a site blocking or failing a fetch, a page that couldn't be read, a notification that didn't send, a slow request (over 3 seconds), a blocked cross-site request.
+- **`ERROR`** - unexpected errors, with the full traceback.
+- **`DEBUG`** - also every page viewed and every page fetched from Goodreads, Amazon or Kobo. Useful for chasing a problem, too much to leave on.
+
+Beyond the names and titles above, it doesn't record what's typed into forms, nor the pages sent by the browser extension or Shortcut, nor the Pushover keys.
 
 ## Tests
 

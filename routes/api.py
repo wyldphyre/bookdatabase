@@ -10,6 +10,7 @@ and a request that declares a website as its Origin is refused outright. The
 extension's origin is chrome-extension://…, and Shortcuts sends none.
 """
 import json
+import logging
 import os
 import re
 from datetime import datetime
@@ -24,6 +25,8 @@ from scrapers import book_page_parser
 from utils import clean_external_url
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
+
+logger = logging.getLogger(__name__)
 
 CLIENT_HEADER = 'X-Book-Database-Client'
 
@@ -49,9 +52,9 @@ def _keep_failed_capture(source, html):
         kept = [n for _, n in kept]
         for old in kept[:-FAILED_CAPTURES_KEPT]:
             os.remove(os.path.join(folder, old))
-        current_app.logger.warning('Capture: saved an unreadable %s page as instance/captures/%s', source, name)
+        logger.warning('Capture: saved an unreadable %s page as instance/captures/%s', source, name)
     except OSError:
-        current_app.logger.exception('Capture: could not save the unreadable page')
+        logger.exception('Capture: could not save the unreadable page')
 
 
 def _summary(prefill, existing):
@@ -68,9 +71,11 @@ def _summary(prefill, existing):
 @api_bp.before_request
 def only_our_clients():
     if not request.headers.get(CLIENT_HEADER):
+        logger.warning('API request without the %s header refused', CLIENT_HEADER)
         return jsonify({'error': f'Missing {CLIENT_HEADER} header'}), 403
     origin = request.headers.get('Origin', '')
     if urlparse(origin).scheme in ('http', 'https'):
+        logger.warning('API request from web page %s refused', origin)
         return jsonify({'error': 'Not available to web pages'}), 403
 
 
@@ -96,6 +101,7 @@ def capture_page():
     except RequestEntityTooLarge:
         raw = None
     if raw is None or len(raw) > MAX_CAPTURE_BYTES:
+        logger.warning('Capture refused: the page is over %d MB', MAX_CAPTURE_BYTES // (1024 * 1024))
         return jsonify({'error': 'That page is too large to capture'}), 413
     # Whatever the Content-Type: Shortcuts makes setting one fiddly
     try:
@@ -112,12 +118,13 @@ def capture_page():
     url = clean_external_url(url.strip())
     source, parser = book_page_parser(url)
     if not parser:
+        logger.info('Capture refused: %s is not a supported book page', url)
         return jsonify({'error': 'Not a Goodreads, Amazon or Kobo book page'}), 422
 
     try:
         book_data = parser(BeautifulSoup(html, 'html.parser'), url)
     except Exception:
-        current_app.logger.exception('Capture: parsing a %s page failed', source)
+        logger.exception('Capture: parsing a %s page failed', source)
         book_data = None
     if not book_data:
         _keep_failed_capture(source, html)
@@ -126,6 +133,9 @@ def capture_page():
     prefill = capture.build_prefill(book_data, create_tags=False)
     token = capture.hold(prefill)
     existing = capture.find_existing(book_data)
+    logger.info('Captured %r from %s (%s)%s', prefill.get('title'), source, url,
+                f'; possibly already in the library as book(s) {", ".join(str(b.id) for b in existing)}'
+                if existing else '')
 
     return jsonify({
         'source': source,
