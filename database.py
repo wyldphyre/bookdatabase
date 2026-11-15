@@ -7,7 +7,7 @@ from models import db, BookFormat, AuthorGender, NOT_SPECIFIED_FORMAT
 
 logger = logging.getLogger(__name__)
 
-CURRENT_SCHEMA_VERSION = 16
+CURRENT_SCHEMA_VERSION = 17
 
 
 @event.listens_for(Engine, 'connect')
@@ -77,6 +77,30 @@ def _migrate_data_notified_price(cursor):
     there is no record of which, so the safe baseline is "nothing pending"."""
     cursor.execute("UPDATE price_watch SET notified_price = current_price "
                    "WHERE notified_price IS NULL")
+
+
+def fill_amazon_asins(cursor):
+    """Store each Amazon link's ASIN in its own column (book.amazon_asin,
+    price_watch.asin), first cleaning the link to the standard
+    https://<site>/dp/<ASIN> form where it isn't already.
+
+    For rows written with plain SQL, which the models' sync doesn't see: run
+    by migration v17 and after every import, since an import's rows (and the
+    books it makes from old queue entries) arrive that way. Safe to repeat."""
+    from utils import amazon_asin, clean_external_url
+    for table, asin_column in (('book', 'amazon_asin'), ('price_watch', 'asin')):
+        cursor.execute(f"UPDATE {table} SET {asin_column} = NULL WHERE amazon_url IS NULL OR amazon_url = ''")
+        cursor.execute(f"SELECT id, amazon_url FROM {table} WHERE amazon_url IS NOT NULL AND amazon_url != ''")
+        for row_id, url in cursor.fetchall():
+            cleaned = clean_external_url(url) or url
+            if cleaned != url and table == 'price_watch':
+                # Watch links are unique; leave this one as it is if its clean
+                # form is already another watch's
+                cursor.execute("SELECT 1 FROM price_watch WHERE amazon_url = ? AND id != ?", (cleaned, row_id))
+                if cursor.fetchone():
+                    cleaned = url
+            cursor.execute(f"UPDATE {table} SET amazon_url = ?, {asin_column} = ? WHERE id = ?",
+                           (cleaned, amazon_asin(cleaned), row_id))
 
 
 def _not_specified_format_id(cursor):
@@ -311,6 +335,18 @@ def run_migrations():
             columns = [row[1] for row in cursor.fetchall()]
             if 'kobo_url' not in columns:
                 cursor.execute("ALTER TABLE book ADD COLUMN kobo_url VARCHAR(500)")
+            conn.commit()
+
+        if version < 17:
+            # The ASIN gets its own column instead of being parsed out of the
+            # Amazon link each time it's needed
+            for table, column in (('book', 'amazon_asin'), ('price_watch', 'asin')):
+                cursor.execute(f"PRAGMA table_info({table})")
+                if column not in [row[1] for row in cursor.fetchall()]:
+                    cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} VARCHAR(10)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_book_amazon_asin ON book (amazon_asin) "
+                           "WHERE amazon_asin IS NOT NULL")
+            fill_amazon_asins(cursor)
             conn.commit()
 
         if version < CURRENT_SCHEMA_VERSION:

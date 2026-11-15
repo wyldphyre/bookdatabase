@@ -1,6 +1,7 @@
 import re
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import event
 
 from utils import amazon_asin as _amazon_asin
 
@@ -150,6 +151,11 @@ class Author(db.Model):
 
 
 class Book(db.Model):
+    # Only the few books with an Amazon link have an ASIN; a partial index
+    # covers just those, rather than an index that's nearly all NULLs.
+    __table_args__ = (db.Index('ix_book_amazon_asin', 'amazon_asin',
+                               sqlite_where=db.text('amazon_asin IS NOT NULL')),)
+
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(300), nullable=False)
     subtitle = db.Column(db.String(300))
@@ -170,6 +176,8 @@ class Book(db.Model):
     comment = db.Column(db.Text)
     goodreads_url = db.Column(db.String(500))
     amazon_url = db.Column(db.String(500))
+    # The ASIN in amazon_url, set whenever amazon_url is (see _sync_asin)
+    amazon_asin = db.Column(db.String(10))
     kobo_url = db.Column(db.String(500))
     parent_id = db.Column(db.Integer, db.ForeignKey('book.id'), index=True)
     # Independent flags: a book you don't own can be one you want to read, and
@@ -184,10 +192,6 @@ class Book(db.Model):
 
     # Self-referential relationship for bundle parent/children
     parent = db.relationship('Book', remote_side='Book.id', foreign_keys=[parent_id], backref='bundle_children')
-
-    @property
-    def amazon_asin(self):
-        return _amazon_asin(self.amazon_url)
 
     @property
     def saved(self):
@@ -339,6 +343,10 @@ class PriceWatch(db.Model):
     __tablename__ = 'price_watch'
     id = db.Column(db.Integer, primary_key=True)
     amazon_url = db.Column(db.String(500), nullable=False, unique=True)
+    # The ASIN in amazon_url, set whenever amazon_url is (see _sync_asin). A
+    # library book is the one being watched when its amazon_asin matches, on
+    # whichever Amazon site either link is from.
+    asin = db.Column(db.String(10))
     title = db.Column(db.String(300))
     cover_url = db.Column(db.String(500))
     initial_price = db.Column(db.Float)
@@ -354,17 +362,6 @@ class PriceWatch(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
 
     @property
-    def asin(self):
-        return _amazon_asin(self.amazon_url)
-
-    @classmethod
-    def by_asin(cls):
-        """Every watch, keyed by ASIN. Watches aren't linked to books; a book
-        is the one being watched when its Amazon link has the same ASIN, on
-        whichever Amazon site. A watch list is short, so it's loaded whole."""
-        return {w.asin: w for w in cls.query.order_by(cls.created_at).all() if w.asin}
-
-    @property
     def dropped(self):
         return self.current_price is not None and self.initial_price is not None and self.current_price < self.initial_price
 
@@ -373,3 +370,17 @@ class PriceWatch(db.Model):
         """A drop has been seen but no alert for it has gone out yet."""
         return (self.current_price is not None and self.notified_price is not None
                 and self.current_price < self.notified_price)
+
+
+# The ASIN columns follow their Amazon link: every way of setting the link,
+# the forms, a capture, a new price watch, updates the ASIN with it. Rows
+# written with plain SQL (migrations, imports) get theirs from
+# database.fill_amazon_asins.
+@event.listens_for(Book.amazon_url, 'set')
+def _sync_book_asin(book, value, oldvalue, initiator):
+    book.amazon_asin = _amazon_asin(value)
+
+
+@event.listens_for(PriceWatch.amazon_url, 'set')
+def _sync_watch_asin(watch, value, oldvalue, initiator):
+    watch.asin = _amazon_asin(value)

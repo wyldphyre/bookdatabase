@@ -25,7 +25,8 @@ from sqlalchemy import DateTime
 from models import (db, Tag, BookFormat, AuthorGender, Series, Author, Book, Read,
                     ReadingQueue, AuthorInfoSuggestion, PriceWatch, AppSetting, SeriesRelease,
                     book_authors, book_tags, author_tags, series_tags)
-from database import CURRENT_SCHEMA_VERSION, migrate_imported_data, book_from_external_queue_entry
+from database import (CURRENT_SCHEMA_VERSION, migrate_imported_data, book_from_external_queue_entry,
+                      fill_amazon_asins)
 from utils import THUMB_SUBFOLDER
 
 logger = logging.getLogger(__name__)
@@ -305,6 +306,9 @@ def apply_import(zip_path, upload_folder):
                             row.get('external_url'), added_at)
                         cursor.execute("INSERT INTO reading_queue (id, position, book_id, added_at) "
                                        "VALUES (?, ?, ?, ?)", (row['id'], row['position'], book_id, added_at))
+                # Last, so it also covers the books just made from old queue
+                # entries, and an older export with no ASIN columns at all
+                fill_amazon_asins(db.session.connection().connection.cursor())
                 db.session.commit()
                 if migrated:
                     logger.info('Import: applied data migrations %s to the imported rows',

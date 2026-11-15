@@ -114,6 +114,10 @@ The SQLite database (`books.db`) is created automatically on first run with seed
 - Book formats: Kindle, Kobo, ePub, Hardcover, Paperback, Comic Archive, Audiobook, PDF
 - Author genders: Female, Male, Nonbinary, Unknown
 
+### Amazon ASINs
+
+A book's Amazon link is saved in a standard form, `https://<site>/dp/<ASIN>`, and its ASIN (Amazon's product id) is also kept in its own column, `book.amazon_asin`; price watches have the same in `price_watch.asin`. The ASIN is the same on every Amazon site, so it's what matches a price watch to a book and spots a captured page you already have. It's set from the link automatically whenever the link changes, and links in any of Amazon's forms are recognised: `/dp/…`, `/dp/product/…`, `/gp/product/…` and the mobile site's `/gp/aw/d/…`.
+
 ### Cover Images
 
 Book cover images are stored on the filesystem in `static/uploads/` rather than as BLOBs in the database. This keeps the database small, allows Flask to serve images directly as static files with browser caching, and avoids the overhead of streaming binary data through a database query. The tradeoff is that `static/uploads/` must be backed up separately from `books.db`.

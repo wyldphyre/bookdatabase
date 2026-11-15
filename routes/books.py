@@ -241,7 +241,7 @@ def book_detail(id):
             .group_by(Book.id).order_by(shared_count.desc(), Book.title) \
             .options(*eager_opts).limit(20).all()
 
-    price_watch = PriceWatch.by_asin().get(book.amazon_asin) if book.amazon_asin else None
+    price_watch = PriceWatch.query.filter_by(asin=book.amazon_asin).first() if book.amazon_asin else None
 
     return render_template('books/detail.html', book=book, today=date.today().isoformat(),
                             price_watch=price_watch,
@@ -585,10 +585,9 @@ def book_rate(id):
 def _stop_price_watch(book):
     """Remove any price watch on the book's Amazon ASIN, from whichever
     Amazon site; returns how many were removed. The caller commits."""
-    asin = book.amazon_asin
-    if not asin:
+    if not book.amazon_asin:
         return 0
-    watches = [w for w in PriceWatch.query.all() if w.asin == asin]
+    watches = PriceWatch.query.filter_by(asin=book.amazon_asin).all()
     for watch in watches:
         db.session.delete(watch)
     return len(watches)

@@ -6,6 +6,8 @@ import requests as http_requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
 
+from utils import AMAZON_PRODUCT_PATH
+
 logger = logging.getLogger(__name__)
 
 
@@ -516,7 +518,7 @@ def parse_kobo(soup, url):
 # A book page on each site a page can be captured from, as (source, parser).
 _BOOK_PAGES = [
     (re.compile(r'(^|\.)goodreads\.com$'), re.compile(r'^/(?:[a-z]{2}/)?book/show/\d+'), 'goodreads', parse_goodreads),
-    (re.compile(r'(^|\.)amazon\.[a-z.]+$'), re.compile(r'/(?:dp|gp/product)/[A-Za-z0-9]{10}'), 'amazon', parse_amazon),
+    (re.compile(r'(^|\.)amazon\.[a-z.]+$'), AMAZON_PRODUCT_PATH, 'amazon', parse_amazon),
     (re.compile(r'(^|\.)kobo\.com$'), re.compile(r'/(?:ebook|audiobook)/[^/]+'), 'kobo', parse_kobo),
 ]
 

@@ -2,7 +2,6 @@ import logging
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash
 from sqlalchemy.exc import IntegrityError
 from models import db, PriceWatch, Book
-from sqlalchemy import or_
 from utils import amazon_asin, clean_external_url
 from scrapers import scrape_amazon, ScrapeBlockedError
 from price_watch import run_price_checks
@@ -19,10 +18,8 @@ def price_watch_list():
     # Watches aren't linked to books; a library book whose Amazon link has
     # the same ASIN (on any Amazon site) is the one being watched.
     asins = {w.asin for w in watches if w.asin}
-    books_by_asin = {}
-    if asins:
-        candidates = Book.query.filter(or_(*[Book.amazon_url.like(f'%{a}%') for a in asins])).all()
-        books_by_asin = {b.amazon_asin: b for b in candidates if b.amazon_asin in asins}
+    books_by_asin = ({b.amazon_asin: b for b in Book.query.filter(Book.amazon_asin.in_(asins)).all()}
+                     if asins else {})
     return render_template('price_watch/list.html', watches=watches, books_by_asin=books_by_asin,
                            pushover_configured=pushover_configured())
 
@@ -40,7 +37,7 @@ def price_watch_add():
         return redirect(back)
     # The same book on another Amazon site is the same watch
     asin = amazon_asin(url)
-    if asin and asin in PriceWatch.by_asin():
+    if asin and PriceWatch.query.filter_by(asin=asin).first():
         flash('You\'re already watching that book', 'error')
         return redirect(back)
 

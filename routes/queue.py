@@ -39,7 +39,9 @@ def queue_list():
     ).filter(Book.want_to_read.is_(True)).order_by(WANT_SORTS[sort], Book.id).all()
 
     # Current price for any Want to Read book being watched (matched by ASIN)
-    watches_by_asin = PriceWatch.by_asin() if any(b.amazon_url for b in want_books) else {}
+    asins = {b.amazon_asin for b in want_books if b.amazon_asin}
+    watches_by_asin = ({w.asin: w for w in PriceWatch.query.filter(PriceWatch.asin.in_(asins)).all()}
+                       if asins else {})
 
     tab = 'want' if request.args.get('tab') == 'want' else 'queue'
     return render_template('queue.html', items=items, want_books=want_books, tab=tab, sort=sort,

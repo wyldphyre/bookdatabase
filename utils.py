@@ -199,11 +199,16 @@ def validate_rating(rating):
     return float(rating)
 
 
+# Where an Amazon product link keeps the ASIN: /dp/B0..., /dp/product/B0...,
+# /gp/product/B0..., and /gp/aw/d/B0... (the mobile site's links).
+AMAZON_PRODUCT_PATH = re.compile(r'/(?:dp(?:/product)?|gp/product|gp/aw/d)/([A-Za-z0-9]{10})(?=[/?#]|$)')
+
+
 def amazon_asin(url):
     """The ASIN in an Amazon product link (upper-cased), or None. The same
-    book has the same ASIN on every Amazon site, so links are matched on it
-    rather than on the whole URL."""
-    m = re.search(r'/(?:dp|gp/product)/([A-Za-z0-9]{10})(?:[/?#]|$)', url or '')
+    book has the same ASIN on every Amazon site, so it's what links are
+    matched on; Book.amazon_asin and PriceWatch.asin store it."""
+    m = AMAZON_PRODUCT_PATH.search(url or '')
     return m.group(1).upper() if m else None
 
 

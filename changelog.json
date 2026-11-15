@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.16.0",
+    "date": "2026-11-15",
+    "changes": [
+      "Amazon links in every form are now recognised: /dp/product/... links (two books had one, so their price watches and duplicate checks didn't work) and the /gp/aw/d/... links Amazon's mobile site shares, alongside /dp/... and /gp/product/.... Existing links are tidied to the standard /dp/ form",
+      "A book's Amazon ASIN is now stored in its own field, as is a price watch's, kept up to date from the Amazon link. Matching a price watch to its book uses it directly instead of working it out from the link each time"
+    ]
+  },
+  {
     "version": "1.15.2",
     "date": "2026-11-15",
     "changes": [

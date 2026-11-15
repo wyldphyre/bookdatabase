@@ -250,7 +250,9 @@ class SeriesPageTest(unittest.TestCase):
     def test_unreadable_page_is_none_but_a_block_still_raises(self):
         def broken(url):
             raise ValueError('layout changed')
-        self.assertIsNone(scrapers._series_page_count(broken, 'u'))
+        with self.assertLogs('scrapers', 'WARNING') as logged:
+            self.assertIsNone(scrapers._series_page_count(broken, 'u'))
+        self.assertIn('Reading the series page u failed', logged.output[0])
 
         def blocked(url):
             raise scrapers.ScrapeBlockedError('blocked')
