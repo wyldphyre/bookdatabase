@@ -2,13 +2,13 @@ import logging
 import os
 import html
 from datetime import datetime
-from urllib.parse import urlparse
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload, subqueryload
 from models import (db, Book, Author, Read, ReadingQueue, BookFormat, Tag, SeriesRelease,
                     PriceWatch, book_tags, RATING_LABELS, NOT_SPECIFIED_FORMAT)
 from utils import (allowed_file, parse_date, parse_float, validate_rating, fetch_cover_image,
+                   cover_image_extension, NotACoverImageError,
                    clean_external_url, generate_thumbnail, delete_thumbnail,
                    MAX_COVER_DOWNLOAD_BYTES)
 import capture
@@ -497,43 +497,32 @@ def save_book(book):
             if upload_size > MAX_COVER_DOWNLOAD_BYTES:
                 flash('Cover image is too large (over 10MB) — it was not saved', 'warning')
             else:
-                # secure_filename() strips non-ASCII, so "封面.jpg" reduces to
-                # "jpg" and splitting *that* yields no extension at all — the
-                # cover would save extensionless, serve as the wrong content
-                # type and never get a thumbnail. Take the extension from the
-                # original name, which allowed_file() has already checked
-                # against ALLOWED_EXTENSIONS.
-                # Split the way allowed_file() does, so the extension it
-                # approved is the one used; os.path.splitext disagrees on
-                # names like "...jpg".
-                ext = '.' + file.filename.rsplit('.', 1)[1].lower()
-                base = os.path.splitext(secure_filename(file.filename))[0] or 'cover'
-                # Add timestamp to avoid conflicts
-                filename = f"{base}_{int(datetime.now().timestamp())}{ext}"
-                file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
-                generate_thumbnail(current_app.config['UPLOAD_FOLDER'], filename)
-                book.cover_image = filename
+                content = file.read()
+                try:
+                    # The extension comes from what the file really is, so a
+                    # PNG named .jpg is saved as .png, and a file that isn't
+                    # an image at all isn't saved.
+                    ext = cover_image_extension(content)
+                except NotACoverImageError as e:
+                    logger.warning('Cover upload %r for %r refused: %s', file.filename, book.title, e)
+                    flash(f'Cover image not saved: {e}', 'warning')
+                else:
+                    # secure_filename() strips non-ASCII, so "封面.jpg" reduces
+                    # to "jpg"; with no name left, call it "cover".
+                    base = os.path.splitext(secure_filename(file.filename))[0] or 'cover'
+                    # Add timestamp to avoid conflicts
+                    filename = f"{base}_{int(datetime.now().timestamp())}{ext}"
+                    with open(os.path.join(current_app.config['UPLOAD_FOLDER'], filename), 'wb') as f:
+                        f.write(content)
+                    generate_thumbnail(current_app.config['UPLOAD_FOLDER'], filename)
+                    book.cover_image = filename
 
     # Handle cover image URL (only if no file uploaded)
     cover_url = request.form.get('cover_image_url', '').strip()
     if cover_url and not (request.files.get('cover_image') and request.files['cover_image'].filename):
         try:
             content, content_type = fetch_cover_image(cover_url)
-
-            # Determine file extension from URL or content type
-            parsed_url = urlparse(cover_url)
-            url_path = parsed_url.path.lower()
-
-            if 'jpeg' in content_type or 'jpg' in content_type or url_path.endswith('.jpg') or url_path.endswith('.jpeg'):
-                ext = '.jpg'
-            elif 'png' in content_type or url_path.endswith('.png'):
-                ext = '.png'
-            elif 'gif' in content_type or url_path.endswith('.gif'):
-                ext = '.gif'
-            elif 'webp' in content_type or url_path.endswith('.webp'):
-                ext = '.webp'
-            else:
-                ext = '.jpg'  # Default to jpg
+            ext = cover_image_extension(content, content_type, from_link=True)
 
             # Generate filename from book title
             safe_title = secure_filename(book.title[:50])
@@ -545,6 +534,9 @@ def save_book(book):
                 f.write(content)
             generate_thumbnail(current_app.config['UPLOAD_FOLDER'], filename)
             book.cover_image = filename
+        except NotACoverImageError as e:
+            logger.warning('Cover for %r from %s refused: %s', book.title, cover_url, e)
+            flash(f'Cover image not saved: {e}', 'warning')
         except Exception as e:
             logger.warning('Downloading the cover for %r from %s failed', book.title, cover_url, exc_info=True)
             flash(f'Could not download cover image: {str(e)}', 'warning')

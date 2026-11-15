@@ -1,3 +1,4 @@
+import io
 import os
 import re
 import csv
@@ -18,16 +19,45 @@ THUMB_MAX_SIZE = (400, 640)
 
 # Which formats Pillow is allowed to decode. Pillow identifies a file by its
 # magic bytes, not its name, and will open 43 formats out of the box — AVIF,
-# PSD, TIFF, EPS, DDS and so on. ALLOWED_EXTENSIONS therefore constrains what
-# gets *stored*, never what gets *decoded*: a cover fetched from a URL is
-# saved under a guessed extension (unrecognised types default to .jpg), and
-# whatever is really inside it is what chooses the decoder.
+# PSD, TIFF, EPS, DDS and so on. ALLOWED_EXTENSIONS only constrains a file's
+# *name*; whatever is really inside it is what chooses the decoder. New covers
+# are checked with cover_image_extension before they're saved, but anything
+# opened later (thumbnails) is still held to these formats.
 #
 # Naming the formats is Pillow's own documented way to shut that down, and it
 # is the advised workaround for CVE-2026-25990, an out-of-bounds write reached
 # by opening a crafted PSD. Matches ALLOWED_EXTENSIONS; every cover currently
 # stored is JPEG or PNG, so nothing existing loses its thumbnail.
 COVER_IMAGE_FORMATS = ['JPEG', 'PNG', 'GIF', 'WEBP']
+COVER_EXTENSIONS = {'JPEG': '.jpg', 'PNG': '.png', 'GIF': '.gif', 'WEBP': '.webp'}
+
+
+class NotACoverImageError(ValueError):
+    """A would-be cover that isn't a JPEG, PNG, GIF or WebP image."""
+
+
+def cover_image_extension(content, content_type='', from_link=False):
+    """The extension to save a cover's bytes under ('.jpg', '.png', ...),
+    from what they actually are rather than their name, link or claimed
+    content type. Raises NotACoverImageError for anything else.
+
+    The usual culprit is a book's page saved in place of its cover, when the
+    book's link went in the Cover Image URL field: it was once saved as a .jpg
+    that no browser could show."""
+    from PIL import Image
+    try:
+        with Image.open(io.BytesIO(content), formats=COVER_IMAGE_FORMATS) as img:
+            image_format = img.format
+            img.verify()
+        return COVER_EXTENSIONS[image_format]
+    except Exception:
+        pass
+    looks_like_html = ('html' in (content_type or '').lower()
+                       or content[:1024].lstrip().lower().startswith((b'<!doctype html', b'<html')))
+    if looks_like_html and from_link:
+        raise NotACoverImageError('That link is to a web page, not an image. Use the address of the cover '
+                                  'picture itself: right-click the cover and choose Copy Image Address.')
+    raise NotACoverImageError("That isn't a JPEG, PNG, GIF or WebP image.")
 
 
 def thumb_path(upload_folder, filename):

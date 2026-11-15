@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.15.1",
+    "date": "2026-11-15",
+    "changes": [
+      "Fix a web page being saved as a book's cover: when a book's own link was put in the Cover Image URL field, the page was saved as a .jpg that couldn't be shown. A cover link that leads to a web page is now refused with a note to use the cover picture's own address (right-click the cover and choose Copy Image Address), and the book keeps its current cover",
+      "Uploaded covers are checked too: anything that isn't really a JPEG, PNG, GIF or WebP image is refused, whatever its name. Covers are saved under their real type, so a PNG named .jpg is saved as .png"
+    ]
+  },
+  {
     "version": "1.15.0",
     "date": "2026-11-15",
     "changes": [
