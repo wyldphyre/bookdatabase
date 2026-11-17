@@ -249,8 +249,8 @@
         </article>
         {% endif %}
 
-        <label>
-            Series
+        <label for="series-search" class="series-picker-label">Series</label>
+        <div class="series-picker">
             <div class="tag-picker">
                 <input type="text"
                        id="series-search"
@@ -265,7 +265,7 @@
             </div>
             <input type="hidden" name="series_id" id="series-id"
                    value="{{ book.series_id or '' if book else '' }}">
-        </label>
+        </div>
 
         <details id="quick-add-series">
             <summary role="button" class="outline secondary">+ Add New Series</summary>

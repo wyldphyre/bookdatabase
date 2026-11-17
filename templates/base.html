@@ -198,9 +198,8 @@ if (localStorage.getItem('sidebar-collapsed') === 'true') {
     </footer>
 </div>
 
-<dialog id="cover-lightbox" onclick="this.close()">
-    <img id="cover-lightbox-img" src="" alt="">
-</dialog>
+{# The image is added when a cover is first opened: an <img> must have a src #}
+<dialog id="cover-lightbox" onclick="this.close()"></dialog>
 
 <script>
 (function() {
@@ -247,8 +246,9 @@ if (localStorage.getItem('sidebar-collapsed') === 'true') {
         if (!img) return;
         e.preventDefault();
         var lightbox = document.getElementById('cover-lightbox');
-        document.getElementById('cover-lightbox-img').src = img.src;
-        document.getElementById('cover-lightbox-img').alt = img.alt;
+        var big = lightbox.querySelector('img') || lightbox.appendChild(document.createElement('img'));
+        big.src = img.src;
+        big.alt = img.alt;
         lightbox.showModal();
     });
 

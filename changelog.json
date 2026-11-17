@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.16.1",
+    "date": "2026-11-17",
+    "changes": [
+      "Every page now passes HTML and CSS validation. Three markup errors were fixed with no visible change: the cover viewer's empty image, the book form's series picker and the series form's duplicate-name warning sitting inside their labels, and the bundle's Add Book card holding block elements inside a button"
+    ]
+  },
+  {
     "version": "1.16.0",
     "date": "2026-11-15",
     "changes": [

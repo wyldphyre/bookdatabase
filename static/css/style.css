@@ -499,6 +499,12 @@ button.danger {
     border-color: var(--pico-primary);
     background: var(--pico-card-background-color);
 }
+/* Spans, as a button may only hold phrasing content; shown as the blocks
+   they'd be in an ordinary book card */
+.bundle-add-card .book-card-content,
+.bundle-add-card .book-card-title {
+    display: block;
+}
 .bundle-add-icon {
     width: 100%;
     aspect-ratio: 2 / 3;
@@ -2136,6 +2142,16 @@ mark {
 }
 
 /* Tag picker */
+/* Book form: the series picker sits beside its label rather than inside it
+   (a label can't hold the picker's results). Spaced as when it was inside:
+   the box right under the label, the label's gap below the whole field. */
+.series-picker-label {
+    margin-bottom: 0;
+}
+.series-picker {
+    margin-bottom: calc(var(--pico-spacing) * 0.5);
+}
+
 .tag-picker {
     position: relative;
 }
