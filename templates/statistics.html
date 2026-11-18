@@ -137,6 +137,31 @@
 </article>
 {% endif %}
 
+{% if top_authors_by_pages %}
+<article class="bordered-article">
+    <h3>Top Authors by Pages Owned</h3>
+    <p class="secondary">Total pages of the books you own. Pen names count towards the author behind them; a bundle counts once, not again for each book inside it.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Author</th>
+                <th>Pages</th>
+                <th>Books</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for author, pages, books in top_authors_by_pages %}
+            <tr>
+                <td><span class="rank-num">{{ loop.index }}</span><a href="{{ url_for('authors.author_detail', id=author.id) }}">{{ author.name }}</a></td>
+                <td>{{ '{:,}'.format(pages) }}</td>
+                <td>{{ books }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</article>
+{% endif %}
+
 <div class="charts-grid">
     <article class="chart-container">
         <h3>Books Read by Month</h3>

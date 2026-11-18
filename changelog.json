@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.17.0",
+    "date": "2026-11-18",
+    "changes": [
+      "The Statistics page has a Top Authors by Pages Owned table: the ten authors whose books you own add up to the most pages, with the page total and number of books for each. Books under a pen name count towards the author behind it, and a bundle counts once rather than again for each book inside it"
+    ]
+  },
+  {
     "version": "1.16.1",
     "date": "2026-11-17",
     "changes": [

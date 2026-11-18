@@ -434,6 +434,26 @@ def statistics():
      .order_by(func.count(func.distinct(Book.id)).desc())\
      .limit(10).all()
 
+    # Authors by pages owned. A pen name's books count towards the person
+    # behind it, once per book even if two of their names are on it. A book
+    # inside a bundle is skipped: the bundle's page count already covers it.
+    person_id = func.coalesce(Author.alias_of_id, Author.id).label('person_id')
+    owned_by_person = db.session.query(person_id, Book.id.label('book_id'), Book.page_count)\
+        .join(book_authors, Author.id == book_authors.c.author_id)\
+        .join(Book, Book.id == book_authors.c.book_id)\
+        .filter(Book.owned.is_(True), Book.parent_id.is_(None), Book.page_count > 0)\
+        .distinct().subquery()
+    pages_by_person = db.session.query(
+        owned_by_person.c.person_id,
+        func.sum(owned_by_person.c.page_count).label('pages'),
+        func.count(owned_by_person.c.book_id).label('books')
+    ).group_by(owned_by_person.c.person_id)\
+     .order_by(func.sum(owned_by_person.c.page_count).desc())\
+     .limit(10).subquery()
+    top_authors_by_pages = db.session.query(Author, pages_by_person.c.pages, pages_by_person.c.books)\
+        .join(pages_by_person, Author.id == pages_by_person.c.person_id)\
+        .order_by(pages_by_person.c.pages.desc()).all()
+
     return render_template('statistics.html',
                          gender_data=gender_data,
                          format_data=format_data,
@@ -467,4 +487,5 @@ def statistics():
                          most_read_books=most_read_books,
                          most_read_authors=most_read_authors,
                          most_read_authors_distinct=most_read_authors_distinct,
+                         top_authors_by_pages=top_authors_by_pages,
                          page_count_data=page_count_data)
