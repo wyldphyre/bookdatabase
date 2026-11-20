@@ -3,6 +3,7 @@ from flask import Blueprint, render_template, request
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload, subqueryload
 from models import db, Book, Author, Series, Read, AuthorGender, BookFormat, Tag, RATING_LABELS, book_tags, author_tags, series_tags
+from stats import DAYS_PER_MONTH, owned_purchases_with_reads, purchase_to_read_stats
 
 search_bp = Blueprint('search', __name__)
 
@@ -454,6 +455,9 @@ def statistics():
         .join(pages_by_person, Author.id == pages_by_person.c.person_id)\
         .order_by(pages_by_person.c.pages.desc()).all()
 
+    # How soon the books you buy get read
+    purchase_reads = purchase_to_read_stats(owned_purchases_with_reads())
+
     return render_template('statistics.html',
                          gender_data=gender_data,
                          format_data=format_data,
@@ -488,4 +492,6 @@ def statistics():
                          most_read_authors=most_read_authors,
                          most_read_authors_distinct=most_read_authors_distinct,
                          top_authors_by_pages=top_authors_by_pages,
+                         purchase_reads=purchase_reads,
+                         days_per_month=DAYS_PER_MONTH,
                          page_count_data=page_count_data)

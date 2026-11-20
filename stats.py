@@ -136,3 +136,130 @@ def year_reading_stats(year, days_elapsed=None, include_books=False):
             .all())
 
     return stats
+
+
+DAYS_PER_MONTH = 365.25 / 12
+
+# How long after buying a book you started it, grouped. Each bucket is
+# (upper bound in months, label); the last has no upper bound. Most books are
+# started soon after buying, so the first month is split in two.
+PURCHASE_GAP_BUCKETS = [
+    (7 / DAYS_PER_MONTH, 'Within a week'),
+    (1, '1–4 weeks'),
+    (3, '1–3 months'),
+    (6, '3–6 months'),
+    (12, '6–12 months'),
+    (24, '1–2 years'),
+    (36, '2–3 years'),
+    (60, '3–5 years'),
+    (None, '5+ years'),
+]
+
+# A read finishing up to this long before the recorded purchase date still
+# counts as reading that copy: dates entered a day or so out, or a sample read
+# just before buying. A read finished earlier than that was of another copy
+# (bought again later, in another format) and says nothing about this one.
+PURCHASE_DATE_SLACK_DAYS = 7
+
+
+def _day(value):
+    return value.date() if hasattr(value, 'date') else value
+
+
+def first_read_after_purchase(purchased, reads):
+    """The (start, finish) of the first completed read of this copy, or None.
+
+    reads holds (start_date, finish_date) pairs; either may be missing."""
+    earliest = _day(purchased) - timedelta(days=PURCHASE_DATE_SLACK_DAYS)
+    candidates = []
+    for start, finish in reads:
+        when = _day(finish or start)
+        if when is not None and when >= earliest:
+            candidates.append((when, start, finish))
+    if not candidates:
+        return None
+    _, start, finish = min(candidates, key=lambda c: c[0])
+    return start, finish
+
+
+def purchase_to_read_stats(books, today=None):
+    """Figures for how soon the books you buy get read.
+
+    books maps a book's id to (date_purchased, [(start_date, finish_date)
+    of each completed read]). Returns:
+      same_year: {year: {'bought', 'read', 'percent'}} — of the books bought
+          that year, how many were finished the same calendar year; from the
+          year of the first recorded read on
+      gap_buckets: {label: count} — months from purchase to starting the
+          first read (its finish date when there's no start date)
+      median_months: median of those gaps, or None
+      read, unread: books read since purchase / not yet
+    """
+    today = _day(today or datetime.now())
+    same_year = {}
+    gaps = []
+    unread = 0
+    for purchased, reads in books.values():
+        purchased = _day(purchased)
+        year = same_year.setdefault(purchased.year, {'bought': 0, 'read': 0})
+        year['bought'] += 1
+        first = first_read_after_purchase(purchased, reads)
+        if first is None:
+            unread += 1
+            continue
+        start, finish = first
+        if finish is not None and _day(finish).year == purchased.year:
+            year['read'] += 1
+        # Reads begun a day or two before the recorded purchase are "straight away"
+        gaps.append(max(0, (_day(start or finish) - purchased).days) / DAYS_PER_MONTH)
+
+    # Before the first recorded read, reading wasn't being tracked yet, so
+    # those years would show 0% for want of records rather than of reading.
+    finishes = [_day(finish) for _, reads in books.values() for _, finish in reads if finish]
+    if finishes:
+        first_year = min(finishes).year
+        same_year = {y: v for y, v in same_year.items() if y >= first_year}
+    for year in same_year.values():
+        year['percent'] = round(100 * year['read'] / year['bought'])
+
+    gap_buckets = {label: 0 for _, label in PURCHASE_GAP_BUCKETS}
+    for months in gaps:
+        label = next(label for limit, label in PURCHASE_GAP_BUCKETS
+                     if limit is None or months < limit)
+        gap_buckets[label] += 1
+
+    median_months = None
+    if gaps:
+        ordered = sorted(gaps)
+        mid = len(ordered) // 2
+        median_months = ordered[mid] if len(ordered) % 2 else (ordered[mid - 1] + ordered[mid]) / 2
+
+    return {
+        'same_year': dict(sorted(same_year.items())),
+        'current_year': today.year,
+        'gap_buckets': gap_buckets,
+        'median_months': median_months,
+        'read': len(gaps),
+        'unread': unread,
+    }
+
+
+def owned_purchases_with_reads():
+    """Input for purchase_to_read_stats: every owned book with a purchase date.
+
+    A book inside a bundle takes the bundle's purchase date (they're rarely
+    given their own), and the bundle itself is left out in favour of the books
+    in it, as those are what get read."""
+    parent = aliased(Book)
+    purchased = func.coalesce(Book.date_purchased, parent.date_purchased)
+    rows = (db.session.query(Book.id, purchased, Read.start_date, Read.finish_date)
+            .outerjoin(parent, parent.id == Book.parent_id)
+            .outerjoin(Read, db.and_(Read.book_id == Book.id, Read.status == 'Completed'))
+            .filter(Book.owned.is_(True), purchased.isnot(None), ~Book.bundle_children.any())
+            .all())
+    books = {}
+    for book_id, bought, start, finish in rows:
+        reads = books.setdefault(book_id, (bought, []))[1]
+        if start is not None or finish is not None:
+            reads.append((start, finish))
+    return books

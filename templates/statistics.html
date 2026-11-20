@@ -162,6 +162,68 @@
 </article>
 {% endif %}
 
+{% if purchase_reads.same_year or purchase_reads.read %}
+<div class="grid">
+    {% if purchase_reads.same_year %}
+    <article class="bordered-article">
+        <h3>Read the Year They Were Bought</h3>
+        <p class="secondary">Books bought each year, and how many of them you finished before that year was out.</p>
+        <canvas id="sameYearChart"></canvas>
+        <table>
+            <thead>
+                <tr>
+                    <th>Year</th>
+                    <th>Bought</th>
+                    <th>Read that year</th>
+                    <th>%</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for year, row in purchase_reads.same_year.items() %}
+                <tr>
+                    <td>{{ year }}{% if year == purchase_reads.current_year %} (so far){% endif %}</td>
+                    <td>{{ row.bought }}</td>
+                    <td>{{ row.read }}</td>
+                    <td>{{ row.percent }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </article>
+    {% endif %}
+
+    {% if purchase_reads.read %}
+    <article class="bordered-article">
+        <h3>Time from Purchase to Reading</h3>
+        {% set median = purchase_reads.median_months %}
+        <p class="secondary">How long after buying a book you started reading it, for the {{ purchase_reads.read }} books you've read since buying them.
+            Median: {% if median < 1 %}{% set days = (median * days_per_month)|round|int %}{{ days }} day{{ '' if days == 1 else 's' }}{% else %}{{ '%.1f'|format(median) }} months{% endif %}.
+            {{ purchase_reads.unread }} bought but not read yet.</p>
+        <canvas id="purchaseGapChart"></canvas>
+        <table>
+            <thead>
+                <tr>
+                    <th>Started reading</th>
+                    <th>Books</th>
+                    <th>%</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for label, count in purchase_reads.gap_buckets.items() %}
+                <tr>
+                    <td>{{ label }}</td>
+                    <td>{{ count }}</td>
+                    {% set percent = (100 * count / purchase_reads.read)|round|int %}
+                    <td>{{ '<1' if count and not percent else percent }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </article>
+    {% endif %}
+</div>
+{% endif %}
+
 <div class="charts-grid">
     <article class="chart-container">
         <h3>Books Read by Month</h3>
@@ -365,6 +427,73 @@ new Chart(readByYearCtx, {
             y: {
                 beginAtZero: true,
                 ticks: { stepSize: 1 }
+            }
+        }
+    }
+});
+{% endif %}
+
+{% if purchase_reads.same_year %}
+// Share of each year's purchases finished the same year
+{% set same_year = purchase_reads.same_year %}
+const sameYearRows = {{ same_year.values()|list|tojson }};
+new Chart(document.getElementById('sameYearChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+        labels: [{% for year in same_year %}{{ (year ~ (' (so far)' if year == purchase_reads.current_year else ''))|tojson }}{{ ', ' if not loop.last }}{% endfor %}],
+        datasets: [{
+            label: 'Read the same year',
+            data: sameYearRows.map(r => r.percent),
+            backgroundColor: '#50c878',
+            borderRadius: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: ctx => {
+                        const r = sameYearRows[ctx.dataIndex];
+                        return `${r.read} of ${r.bought} books (${r.percent}%)`;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: { callback: value => value + '%' }
+            }
+        }
+    }
+});
+{% endif %}
+
+{% if purchase_reads.read %}
+// Months from purchase to starting the first read
+new Chart(document.getElementById('purchaseGapChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+        labels: {{ purchase_reads.gap_buckets.keys()|list|tojson }},
+        datasets: [{
+            label: 'Books',
+            data: {{ purchase_reads.gap_buckets.values()|list|tojson }},
+            backgroundColor: '#f5a623',
+            borderRadius: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { precision: 0 }
             }
         }
     }

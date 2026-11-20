@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.18.0",
+    "date": "2026-11-21",
+    "changes": [
+      "The Statistics page shows how soon the books you buy get read. Read the Year They Were Bought gives, for each year, how many books you bought and what share of them you finished before the year was out. Time from Purchase to Reading groups the books you've read by how long after buying them you started (within a week, 1–4 weeks, 1–3 months, and so on up to 5+ years), with the median and how many bought books are still unread. Each has a chart and a table",
+      "For these, a book inside a bundle takes the bundle's purchase date and counts on its own, in place of the bundle. A read finished well before the purchase (an earlier copy, bought again later) doesn't count as reading the new one, and years before reading was first recorded are left out"
+    ]
+  },
+  {
     "version": "1.17.0",
     "date": "2026-11-18",
     "changes": [
