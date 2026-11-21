@@ -1888,6 +1888,52 @@ button.ellipsis-btn:focus {
     }
 }
 
+/* Statistics page tabs. On a phone they share the width and shrink to fit,
+   rather than wrapping or scrolling one out of sight. (Doubled class to
+   outrank the .filter-tabs rules further down.) */
+.filter-tabs.stats-tabs {
+    display: flex;
+    justify-content: flex-start;    /* Pico spreads a <nav>'s items apart */
+    max-width: 100%;
+    margin-bottom: 1.5rem;
+}
+
+.filter-tabs.stats-tabs .filter-btn {
+    white-space: nowrap;
+    margin: 0;
+}
+
+@media (max-width: 480px) {
+    .filter-tabs.stats-tabs .filter-btn {
+        flex: 1 1 auto;
+        text-align: center;
+        padding: 0.4rem 0.3rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* A grid item otherwise refuses to shrink below its content, so one wide
+   table (spending by format) would widen the whole grid past the screen */
+.charts-grid > * {
+    min-width: 0;
+}
+
+/* Small centred note under a chart: a link to its tab, or how to use it */
+.stats-more {
+    text-align: center;
+    font-size: 0.85rem;
+    margin: 0.75rem 0 0;
+}
+
+.table-scroll {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+.format-spend-table .num {
+    text-align: right;
+}
+
 /* Newly released books found by the series monitor (dashboard) */
 .release-list {
     list-style: none;

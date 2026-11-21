@@ -1,14 +1,15 @@
-"""Year-scoped reading and spending figures for the dashboard's year tab.
+"""Reading, collection and spending figures: the dashboard's year tab, and
+each tab of the statistics page.
 
-Kept out of the route modules so the same numbers can be reused elsewhere (the
-statistics page computes overlapping figures across all years).
+Kept out of the route modules so the same numbers can be reused elsewhere.
 """
 from datetime import datetime, timedelta
 
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
 
-from models import db, Book, Author, AuthorGender, Read, book_authors
+from models import (db, Book, Author, AuthorGender, BookFormat, Read, Series, Tag,
+                    RATING_LABELS, author_tags, book_authors, book_tags, series_tags)
 
 
 def year_window(year, days_elapsed=None):
@@ -263,3 +264,299 @@ def owned_purchases_with_reads():
         if start is not None or finish is not None:
             reads.append((start, finish))
     return books
+
+
+# ---------------------------------------------------------------------------
+# Statistics page, all time. One function per tab, so a tab only runs the
+# queries it shows; the overview borrows a figure or chart from each of the
+# others.
+# ---------------------------------------------------------------------------
+
+STATISTICS_TABS = [
+    ('overview', 'Overview'),
+    ('reading', 'Reading'),
+    ('library', 'Library'),
+    ('authors', 'Authors'),
+    ('spending', 'Spending'),
+]
+
+# Book length bands: (label, the book list's ?pages= filter, low, high)
+BOOK_LENGTH_BANDS = [
+    ('Under 300 pages', 'lt300', None, 300),
+    ('300–499 pages', '300to499', 300, 500),
+    ('500+ pages', '500plus', 500, None),
+]
+
+# An alias and the author it points at are the same person
+_person_id = func.coalesce(Author.alias_of_id, Author.id)
+
+
+def _authors_by_id(rows):
+    """Swap the person id leading each row for its Author, keeping the order."""
+    ids = [row[0] for row in rows]
+    authors = {a.id: a for a in Author.query.filter(Author.id.in_(ids))} if ids else {}
+    return [(authors[row[0]], *row[1:]) for row in rows if row[0] in authors]
+
+
+def _completed_reads():
+    return Read.query.filter_by(status='Completed').count()
+
+
+def _pages_read():
+    """Pages of every completed read, re-reads included."""
+    return db.session.query(func.sum(Book.page_count)).join(Read).filter(
+        Read.status == 'Completed').scalar() or 0
+
+
+def _total_spent():
+    return db.session.query(func.sum(Book.paid)).scalar() or 0
+
+
+def _read_by_year():
+    year = func.strftime('%Y', Read.finish_date)
+    rows = (db.session.query(year, func.count(Read.id))
+            .filter(Read.status == 'Completed', Read.finish_date.isnot(None))
+            .group_by(year).order_by(year).all())
+    return {y: count for y, count in rows if y}
+
+
+def _format_data():
+    """Books you own in each format."""
+    rows = (db.session.query(BookFormat.name, func.count(Book.id))
+            .join(Book, Book.format_id == BookFormat.id)
+            .filter(Book.owned.is_(True))
+            .group_by(BookFormat.id, BookFormat.name)
+            .order_by(func.count(Book.id).desc()).all())
+    return {name: count for name, count in rows if count}
+
+
+def _gender_data():
+    """Authors by gender. Primary authors only: a pen name is the same person."""
+    rows = (db.session.query(AuthorGender.name, func.count(Author.id))
+            .join(Author, Author.gender_id == AuthorGender.id)
+            .filter(Author.alias_of_id.is_(None))
+            .group_by(AuthorGender.id, AuthorGender.name).all())
+    data = {name: count for name, count in rows if count}
+    not_set = Author.query.filter_by(gender_id=None, alias_of_id=None).count()
+    if not_set:
+        data['Not Set'] = not_set
+    return data
+
+
+def _spending_by_year():
+    """Spent and saved per purchase year, as lists lined up with 'years'.
+    Saved only counts books with both a cost and a price paid."""
+    year = func.strftime('%Y', Book.date_purchased)
+    rows = (db.session.query(year, func.sum(Book.paid), func.sum(Book.cost - Book.paid))
+            .filter(Book.date_purchased.isnot(None))
+            .group_by(year).order_by(year).all())
+    rows = [(y, paid, saved) for y, paid, saved in rows if y and (paid is not None or saved is not None)]
+    return {
+        'years': [y for y, _, _ in rows],
+        'spent': [round(float(paid or 0), 2) for _, paid, _ in rows],
+        'saved': [round(float(saved or 0), 2) for _, _, saved in rows],
+    }
+
+
+def overview_stats():
+    return {
+        'total_books': Book.query.filter(Book.owned.is_(True)).count(),
+        'total_authors': Author.query.filter_by(alias_of_id=None).count(),
+        'total_series': Series.query.count(),
+        'total_reads': _completed_reads(),
+        'pages_read': _pages_read(),
+        'total_spent': _total_spent(),
+        'read_by_year': _read_by_year(),
+        'format_data': _format_data(),
+        'gender_data': _gender_data(),
+        'spending': _spending_by_year(),
+    }
+
+
+def reading_stats():
+    status_counts = dict(db.session.query(Read.status, func.count(Read.id)).group_by(Read.status).all())
+    completed = status_counts.get('Completed', 0)
+    abandoned = status_counts.get('Abandoned', 0)
+
+    rating_rows = (db.session.query(Book.rating, func.count(Book.id))
+                   .filter(Book.rating.isnot(None))
+                   .group_by(Book.rating).order_by(Book.rating).all())
+    most_common_rating = None
+    if rating_rows:
+        most_common_rating = RATING_LABELS.get(int(max(rating_rows, key=lambda r: r[1])[0]))
+
+    with_dates = (db.session.query(Read.start_date, Read.finish_date)
+                  .filter(Read.status == 'Completed',
+                          Read.start_date.isnot(None), Read.finish_date.isnot(None)).all())
+    avg_days = (sum((finish - start).days for start, finish in with_dates) / len(with_dates)
+                if with_dates else 0)
+
+    # Books read per month over the last twelve, empty months included
+    now = datetime.now()
+    twelve_months_ago = now - timedelta(days=365)
+    month = func.strftime('%Y-%m', Read.finish_date)
+    monthly_rows = dict(db.session.query(month, func.count(Read.id))
+                        .filter(Read.status == 'Completed', Read.finish_date >= twelve_months_ago)
+                        .group_by(month).all())
+    monthly_data = {}
+    current = twelve_months_ago.replace(day=1)
+    while current <= now:
+        key = current.strftime('%Y-%m')
+        monthly_data[key] = monthly_rows.get(key, 0)
+        current = (current.replace(year=current.year + 1, month=1) if current.month == 12
+                   else current.replace(month=current.month + 1))
+
+    most_read_books = (db.session.query(Book, func.count(Read.id))
+                       .join(Read, Read.book_id == Book.id)
+                       .filter(Read.status == 'Completed')
+                       .group_by(Book.id)
+                       .order_by(func.count(Read.id).desc())
+                       .limit(10).all())
+
+    return {
+        'total_reads': completed,
+        'pages_read': _pages_read(),
+        'avg_days': round(avg_days, 1),
+        'most_common_rating': most_common_rating,
+        # Of the reads that have ended; ones still in progress count for neither
+        'finished_percent': round(100 * completed / (completed + abandoned)) if completed + abandoned else None,
+        'abandoned': abandoned,
+        'monthly_data': monthly_data,
+        'read_by_year': _read_by_year(),
+        'rating_data': {RATING_LABELS.get(int(r), str(r)): count for r, count in rating_rows},
+        'most_read_books': most_read_books,
+        'purchase_reads': purchase_to_read_stats(owned_purchases_with_reads()),
+    }
+
+
+def library_stats():
+    owned = Book.owned.is_(True)
+
+    purchased = func.strftime('%Y', Book.date_purchased)
+    added_rows = (db.session.query(purchased, func.count(Book.id))
+                  .filter(owned, Book.date_purchased.isnot(None))
+                  .group_by(purchased).order_by(purchased).all())
+
+    book_lengths = []
+    for label, filter_value, low, high in BOOK_LENGTH_BANDS:
+        query = Book.query.filter(owned, Book.page_count.isnot(None))
+        if low is not None:
+            query = query.filter(Book.page_count >= low)
+        if high is not None:
+            query = query.filter(Book.page_count < high)
+        count = query.count()
+        if count:
+            book_lengths.append({'label': label, 'filter': filter_value, 'count': count})
+
+    # Tags by how often they're used, across books, authors and series
+    usage = {}
+    for table, column in ((book_tags, book_tags.c.book_id),
+                          (author_tags, author_tags.c.author_id),
+                          (series_tags, series_tags.c.series_id)):
+        for tag_id, count in (db.session.query(table.c.tag_id, func.count(column))
+                              .group_by(table.c.tag_id).all()):
+            usage[tag_id] = usage.get(tag_id, 0) + count
+    top_ids = sorted(usage, key=usage.get, reverse=True)[:15]
+    names = dict(db.session.query(Tag.id, Tag.name).filter(Tag.id.in_(top_ids)).all()) if top_ids else {}
+
+    return {
+        'total_books': Book.query.filter(owned).count(),
+        'total_series': Series.query.count(),
+        'total_tags': Tag.query.count(),
+        'format_data': _format_data(),
+        'added_by_year': {y: count for y, count in added_rows if y},
+        'book_lengths': book_lengths,
+        'top_tag_data': {names[t]: usage[t] for t in top_ids if t in names},
+    }
+
+
+def author_stats():
+    """Pen names count towards the author behind them throughout."""
+    # Completed reads and the different books they cover. Reads are counted
+    # distinct so a book with two of the same person's names on it counts once.
+    read_rows = (db.session.query(_person_id,
+                                  func.count(func.distinct(Read.id)),
+                                  func.count(func.distinct(Book.id)))
+                 .join(book_authors, Author.id == book_authors.c.author_id)
+                 .join(Book, Book.id == book_authors.c.book_id)
+                 .join(Read, Read.book_id == Book.id)
+                 .filter(Read.status == 'Completed')
+                 .group_by(_person_id)
+                 .order_by(func.count(func.distinct(Read.id)).desc(),
+                           func.count(func.distinct(Book.id)).desc())
+                 .limit(10).all())
+
+    # Pages of the books you own. A book inside a bundle is skipped: the
+    # bundle's page count already covers it.
+    owned_by_person = (db.session.query(_person_id.label('person_id'),
+                                        Book.id.label('book_id'), Book.page_count)
+                       .join(book_authors, Author.id == book_authors.c.author_id)
+                       .join(Book, Book.id == book_authors.c.book_id)
+                       .filter(Book.owned.is_(True), Book.parent_id.is_(None), Book.page_count > 0)
+                       .distinct().subquery())
+    page_rows = (db.session.query(owned_by_person.c.person_id,
+                                  func.sum(owned_by_person.c.page_count),
+                                  func.count(owned_by_person.c.book_id))
+                 .group_by(owned_by_person.c.person_id)
+                 .order_by(func.sum(owned_by_person.c.page_count).desc())
+                 .limit(10).all())
+
+    return {
+        'total_authors': Author.query.filter_by(alias_of_id=None).count(),
+        'gender_data': _gender_data(),
+        'most_read_authors': _authors_by_id(read_rows),
+        'top_authors_by_pages': _authors_by_id(page_rows),
+    }
+
+
+def _per_format_per_year(amount, *conditions):
+    """{format: {year: total}} of an amount per purchase year, and the years."""
+    year = func.strftime('%Y', Book.date_purchased)
+    rows = (db.session.query(BookFormat.name, year, func.sum(amount))
+            .join(Book, Book.format_id == BookFormat.id)
+            .filter(Book.date_purchased.isnot(None), amount > 0, *conditions)
+            .group_by(BookFormat.name, year).all())
+    data, years = {}, set()
+    for fmt, y, total in rows:
+        if y and total:
+            data.setdefault(fmt, {})[y] = round(float(total), 2)
+            years.add(y)
+    return dict(sorted(data.items())), sorted(years)
+
+
+def spending_stats():
+    total_saved = (db.session.query(func.sum(Book.cost - Book.paid))
+                   .filter(Book.cost.isnot(None), Book.paid.isnot(None)).scalar() or 0)
+
+    costs = sorted(c for (c,) in db.session.query(Book.cost).filter(Book.cost > 0))
+    if costs:
+        mid = len(costs) // 2
+        avg_book_cost = sum(costs) / len(costs)
+        median_book_cost = costs[mid] if len(costs) % 2 else (costs[mid - 1] + costs[mid]) / 2
+    else:
+        avg_book_cost = median_book_cost = None
+
+    format_spend, format_years = _per_format_per_year(Book.paid)
+    discount_by_format, discount_years = _per_format_per_year(Book.discounts)
+
+    return {
+        'total_spent': _total_spent(),
+        'total_saved': total_saved,
+        'avg_book_cost': avg_book_cost,
+        'median_book_cost': median_book_cost,
+        'spending': _spending_by_year(),
+        'format_spend': format_spend,
+        'format_years': format_years,
+        'format_totals': {fmt: round(sum(by_year.values()), 2) for fmt, by_year in format_spend.items()},
+        'discount_by_format': discount_by_format,
+        'discount_years': discount_years,
+    }
+
+
+STATISTICS_TAB_DATA = {
+    'overview': overview_stats,
+    'reading': reading_stats,
+    'library': library_stats,
+    'authors': author_stats,
+    'spending': spending_stats,
+}

@@ -1,0 +1,52 @@
+{% from 'statistics/_macros.html' import stat %}
+<div class="stats-summary">
+    {{ stat(total_books, 'Books Owned') }}
+    {{ stat(total_series, 'Series') }}
+    {{ stat(total_tags, 'Tags') }}
+</div>
+
+<div class="charts-grid">
+    {% if format_data %}
+    <article class="chart-container">
+        <h3>Books by Format</h3>
+        <canvas id="formatChart"></canvas>
+    </article>
+    {% endif %}
+
+    {% if book_lengths %}
+    <article class="chart-container">
+        <h3>Book Length</h3>
+        <canvas id="bookLengthChart"></canvas>
+        <p class="stats-more">Click a slice to see those books</p>
+    </article>
+    {% endif %}
+
+    {% if added_by_year %}
+    <article class="chart-container">
+        <h3>Books Purchased per Year</h3>
+        <canvas id="addedByYearChart"></canvas>
+    </article>
+    {% endif %}
+
+    {% if top_tag_data %}
+    <article class="chart-container">
+        <h3>Top Tags</h3>
+        <canvas id="tagChart"></canvas>
+    </article>
+    {% endif %}
+</div>
+
+<script>
+StatsCharts.pie('formatChart', {{ format_data|tojson }}, { colours: StatsCharts.formatColour({{ format_names|tojson }}) });
+
+const bookLengths = {{ book_lengths|tojson }};
+StatsCharts.pie('bookLengthChart', Object.fromEntries(bookLengths.map(b => [b.label, b.count])), {
+    type: 'pie',
+    colours: ['#764ba2', '#45b7d1', '#50c878'],
+    onClick: i => { window.location.href = {{ url_for('books.book_list')|tojson }} + '?pages=' + bookLengths[i].filter; }
+});
+
+StatsCharts.bar('addedByYearChart', {{ added_by_year.keys()|list|tojson }},
+    [{ label: 'Books Purchased', data: {{ added_by_year.values()|list|tojson }}, colour: '#4ecdc4' }]);
+StatsCharts.pie('tagChart', {{ top_tag_data|tojson }}, { type: 'pie' });
+</script>

@@ -13,7 +13,7 @@ A personal book database web application for tracking books, authors, series, an
 - **Owned & Want to Read**: Keep books you don't own yet alongside your library, and flag any book as one you want to read
 - **Dashboard**: View currently reading books at a glance
 - **Recommendations**: Get suggestions for series continuations, recent additions, and random picks from your library
-- **Statistics**: Charts and summaries of your reading history
+- **Statistics**: Charts and summaries in tabs: an overview, then reading, your library, authors and spending
 - **Search**: Find books, authors, and series quickly
 - **Price Watch**: Track Amazon Kindle book prices and get a [Pushover](https://pushover.net/) notification when the price drops
 - **Series Monitoring**: Opt a series in to weekly checks and get notified when a new book is released
@@ -24,6 +24,7 @@ A personal book database web application for tracking books, authors, series, an
 - **Database**: SQLite
 - **Frontend**: HTML templates (Jinja2) with htmx for interactivity
 - **CSS**: Pico CSS (classless framework)
+- **Charts**: Chart.js, kept in `static/vendor/` rather than loaded from a CDN. To update it, download `dist/chart.umd.min.js` of the new version from npm, save it as `static/vendor/chart-<version>.umd.min.js`, delete the old file and change the filename in `templates/statistics.html`
 
 ## Setup
 
@@ -60,6 +61,7 @@ book-database/
 ├── price_watch.py      # Daily background price check + manual "Check Now" logic
 ├── series_monitor.py   # Weekly background check of monitored series for new releases
 ├── background_scan.py  # The System page scans (series counts, author info): thread, progress, pause/stop
+├── stats.py            # Figures for the statistics page tabs and the dashboard's year tab
 ├── utils.py            # Shared helpers (URL cleaning, validation, parsing)
 ├── logging_config.py   # Logging setup: stderr plus a rotating file in instance/logs
 ├── requirements.txt    # Python dependencies
@@ -78,13 +80,16 @@ book-database/
 ├── tests/              # Page parser tests, with saved pages in tests/fixtures/pages
 ├── static/
 │   ├── css/style.css   # Custom CSS overrides
+│   ├── js/statistics.js # Chart helpers for the statistics page
+│   ├── vendor/         # Third-party files served locally (Chart.js)
 │   ├── img/            # App icons (favicon, home-screen) + UI overlays
 │   └── uploads/        # Book cover images
 └── templates/
     ├── base.html       # Base template with sidebar navigation
     ├── dashboard.html
     ├── recommendations.html
-    ├── statistics.html
+    ├── statistics.html # Statistics page: tab bar, then the tab's template
+    ├── statistics/     # One template per tab (overview, reading, library, authors, spending)
     ├── search.html
     ├── search_results.html
     ├── queue.html

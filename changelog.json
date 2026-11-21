@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.19.0",
+    "date": "2026-11-21",
+    "changes": [
+      "The Statistics page is split into tabs: Overview (headline figures and one chart from each of the other tabs, linking to it), Reading, Library, Authors and Spending. Each tab only works out its own figures, so the page loads less at a time",
+      "The two Most Read Authors tables are now one, with each author's reads and the number of different books they cover side by side. Books under a pen name now count towards the author behind it, as Top Authors by Pages Owned already did, so authors who write under more than one name move up",
+      "Spending by Format's table now sits under its chart. Discounts by Format shows every format rather than only Kindle and Kobo, and each format keeps the same colour on every chart",
+      "The Reading Status chart, which was nearly all Completed, is replaced by Reads Finished (the share of ended reads that were finished) and Abandoned figures. The Page Number chart is renamed Book Length",
+      "The Library tab's format and book length charts count only books you own, matching its Books Owned figure. Savings per year now count only books with both a cost and a price paid, as the Total Saved figure always has; before, a book with no price recorded counted its whole cost as saved",
+      "Chart.js is now served by the app itself (version 4.6.1) instead of being loaded from a CDN, so the statistics page works offline and won't change underneath you when a new version comes out"
+    ]
+  },
+  {
     "version": "1.18.0",
     "date": "2026-11-21",
     "changes": [

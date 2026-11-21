@@ -1,0 +1,134 @@
+{% from 'statistics/_macros.html' import stat %}
+<div class="stats-summary">
+    {{ stat(total_reads, 'Books Read') }}
+    {{ stat("{:,}".format(pages_read), 'Pages Read') }}
+    {{ stat(avg_days, 'Avg Days to Finish') }}
+    {% if finished_percent is not none %}{{ stat(finished_percent ~ '%', 'Reads Finished') }}{% endif %}
+    {{ stat(abandoned, 'Abandoned') }}
+    {% if most_common_rating %}{{ stat(most_common_rating, 'Most Common Rating') }}{% endif %}
+</div>
+
+<div class="charts-grid">
+    <article class="chart-container chart-container--wide">
+        <h3>Books Read by Month</h3>
+        <canvas id="monthlyChart"></canvas>
+    </article>
+
+    {% if read_by_year %}
+    <article class="chart-container">
+        <h3>Books Read per Year</h3>
+        <canvas id="readByYearChart"></canvas>
+    </article>
+    {% endif %}
+
+    {% if rating_data %}
+    <article class="chart-container">
+        <h3>Rating Distribution</h3>
+        <canvas id="ratingChart"></canvas>
+    </article>
+    {% endif %}
+</div>
+
+{% if most_read_books %}
+<article class="bordered-article">
+    <h3>Most Read Books</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Book</th>
+                <th>Author(s)</th>
+                <th>Times Read</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for book, read_count in most_read_books %}
+            <tr>
+                <td><span class="rank-num">{{ loop.index }}</span><a href="{{ url_for('books.book_detail', id=book.id) }}">{{ book.title }}</a></td>
+                <td>{{ book.author_names or 'Unknown' }}</td>
+                <td>{{ read_count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</article>
+{% endif %}
+
+{% if purchase_reads.same_year or purchase_reads.read %}
+<div class="grid">
+    {% if purchase_reads.same_year %}
+    <article class="bordered-article">
+        <h3>Read the Year They Were Bought</h3>
+        <p class="secondary">Books bought each year, and how many of them you finished before that year was out.</p>
+        <canvas id="sameYearChart"></canvas>
+        <table>
+            <thead>
+                <tr>
+                    <th>Year</th>
+                    <th>Bought</th>
+                    <th>Read that year</th>
+                    <th>%</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for year, row in purchase_reads.same_year.items() %}
+                <tr>
+                    <td>{{ year }}{% if year == purchase_reads.current_year %} (so far){% endif %}</td>
+                    <td>{{ row.bought }}</td>
+                    <td>{{ row.read }}</td>
+                    <td>{{ row.percent }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </article>
+    {% endif %}
+
+    {% if purchase_reads.read %}
+    <article class="bordered-article">
+        <h3>Time from Purchase to Reading</h3>
+        {% set median = purchase_reads.median_months %}
+        <p class="secondary">How long after buying a book you started reading it, for the {{ purchase_reads.read }} books you've read since buying them.
+            Median: {% if median < 1 %}{% set days = (median * days_per_month)|round|int %}{{ days }} day{{ '' if days == 1 else 's' }}{% else %}{{ '%.1f'|format(median) }} months{% endif %}.
+            {{ purchase_reads.unread }} bought but not read yet.</p>
+        <canvas id="purchaseGapChart"></canvas>
+        <table>
+            <thead>
+                <tr>
+                    <th>Started reading</th>
+                    <th>Books</th>
+                    <th>%</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for label, count in purchase_reads.gap_buckets.items() %}
+                <tr>
+                    <td>{{ label }}</td>
+                    <td>{{ count }}</td>
+                    {% set percent = (100 * count / purchase_reads.read)|round|int %}
+                    <td>{{ '<1' if count and not percent else percent }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </article>
+    {% endif %}
+</div>
+{% endif %}
+
+<script>
+StatsCharts.bar('monthlyChart', {{ monthly_data.keys()|list|tojson }},
+    [{ label: 'Books Read', data: {{ monthly_data.values()|list|tojson }}, colour: '#667eea' }]);
+StatsCharts.bar('readByYearChart', {{ read_by_year.keys()|list|tojson }},
+    [{ label: 'Books Read', data: {{ read_by_year.values()|list|tojson }}, colour: '#a78bfa' }]);
+StatsCharts.bar('ratingChart', {{ rating_data.keys()|list|tojson }},
+    [{ label: 'Books', data: {{ rating_data.values()|list|tojson }}, colour: '#f5a623' }]);
+
+{% set same_year = purchase_reads.same_year %}
+const sameYearRows = {{ same_year.values()|list|tojson }};
+StatsCharts.bar('sameYearChart',
+    [{% for year in same_year %}{{ (year ~ (' (so far)' if year == purchase_reads.current_year else ''))|tojson }}{{ ', ' if not loop.last }}{% endfor %}],
+    [{ label: 'Read the same year', data: sameYearRows.map(r => r.percent), colour: '#50c878' }],
+    { percent: true, tooltip: i => `${sameYearRows[i].read} of ${sameYearRows[i].bought} books (${sameYearRows[i].percent}%)` });
+StatsCharts.bar('purchaseGapChart', {{ purchase_reads.gap_buckets.keys()|list|tojson }},
+    [{ label: 'Books', data: {{ purchase_reads.gap_buckets.values()|list|tojson }}, colour: '#f5a623' }]);
+</script>

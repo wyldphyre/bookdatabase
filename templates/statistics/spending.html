@@ -1,0 +1,81 @@
+{% from 'statistics/_macros.html' import stat, money %}
+<div class="stats-summary">
+    {{ stat(money(total_spent), 'Total Spent') }}
+    {{ stat(money(total_saved), 'Total Saved') }}
+    {% if avg_book_cost %}{{ stat(money(avg_book_cost), 'Avg Book Cost') }}{% endif %}
+    {% if median_book_cost %}{{ stat(money(median_book_cost), 'Median Book Cost') }}{% endif %}
+</div>
+
+<div class="charts-grid">
+    {% if spending.years %}
+    <article class="chart-container chart-container--wide">
+        <h3>Spending &amp; Savings per Year</h3>
+        <canvas id="spendingChart"></canvas>
+    </article>
+    {% endif %}
+
+    {% if format_spend %}
+    <article class="chart-container chart-container--wide">
+        <h3>Spending by Format per Year</h3>
+        <canvas id="formatSpendChart"></canvas>
+        <div class="table-scroll">
+        <table class="format-spend-table">
+            <thead>
+                <tr>
+                    <th>Format</th>
+                    {% for year in format_years %}<th class="num">{{ year }}</th>{% endfor %}
+                    <th class="num">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fmt, data in format_spend.items() %}
+                <tr>
+                    <td>{{ fmt }}</td>
+                    {% for year in format_years %}
+                    <td class="num">{% if data.get(year) %}{{ money(data[year]) }}{% else %}&mdash;{% endif %}</td>
+                    {% endfor %}
+                    <td class="num"><strong>{{ money(format_totals[fmt]) }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td><strong>Total</strong></td>
+                    {% for year in format_years %}
+                    {% set year_total = namespace(v=0) %}
+                    {% for data in format_spend.values() %}{% set year_total.v = year_total.v + data.get(year, 0) %}{% endfor %}
+                    <td class="num"><strong>{{ money(year_total.v) }}</strong></td>
+                    {% endfor %}
+                    <td class="num"><strong>{{ money(format_totals.values()|sum) }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+        </div>
+    </article>
+    {% endif %}
+
+    {% if discount_by_format %}
+    <article class="chart-container chart-container--wide">
+        <h3>Discounts by Format per Year</h3>
+        <canvas id="discountByFormatChart"></canvas>
+    </article>
+    {% endif %}
+</div>
+
+<script>
+const formatColour = StatsCharts.formatColour({{ format_names|tojson }});
+StatsCharts.bar('spendingChart', {{ spending.years|tojson }}, [
+    { label: 'Spent', data: {{ spending.spent|tojson }}, colour: '#e07070' },
+    { label: 'Saved', data: {{ spending.saved|tojson }}, colour: '#50c878' }
+], { money: true });
+
+const formatYears = {{ format_years|tojson }};
+StatsCharts.bar('formatSpendChart', formatYears,
+    StatsCharts.perFormatDatasets({{ format_spend|tojson }}, formatYears, formatColour),
+    { money: true, stacked: true, legend: true });
+
+const discountYears = {{ discount_years|tojson }};
+StatsCharts.bar('discountByFormatChart', discountYears,
+    StatsCharts.perFormatDatasets({{ discount_by_format|tojson }}, discountYears, formatColour),
+    { money: true, legend: true });
+</script>

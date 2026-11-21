@@ -1,0 +1,13 @@
+{% macro stat(value, label) -%}
+<div class="stat">
+    <div class="stat-value">{{ value }}</div>
+    <div class="stat-label">{{ label }}</div>
+</div>
+{%- endmacro %}
+
+{% macro money(value) %}${{ "%.2f"|format(value) }}{% endmacro %}
+
+{# A link to another tab of the statistics page, under an overview chart #}
+{% macro more(tab, text) -%}
+<p class="stats-more"><a href="{{ url_for('search.statistics', tab=tab) }}">{{ text }} &rarr;</a></p>
+{%- endmacro %}

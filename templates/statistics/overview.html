@@ -1,0 +1,54 @@
+{% from 'statistics/_macros.html' import stat, money, more %}
+<div class="stats-summary">
+    {{ stat(total_books, 'Books Owned') }}
+    {{ stat(total_authors, 'Authors') }}
+    {{ stat(total_series, 'Series') }}
+    {{ stat(total_reads, 'Books Read') }}
+    {{ stat("{:,}".format(pages_read), 'Pages Read') }}
+    {% if total_spent > 0 %}{{ stat(money(total_spent), 'Total Spent') }}{% endif %}
+</div>
+
+<div class="charts-grid">
+    {% if read_by_year %}
+    <article class="chart-container">
+        <h3>Books Read per Year</h3>
+        <canvas id="readByYearChart"></canvas>
+        {{ more('reading', 'More on reading') }}
+    </article>
+    {% endif %}
+
+    {% if format_data %}
+    <article class="chart-container">
+        <h3>Books by Format</h3>
+        <canvas id="formatChart"></canvas>
+        {{ more('library', 'More on your library') }}
+    </article>
+    {% endif %}
+
+    {% if gender_data %}
+    <article class="chart-container">
+        <h3>Author Gender</h3>
+        <canvas id="genderChart"></canvas>
+        {{ more('authors', 'More on authors') }}
+    </article>
+    {% endif %}
+
+    {% if spending.years %}
+    <article class="chart-container">
+        <h3>Spending &amp; Savings per Year</h3>
+        <canvas id="spendingChart"></canvas>
+        {{ more('spending', 'More on spending') }}
+    </article>
+    {% endif %}
+</div>
+
+<script>
+StatsCharts.bar('readByYearChart', {{ read_by_year.keys()|list|tojson }},
+    [{ label: 'Books Read', data: {{ read_by_year.values()|list|tojson }}, colour: '#a78bfa' }]);
+StatsCharts.pie('formatChart', {{ format_data|tojson }}, { colours: StatsCharts.formatColour({{ format_names|tojson }}) });
+StatsCharts.pie('genderChart', {{ gender_data|tojson }});
+StatsCharts.bar('spendingChart', {{ spending.years|tojson }}, [
+    { label: 'Spent', data: {{ spending.spent|tojson }}, colour: '#e07070' },
+    { label: 'Saved', data: {{ spending.saved|tojson }}, colour: '#50c878' }
+], { money: true });
+</script>
