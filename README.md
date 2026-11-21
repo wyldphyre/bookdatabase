@@ -24,7 +24,17 @@ A personal book database web application for tracking books, authors, series, an
 - **Database**: SQLite
 - **Frontend**: HTML templates (Jinja2) with htmx for interactivity
 - **CSS**: Pico CSS (classless framework)
-- **Charts**: Chart.js, kept in `static/vendor/` rather than loaded from a CDN. To update it, download `dist/chart.umd.min.js` of the new version from npm, save it as `static/vendor/chart-<version>.umd.min.js`, delete the old file and change the filename in `templates/statistics.html`
+- **Charts**: Chart.js
+
+htmx, Pico CSS and Chart.js are kept in `static/vendor/` and served by the app rather than loaded from a CDN, so it works offline and they only change when you update them. Each file is named with its version:
+
+| Library | File | Taken from the npm package | Referenced in |
+|---|---|---|---|
+| htmx | `htmx-1.9.10.min.js` | `htmx.org`, `dist/htmx.min.js` | `templates/base.html` |
+| Pico CSS | `pico-2.1.1.min.css` | `@picocss/pico`, `css/pico.min.css` | `templates/base.html` |
+| Chart.js | `chart-4.6.1.umd.min.js` | `chart.js`, `dist/chart.umd.min.js` | `templates/statistics.html` |
+
+To update one, download that file from the new version's package (for example `https://registry.npmjs.org/htmx.org/-/htmx.org-<version>.tgz`, or the same path on cdn.jsdelivr.net), save it under the new version's name, delete the old file and change the filename where it's referenced. Check a major version's upgrade notes first: htmx 2 and Pico 3 change behaviour the templates rely on.
 
 ## Setup
 
@@ -81,7 +91,7 @@ book-database/
 ├── static/
 │   ├── css/style.css   # Custom CSS overrides
 │   ├── js/statistics.js # Chart helpers for the statistics page
-│   ├── vendor/         # Third-party files served locally (Chart.js)
+│   ├── vendor/         # Third-party files served locally (htmx, Pico CSS, Chart.js)
 │   ├── img/            # App icons (favicon, home-screen) + UI overlays
 │   └── uploads/        # Book cover images
 └── templates/

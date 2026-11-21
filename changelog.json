@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.19.1",
+    "date": "2026-11-21",
+    "changes": [
+      "htmx (1.9.10) and Pico CSS (2.1.1) are now served by the app itself, like Chart.js, instead of being loaded from CDNs. The app now works with no internet connection at all, and Pico no longer updates itself whenever a new 2.x version comes out. These are the same versions as before, so nothing looks or works differently"
+    ]
+  },
+  {
     "version": "1.19.0",
     "date": "2026-11-21",
     "changes": [
