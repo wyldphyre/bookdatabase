@@ -3,6 +3,7 @@ import logging
 import time
 import threading
 import requests as http_requests
+from datetime import date
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
 
@@ -181,6 +182,31 @@ _AMAZON_FORMATS = [('kindle', 'Kindle'), ('hardcover', 'Hardcover'), ('paperback
                    ('audible', 'Audiobook'), ('audiobook', 'Audiobook')]
 
 
+_MONTHS = {m: i for i, m in enumerate(
+    ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'], start=1)}
+_DAY_MONTH_YEAR = re.compile(r'\b(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]{3,9})\.?,?\s+(\d{4})\b')
+_MONTH_DAY_YEAR = re.compile(r'\b([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})\b')
+
+
+def parse_page_date(text):
+    """A date as the stores write it, as YYYY-MM-DD, or None.
+
+    Amazon writes "11 August 2026" (Australia, UK) or "August 11, 2026" (US),
+    Goodreads "July 7, 2026" and Kobo "Aug 11, 2026"."""
+    for pattern, order in ((_DAY_MONTH_YEAR, 'dmy'), (_MONTH_DAY_YEAR, 'mdy')):
+        for m in pattern.finditer(text or ''):
+            day, month, year = ((m.group(1), m.group(2), m.group(3)) if order == 'dmy'
+                                else (m.group(2), m.group(1), m.group(3)))
+            month_number = _MONTHS.get(month[:3].lower())
+            if not month_number:
+                continue
+            try:
+                return date(int(year), month_number, int(day)).isoformat()
+            except ValueError:
+                continue
+    return None
+
+
 def parse_amazon(soup, url):
     """Book data from an Amazon product page, whether fetched here or captured
     from the browser (where it's the page as rendered, so late-loading parts
@@ -250,6 +276,20 @@ def parse_amazon(soup, url):
             if match:
                 data['page_count'] = int(match.group(1))
                 break
+
+    # Publication date: the book details carousel, or the older detail
+    # bullets ("Publication date : 11 Aug. 2026", or in the Publisher line)
+    date_el = soup.select_one('#rpi-attribute-book_details-publication_date')
+    release = parse_page_date(date_el.get_text(' ', strip=True)) if date_el else None
+    if not release:
+        for detail in soup.select('#detailBullets_feature_div li, #productDetailsTable .content li'):
+            text = detail.get_text(' ', strip=True)
+            if 'publication date' in text.lower() or 'publisher' in text.lower():
+                release = parse_page_date(text)
+                if release:
+                    break
+    if release:
+        data['release_date'] = release
 
     # Series info from title or breadcrumb
     series_el = soup.select_one('#seriesBulletWidget_feature_div a')
@@ -405,6 +445,12 @@ def parse_goodreads(soup, url):
         if match:
             data['page_count'] = int(match.group(1))
 
+    # "First published July 7, 2026", or "Expected publication ..." before then
+    published_el = soup.select_one('p[data-testid="publicationInfo"]')
+    release = parse_page_date(published_el.get_text(' ', strip=True)) if published_el else None
+    if release:
+        data['release_date'] = release
+
     # Series
     series_el = soup.select_one('h3.Text__italic a, div[data-testid="bookSeries"] a')
     if series_el:
@@ -499,7 +545,9 @@ def parse_kobo(soup, url):
 
     # The buy pad's price block: "$7.02 AUD", or during a sale
     # "Save 9 % List Price: $7.80 AUD . $7.02 AUD" — the price you'd pay last.
-    price_el = soup.select_one('[data-testid="book-buy-pad"] [data-testid="price"]')
+    # A pre-order's buy pad is laid out separately (buypad-state-preorder).
+    price_el = soup.select_one('[data-testid="book-buy-pad"] [data-testid="price"], '
+                               '[data-testid="buypad-state-preorder"] [data-testid="price"]')
     if price_el:
         text = price_el.get_text(' ', strip=True)
         prices = re.findall(r'([^\d\s]{0,4})\s*([\d,]+\.\d+)', text)
@@ -508,6 +556,14 @@ def parse_kobo(soup, url):
             data['price'] = float(prices[-1][1].replace(',', ''))
             if len(prices) > 1 and 'list price' in text.lower():
                 data['list_price'] = float(prices[0][1].replace(',', ''))
+
+    # "Release date: Aug 11, 2026" in the details list
+    for label in soup.find_all(string=re.compile(r'^\s*Release date:\s*$', re.IGNORECASE)):
+        value = label.find_parent().find_next_sibling()
+        release = parse_page_date(value.get_text(' ', strip=True)) if value else None
+        if release:
+            data['release_date'] = release
+            break
 
     data['detected_format'] = 'Audiobook' if '/audiobook/' in url else 'Kobo'
     data['kobo_url'] = url

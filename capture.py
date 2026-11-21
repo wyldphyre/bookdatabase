@@ -9,6 +9,7 @@ import re
 import secrets
 import threading
 import time
+from datetime import date
 
 from models import db, Book, BookFormat, Tag
 from series_monitor import match_key
@@ -45,7 +46,7 @@ def collect(token):
     return dict(entry[1])
 
 
-def build_prefill(book_data, create_tags):
+def build_prefill(book_data, create_tags, today=None):
     """Turn parsed page data into the Add Book form's prefill.
 
     create_tags: the URL import creates a tag for every genre, as it always
@@ -85,6 +86,12 @@ def build_prefill(book_data, create_tags):
         prefill['cost'] = price
     elif list_price:
         prefill['cost'] = list_price
+
+    # Every store page has a publication date; it only belongs in the form's
+    # "Not out until" for a book that isn't out yet
+    release = prefill.pop('release_date', None)
+    if release and release > (today or date.today()).isoformat():
+        prefill['release_date'] = release
 
     return prefill
 

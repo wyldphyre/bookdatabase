@@ -31,6 +31,40 @@
     </div>
 </div>
 
+{% if upcoming %}
+<h2>Upcoming Releases</h2>
+<p class="secondary">Pre-orders and books you're waiting for. You'll be notified the day each comes out.</p>
+<ul class="release-list">
+    {% for book in upcoming %}
+    <li class="release-item">
+        <div class="release-info">
+            <span class="release-title">
+                <a href="{{ url_for('books.book_detail', id=book.id) }}">{{ book.title }}</a>
+                {% if book.is_preorder %}<span class="detail-chip">Pre-ordered</span>
+                {% elif book.is_unreleased %}<span class="detail-chip">Not bought</span>
+                {% else %}<span class="detail-chip detail-chip--alert">Out now</span>{% endif %}
+            </span>
+            <small class="secondary">
+                {% if book.author_names %}{{ book.author_names }} &middot; {% endif %}
+                {% if book.is_unreleased %}
+                out {{ book.release_date.strftime('%a %-d %b %Y') }} &middot;
+                {% set days = book.days_until_release %}{{ 'tomorrow' if days == 1 else 'in ' ~ days ~ ' days' }}
+                {% else %}
+                released {{ book.release_date.strftime('%a %-d %b %Y') }}, not bought yet
+                {% endif %}
+            </small>
+        </div>
+        {% if not book.owned %}
+        <form method="post" action="{{ url_for('books.book_mark_owned', id=book.id) }}">
+            <button type="submit" class="btn-compact outline secondary"
+                    title="{{ "You've pre-ordered it" if book.is_unreleased else "You've bought it" }}">{{ 'Pre-ordered' if book.is_unreleased else 'Bought' }}</button>
+        </form>
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
 {% if new_releases %}
 <h2>Newly Released</h2>
 <p class="secondary">Spotted on series you monitor. These aren't in your library yet.</p>

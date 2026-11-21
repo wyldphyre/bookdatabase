@@ -714,6 +714,12 @@ img.lightbox-trigger {
     text-decoration: none;
 }
 
+/* A book you were waiting for that's now out */
+.detail-chip--alert {
+    background: #2e8b57;
+    opacity: 1;
+}
+
 a.detail-chip:hover {
     opacity: 1;
     text-decoration: none;
@@ -1960,6 +1966,11 @@ button.ellipsis-btn:focus {
 .release-title {
     font-size: 0.92rem;
     font-weight: 600;
+}
+
+.release-title .detail-chip {
+    margin-left: 0.4rem;
+    vertical-align: 0.1em;
 }
 
 .release-item form {

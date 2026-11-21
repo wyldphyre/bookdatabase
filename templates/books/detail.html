@@ -100,8 +100,15 @@
         {% endif %}
 
         <div class="detail-facts">
-            {% if not book.owned %}
+            {% if book.is_preorder %}
+            <span class="detail-chip">Pre-ordered</span>
+            {% elif not book.owned %}
             <span class="detail-chip">Not owned</span>
+            {% endif %}
+            {% if book.release_date %}
+            {% set days = book.days_until_release %}
+            <span class="detail-fact"><span class="detail-fact-label">{{ 'Out' if book.is_unreleased else 'Released' }}</span>
+                {{ book.release_date.strftime('%-d %b %Y') }}{% if days is not none %} ({{ 'tomorrow' if days == 1 else 'in ' ~ days ~ ' days' }}){% endif %}</span>
             {% endif %}
             {% if book.want_to_read %}
             <span class="detail-chip">Want to Read</span>

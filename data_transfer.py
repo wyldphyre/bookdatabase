@@ -18,9 +18,9 @@ import sqlite3
 import tempfile
 import zipfile
 import zlib
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import DateTime
+from sqlalchemy import Date, DateTime
 
 from models import (db, Tag, BookFormat, AuthorGender, Series, Author, Book, Read,
                     ReadingQueue, AuthorInfoSuggestion, PriceWatch, AppSetting, SeriesRelease,
@@ -81,7 +81,7 @@ def _serialize_tables():
     for name, table in EXPORT_TABLES:
         rows = db.session.execute(table.select()).mappings().all()
         data[name] = [
-            {key: (value.isoformat() if isinstance(value, datetime) else value)
+            {key: (value.isoformat() if isinstance(value, (date, datetime)) else value)
              for key, value in row.items()}
             for row in rows
         ]
@@ -233,6 +233,8 @@ def _deserialize_rows(rows, table):
                 continue
             if value is not None and isinstance(col.type, DateTime):
                 value = datetime.fromisoformat(value)
+            elif value is not None and isinstance(col.type, Date):
+                value = date.fromisoformat(value)
             clean[key] = value
         out.append(clean)
     return out

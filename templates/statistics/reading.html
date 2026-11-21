@@ -58,7 +58,7 @@
     {% if purchase_reads.same_year %}
     <article class="bordered-article">
         <h3>Read the Year They Were Bought</h3>
-        <p class="secondary">Books bought each year, and how many of them you finished before that year was out.</p>
+        <p class="secondary">Books bought each year, and how many of them you finished before that year was out. A pre-order counts from the year it came out.</p>
         <canvas id="sameYearChart"></canvas>
         <table>
             <thead>
@@ -87,7 +87,7 @@
     <article class="bordered-article">
         <h3>Time from Purchase to Reading</h3>
         {% set median = purchase_reads.median_months %}
-        <p class="secondary">How long after buying a book you started reading it, for the {{ purchase_reads.read }} books you've read since buying them.
+        <p class="secondary">How long after buying a book (or, for a pre-order, after it came out) you started reading it, for the {{ purchase_reads.read }} books you've read since buying them.
             Median: {% if median < 1 %}{% set days = (median * days_per_month)|round|int %}{{ days }} day{{ '' if days == 1 else 's' }}{% else %}{{ '%.1f'|format(median) }} months{% endif %}.
             {{ purchase_reads.unread }} bought but not read yet.</p>
         <canvas id="purchaseGapChart"></canvas>

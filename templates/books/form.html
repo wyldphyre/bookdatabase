@@ -232,6 +232,16 @@
             Want to Read
         </label>
     </fieldset>
+
+    {# A date already passed (the book has since come out) can be kept as it is,
+       so it only has to be after today when there isn't one yet, or it's still to come #}
+    {% set release_value = book.release_date.isoformat() if book and book.release_date else (prefill.get('release_date', '') if prefill else '') %}
+    {% set released_already = book and book.release_date and not book.is_unreleased %}
+    <label class="release-date-field">
+        Not out until
+        <input type="date" name="release_date" value="{{ release_value }}"{% if not released_already %} min="{{ tomorrow() }}"{% endif %} aria-describedby="release-date-help">
+        <small id="release-date-help">For a book that isn't out yet: a pre-order (tick Owned), or one you're waiting for. You'll be notified the day it comes out.</small>
+    </label>
     {% if add_to_queue %}
     <input type="hidden" name="add_to_queue" value="1">
     {% endif %}

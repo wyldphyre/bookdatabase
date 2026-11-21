@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from flask import Blueprint, render_template, request
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload, subqueryload
@@ -142,12 +142,14 @@ def recommendations():
         Read.status.in_(['Completed', 'Reading'])
     ).distinct().all()}
 
+    # A pre-order isn't on the pile until it's out
     from_the_pile = Book.query.options(
         subqueryload(Book.authors),
         joinedload(Book.series)
     ).filter(
         ~Book.id.in_(read_book_ids),
-        Book.owned.is_(True)
+        Book.owned.is_(True),
+        db.or_(Book.release_date.is_(None), Book.release_date <= date.today())
     ).order_by(func.random()).limit(5).all()
 
     # --- Recent Additions: newest unread books ---

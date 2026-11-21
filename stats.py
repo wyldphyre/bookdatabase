@@ -3,7 +3,7 @@ each tab of the statistics page.
 
 Kept out of the route modules so the same numbers can be reused elsewhere.
 """
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
@@ -250,16 +250,25 @@ def owned_purchases_with_reads():
 
     A book inside a bundle takes the bundle's purchase date (they're rarely
     given their own), and the bundle itself is left out in favour of the books
-    in it, as those are what get read."""
+    in it, as those are what get read.
+
+    A pre-order couldn't be read until it came out, so its clock starts on its
+    release date rather than the day it was paid for; one that isn't out yet
+    is left out, rather than counted as bought and not read."""
+    today = date.today()
     parent = aliased(Book)
     purchased = func.coalesce(Book.date_purchased, parent.date_purchased)
-    rows = (db.session.query(Book.id, purchased, Read.start_date, Read.finish_date)
+    rows = (db.session.query(Book.id, purchased, Book.release_date, Read.start_date, Read.finish_date)
             .outerjoin(parent, parent.id == Book.parent_id)
             .outerjoin(Read, db.and_(Read.book_id == Book.id, Read.status == 'Completed'))
             .filter(Book.owned.is_(True), purchased.isnot(None), ~Book.bundle_children.any())
             .all())
     books = {}
-    for book_id, bought, start, finish in rows:
+    for book_id, bought, released, start, finish in rows:
+        if released is not None:
+            if released > today:
+                continue
+            bought = max(_day(bought), released)
         reads = books.setdefault(book_id, (bought, []))[1]
         if start is not None or finish is not None:
             reads.append((start, finish))

@@ -1,7 +1,8 @@
 {#
   One book cover with its overlays, so every page marks a book the same way:
   read (top-right), part of a bundle (top-left), on the Want to Read list
-  (ribbon), not owned (faded, badge bottom-left) and an optional caller badge
+  (ribbon), not owned (faded, badge bottom-left; for a book not out yet the
+  badge says when, or Pre-order if you own it) and an optional caller badge
   such as the series number (bottom-right).
 
   is_read defaults to book.is_completed, which loads the book's reads; pass
@@ -24,7 +25,8 @@
     {% if is_read %}<img src="{{ url_for('static', filename='img/read-overlay.svg') }}" class="read-overlay" alt="Read">{% endif %}
     {% if show_bundle and book.parent_id %}<img src="{{ url_for('static', filename='img/bundle-overlay.svg') }}" class="bundle-overlay" alt="Bundle">{% endif %}
     {% if book.want_to_read %}<span class="want-ribbon" title="Want to Read"></span>{% endif %}
-    {% if not book.owned %}<span class="unowned-badge">Not owned</span>{% endif %}
+    {% if book.is_unreleased %}<span class="unowned-badge">{{ 'Pre-order' if book.owned else 'Out ' ~ book.release_date.strftime('%-d %b') }}</span>
+    {% elif not book.owned %}<span class="unowned-badge">Not owned</span>{% endif %}
     {% if badge_text %}<span class="cover-badge">{{ badge_text }}</span>{% endif %}
     {% endif %}
 </div>

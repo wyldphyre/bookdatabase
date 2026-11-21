@@ -17,6 +17,7 @@ A personal book database web application for tracking books, authors, series, an
 - **Search**: Find books, authors, and series quickly
 - **Price Watch**: Track Amazon Kindle book prices and get a [Pushover](https://pushover.net/) notification when the price drops
 - **Series Monitoring**: Opt a series in to weekly checks and get notified when a new book is released
+- **Pre-orders & Upcoming Books**: Give a book that isn't out yet its release date, whether you've pre-ordered it or are waiting to decide, and get notified the day it comes out
 
 ## Tech Stack
 
@@ -70,6 +71,7 @@ book-database/
 ├── notifications.py    # Pushover notification helper
 ├── price_watch.py      # Daily background price check + manual "Check Now" logic
 ├── series_monitor.py   # Weekly background check of monitored series for new releases
+├── release_reminders.py # Hourly check for pre-orders and awaited books coming out, with a notification on the day
 ├── background_scan.py  # The System page scans (series counts, author info): thread, progress, pause/stop
 ├── stats.py            # Figures for the statistics page tabs and the dashboard's year tab
 ├── utils.py            # Shared helpers (URL cleaning, validation, parsing)
@@ -159,11 +161,21 @@ Checks read whichever series page you've recorded - Goodreads first, then Amazon
 
 Checking is deliberately slow - one series a minute, and each series only revisited weekly - to stay well clear of the rate limits described under [Price Watch](#price-watch). If a site blocks the app mid-run, checking backs off rather than continuing.
 
+## Pre-orders and Upcoming Books
+
+A book that isn't out yet gets a **Not out until** date on its form, which has to be after today when you set it. Tick **Owned** if you've pre-ordered (paid for) it, or leave it unticked for one you're waiting on before deciding whether to buy. Adding a book from a store page fills the date in when the page is for a book that hasn't come out.
+
+Both kinds are listed under **Upcoming Releases** on the dashboard, soonest first, with how long to go. A book you were waiting on stays there, marked **Out now**, for 30 days after it comes out, with a **Bought** button; one not yet out has a **Pre-ordered** button for when you order it. Covers carry a **Pre-order** badge, or the release date for a book you don't own.
+
+On release day you get a Pushover notification, once per book: that your pre-order is out, or that a book you were waiting on is out if you want to buy it, with a link to its store page. A background check looks hourly and notifies from 9am, in the server's time. The Docker container has no time zone set, so that's 9am UTC, and "release day" begins at midnight UTC. If notifications aren't set up, or a send fails, it tries again on the next check for up to a week; the dashboard lists the book either way. Changing a book's release date (a delay) means it's announced again on the new date.
+
+Until it's out, a pre-order isn't offered under From the Pile on Recommendations. In the reading statistics it counts from its release date rather than its purchase date, since it couldn't be read before then.
+
 ## Adding Books From the Browser
 
 You can add the Goodreads, Amazon or Kobo book page you're looking at straight to the app: from a browser extension in Chrome, Vivaldi, Edge, Brave or any other Chromium browser, or from a Shortcut in Safari's Share menu on iPhone, iPad or Mac. Either way you pick **Owned** or **Not Owned**, and the Add Book form opens filled in from the page for you to review and save. Nothing is saved until you press Save.
 
-The app reads your browser's copy of the page rather than downloading its own, so sites that block automated requests don't get in the way, and Kobo works even though the app can't fetch from it. Genres on the page are only applied if they're already tags; any others are listed under the tag picker with a button to add them. The page's price fills in Cost (the list price, if the page shows a sale).
+The app reads your browser's copy of the page rather than downloading its own, so sites that block automated requests don't get in the way, and Kobo works even though the app can't fetch from it. Genres on the page are only applied if they're already tags; any others are listed under the tag picker with a button to add them. The page's price fills in Cost (the list price, if the page shows a sale), and a book that isn't out yet gets its release date.
 
 Both need the device to reach the app: on your home network that's automatic, and away from home it needs a VPN back to it (Tailscale, or your router's VPN).
 

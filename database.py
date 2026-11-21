@@ -7,7 +7,7 @@ from models import db, BookFormat, AuthorGender, NOT_SPECIFIED_FORMAT
 
 logger = logging.getLogger(__name__)
 
-CURRENT_SCHEMA_VERSION = 17
+CURRENT_SCHEMA_VERSION = 18
 
 
 @event.listens_for(Engine, 'connect')
@@ -347,6 +347,17 @@ def run_migrations():
             cursor.execute("CREATE INDEX IF NOT EXISTS ix_book_amazon_asin ON book (amazon_asin) "
                            "WHERE amazon_asin IS NOT NULL")
             fill_amazon_asins(cursor)
+            conn.commit()
+
+        if version < 18:
+            # Pre-orders and books not out yet: the date a book is released,
+            # and when you were told it was out
+            cursor.execute("PRAGMA table_info(book)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'release_date' not in columns:
+                cursor.execute("ALTER TABLE book ADD COLUMN release_date DATE")
+            if 'release_notified_at' not in columns:
+                cursor.execute("ALTER TABLE book ADD COLUMN release_notified_at DATETIME")
             conn.commit()
 
         if version < CURRENT_SCHEMA_VERSION:

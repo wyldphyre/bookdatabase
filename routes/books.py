@@ -1,7 +1,7 @@
 import logging
 import os
 import html
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload, subqueryload
@@ -18,6 +18,24 @@ from scrapers import (scrape_amazon, scrape_goodreads, search_amazon_for_book,
 books_bp = Blueprint('books', __name__)
 
 logger = logging.getLogger(__name__)
+
+# A book you were waiting on stays on the dashboard this long after it comes
+# out, as a prompt to buy it, unless you mark it owned first
+OUT_NOW_DAYS = 30
+
+
+def upcoming_releases():
+    """Books not out yet (pre-orders and ones you're waiting on), soonest
+    first, then ones you were waiting on that came out recently and you
+    haven't bought."""
+    today = date.today()
+    return (Book.query.options(subqueryload(Book.authors))
+            .filter(Book.release_date.isnot(None),
+                    db.or_(Book.release_date > today,
+                           db.and_(Book.owned.is_(False),
+                                   Book.release_date > today - timedelta(days=OUT_NOW_DAYS))))
+            .order_by(Book.release_date, Book.title)
+            .all())
 
 
 @books_bp.route('/', endpoint='dashboard')
@@ -62,6 +80,7 @@ def dashboard():
                          tab='overview',
                          year=datetime.now().year,
                          new_releases=new_releases,
+                         upcoming=upcoming_releases(),
                          active_reads=active_reads,
                          total_books=total_books,
                          not_owned_count=not_owned_count,
@@ -209,7 +228,6 @@ def _reading_history(book):
 
 @books_bp.route('/books/<int:id>', endpoint='book_detail')
 def book_detail(id):
-    from datetime import date
     book = db.get_or_404(Book, id)
     read_entries, read_stats = _reading_history(book)
 
@@ -435,6 +453,22 @@ def save_book(book):
     if not format_id:
         flash('Format is required', 'error')
         return redirect(request.url)
+
+    # The date a book not out yet is released. Setting or changing it means
+    # it hasn't come out, so it has to be after today; an existing date left
+    # as it is can be in the past, once the book has been released.
+    release_text = request.form.get('release_date', '').strip()
+    release_date = parse_date(release_text)
+    release_date = release_date.date() if release_date else None
+    if release_text and release_date is None:
+        flash('Release date isn\'t a valid date within the next two years', 'error')
+        return redirect(request.url)
+    if release_date != book.release_date:
+        if release_date is not None and release_date <= date.today():
+            flash('Release date must be after today: it\'s for a book that isn\'t out yet', 'error')
+            return redirect(request.url)
+        book.release_date = release_date
+        book.release_notified_at = None
 
     # A book that belongs to a bundle is bought and priced as part of its
     # parent, so form.html hides the purchase, price and bundle fields for one

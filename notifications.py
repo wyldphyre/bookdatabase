@@ -64,6 +64,8 @@ def send_pushover_notification(title, message, url=None):
             payload['url_title'] = 'View on Goodreads'
         elif 'amazon.' in host:
             payload['url_title'] = 'View on Amazon'
+        elif 'kobo.' in host:
+            payload['url_title'] = 'View on Kobo'
         else:
             payload['url_title'] = 'View book'
 

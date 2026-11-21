@@ -1,16 +1,18 @@
 import os
 import time
 import logging
+from datetime import date, timedelta
 from urllib.parse import urlparse
 from flask import Flask, g, request, url_for
 from logging_config import configure_logging, LOG_FILE_NAME
 from models import db
 from database import init_db
 from price_watch import start_price_watch_scheduler
+from release_reminders import start_release_reminder_scheduler
 from series_monitor import start_series_monitor_scheduler
 from utils import THUMB_SUBFOLDER, start_thumbnail_backfill
 
-APP_VERSION = '1.19.1'
+APP_VERSION = '1.20.0'
 
 logger = logging.getLogger(__name__)
 request_logger = logging.getLogger('requests')
@@ -65,6 +67,12 @@ def create_app():
     @app.context_processor
     def inject_version():
         return {'app_version': APP_VERSION}
+
+    @app.template_global('tomorrow')
+    def tomorrow():
+        """Tomorrow as YYYY-MM-DD: the earliest release date a book can be
+        given, being one that isn't out yet."""
+        return (date.today() + timedelta(days=1)).isoformat()
 
     @app.template_global('cover_thumb_url')
     def cover_thumb_url(filename):
@@ -212,10 +220,12 @@ if __name__ == '__main__':
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         start_price_watch_scheduler(app)
         start_series_monitor_scheduler(app)
+        start_release_reminder_scheduler(app)
         start_thumbnail_backfill(app.config['UPLOAD_FOLDER'])
     app.run(debug=True, port=5001)
 else:
     # Production (gunicorn, single worker): imported exactly once.
     start_price_watch_scheduler(app)
     start_series_monitor_scheduler(app)
+    start_release_reminder_scheduler(app)
     start_thumbnail_backfill(app.config['UPLOAD_FOLDER'])

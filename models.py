@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import date, datetime
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import event
 
@@ -185,6 +185,14 @@ class Book(db.Model):
     # the list, and an index that lopsided steers SQLite to worse plans.
     owned = db.Column(db.Boolean, nullable=False, default=True, server_default='1')
     want_to_read = db.Column(db.Boolean, nullable=False, default=False, server_default='0')
+    # The day a book comes out, for one that isn't out yet when added: a
+    # pre-order if you own it (have paid), otherwise one you're waiting on.
+    # Kept after release, as a record. Not indexed: only a handful of books
+    # ever have one, and the table is small enough to scan.
+    release_date = db.Column(db.Date)
+    # When you were notified it was out, so each release is announced once.
+    # Cleared when the date changes, so a delayed release is announced again.
+    release_notified_at = db.Column(db.DateTime)
 
     authors = db.relationship('Author', secondary=book_authors, back_populates='books')
     tags = db.relationship('Tag', secondary=book_tags, back_populates='books')
@@ -192,6 +200,20 @@ class Book(db.Model):
 
     # Self-referential relationship for bundle parent/children
     parent = db.relationship('Book', remote_side='Book.id', foreign_keys=[parent_id], backref='bundle_children')
+
+    @property
+    def is_unreleased(self):
+        """Not out yet: its release date is still to come."""
+        return self.release_date is not None and self.release_date > date.today()
+
+    @property
+    def is_preorder(self):
+        """Paid for (owned) but not out yet."""
+        return self.owned and self.is_unreleased
+
+    @property
+    def days_until_release(self):
+        return (self.release_date - date.today()).days if self.is_unreleased else None
 
     @property
     def saved(self):

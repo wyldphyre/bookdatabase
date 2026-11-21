@@ -211,6 +211,53 @@ class PrefillPriceTest(unittest.TestCase):
         self.assertEqual(build_prefill({'price': 12.99, 'list_price': 12.99}, create_tags=False), {'cost': 12.99})
 
 
+class PreorderPageTest(unittest.TestCase):
+    """Books not out yet: the release date, and a pre-order's price."""
+
+    def test_amazon_kindle_preorder(self):
+        data = parse(parse_amazon, 'amazon-tales-from-the-territory-kindle-preorder.html.gz',
+                     'https://www.amazon.com.au/dp/B0GQZ7Y8DM')
+        self.assertEqual(data['title'], 'Tales from the Territory')
+        self.assertEqual(data['release_date'], '2026-12-01')
+        self.assertEqual(data['detected_format'], 'Kindle')
+        self.assertEqual(data['price'], 9.99)
+        self.assertEqual((data['series_name'], data['series_number']), ('Legends & Lattes', 4.0))
+
+    def test_kobo_preorder(self):
+        # A pre-order's buy pad is laid out apart from the usual one
+        data = parse(parse_kobo, 'kobo-tales-from-the-territory-preorder.html.gz',
+                     'https://www.kobo.com/au/en/ebook/tales-from-the-territory')
+        self.assertEqual(data['release_date'], '2026-12-01')
+        self.assertEqual(data['price'], 14.99)
+        self.assertEqual((data['series_name'], data['series_number']), ('Legends & Lattes', 4.0))
+
+    def test_released_books_have_a_date_too(self):
+        for parser, fixture, url, expected in (
+                (parse_amazon, 'amazon-master-of-swords-kindle-phone.html.gz', 'https://www.amazon.com.au/dp/B0FLWLTHH5', '2025-08-21'),
+                (parse_amazon, 'amazon-suncatcher-hardcover.html.gz', 'https://www.amazon.com.au/dp/B0HFBPRB78', '2026-08-11'),
+                (parse_goodreads, 'goodreads-mossd-in-space.html.gz', 'https://www.goodreads.com/book/show/1', '2026-07-07'),
+                (parse_kobo, 'kobo-lilith.html.gz', 'https://www.kobo.com/au/en/ebook/lilith', '2025-10-14')):
+            self.assertEqual(parse(parser, fixture, url)['release_date'], expected, fixture)
+
+    def test_date_formats(self):
+        for text, expected in (('11 August 2026', '2026-08-11'), ('August 11, 2026', '2026-08-11'),
+                               ('Release date: Aug 11, 2026', '2026-08-11'),
+                               ('Expected publication July 7, 2026', '2026-07-07'),
+                               ('Publisher : Tor (11 Aug. 2026)', '2026-08-11'),
+                               ('Sept 3, 2026', '2026-09-03'),
+                               ('31 February 2026', None), ('no date here', None), ('', None)):
+            self.assertEqual(scrapers.parse_page_date(text), expected, text)
+
+    def test_prefill_keeps_only_a_date_still_to_come(self):
+        from datetime import date
+        self.assertEqual(build_prefill({'release_date': '2026-12-01'}, create_tags=False,
+                                       today=date(2026, 11, 21)),
+                         {'release_date': '2026-12-01'})
+        # Out already (or today): an ordinary book, nothing to wait for
+        for day in (date(2026, 12, 1), date(2027, 1, 5)):
+            self.assertEqual(build_prefill({'release_date': '2026-12-01'}, create_tags=False, today=day), {})
+
+
 class SeriesPageTest(unittest.TestCase):
     """Series pages, as read by series monitoring and by the series count
     (System page scan, a series' Update Count)."""

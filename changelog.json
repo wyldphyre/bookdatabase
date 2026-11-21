@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.20.0",
+    "date": "2026-11-21",
+    "changes": [
+      "Pre-orders and books not out yet. A book can be given a Not out until date (which has to be after today when it's set): tick Owned for a pre-order you've paid for, or leave it unticked for a book you're waiting on before deciding whether to buy",
+      "The dashboard lists both under Upcoming Releases, soonest first, with how long to go. A book you were waiting on stays for 30 days after it comes out, marked Out now, with a Bought button; a book not yet out has a Pre-ordered button for when you order it. Covers show a Pre-order badge, or the release date for a book you don't own, and the book's page shows when it's out",
+      "On release day you get a Pushover notification for each book (from 9am server time): that your pre-order is out, or that a book you were waiting on is out if you want to buy it, with a link to its store page. A delayed release, with its date changed, is announced again on the new date",
+      "Adding a book from an Amazon, Kobo or Goodreads page fills in its release date when the book isn't out yet. Kobo pre-order pages now give their price too; before, the price was missed because a pre-order's buy box is laid out differently",
+      "A pre-order isn't offered under From the Pile until it's out, and the reading statistics count it from its release date rather than its purchase date, since it couldn't be read before then"
+    ]
+  },
+  {
     "version": "1.19.1",
     "date": "2026-11-21",
     "changes": [
