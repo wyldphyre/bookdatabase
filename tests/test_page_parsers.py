@@ -5,6 +5,12 @@ SVG, which the parsers never read). When a site changes its layout and a
 capture or import starts coming back wrong, save the new page, add it here and
 fix the parser until this passes.
 
+A page saved while signed in carries the account's details, so replace them
+before adding it: your name ("Hello ...", Goodreads' profile menu), delivery
+suburb and postcode ("Deliver to ..."), Amazon customer, session and UBID
+numbers, the Goodreads profile id in /user/show/ links, and CSRF tokens. Check
+that the parsed result is the same before and after.
+
 Run from the repository root:  python -m unittest discover tests
 """
 import gzip

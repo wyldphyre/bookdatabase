@@ -12,7 +12,7 @@ from release_reminders import start_release_reminder_scheduler
 from series_monitor import start_series_monitor_scheduler
 from utils import THUMB_SUBFOLDER, start_thumbnail_backfill
 
-APP_VERSION = '1.20.0'
+APP_VERSION = '1.20.1'
 
 logger = logging.getLogger(__name__)
 request_logger = logging.getLogger('requests')

@@ -167,7 +167,7 @@ A book that isn't out yet gets a **Not out until** date on its form, which has t
 
 Both kinds are listed under **Upcoming Releases** on the dashboard, soonest first, with how long to go. A book you were waiting on stays there, marked **Out now**, for 30 days after it comes out, with a **Bought** button; one not yet out has a **Pre-ordered** button for when you order it. Covers carry a **Pre-order** badge, or the release date for a book you don't own.
 
-On release day you get a Pushover notification, once per book: that your pre-order is out, or that a book you were waiting on is out if you want to buy it, with a link to its store page. A background check looks hourly and notifies from 9am, in the server's time. The Docker container has no time zone set, so that's 9am UTC, and "release day" begins at midnight UTC. If notifications aren't set up, or a send fails, it tries again on the next check for up to a week; the dashboard lists the book either way. Changing a book's release date (a delay) means it's announced again on the new date.
+On release day you get a Pushover notification, once per book: that your pre-order is out, or that a book you were waiting on is out if you want to buy it, with a link to its store page. A background check looks hourly and notifies from 9am, in the server's time zone (see [Time zone](#time-zone)). If notifications aren't set up, or a send fails, it tries again on the next check for up to a week; the dashboard lists the book either way. Changing a book's release date (a delay) means it's announced again on the new date.
 
 Until it's out, a pre-order isn't offered under From the Pile on Recommendations. In the reading statistics it counts from its release date rather than its purchase date, since it couldn't be read before then.
 
@@ -257,6 +257,10 @@ LOG_LEVEL=INFO
 - `LOG_LEVEL` - optional, `INFO` by default. How much goes in the [log](#logging): `DEBUG`, `INFO`, `WARNING` or `ERROR`.
 
 `docker-compose.yml`/`docker-compose.prod.yml` read these via `${VARNAME}` substitution, which Docker Compose resolves automatically from a `.env` file in the same directory - the compose files themselves never contain real secrets.
+
+### Time zone
+
+The image runs in `Australia/Perth` time (`ENV TZ` in the `Dockerfile`). It decides when "today" starts for release-day notifications and when they're sent, the dates books are added and marked owned, and log timestamps. To use another zone, change that line, or add `- TZ=Europe/London` (any tz database name) under `environment:` in the compose file. Before v1.20.1 the container ran on UTC, so times recorded before then (such as when a book was added) are 8 hours behind Perth time. Dates you enter yourself, such as purchase and read dates, aren't affected.
 
 ### Build and export
 

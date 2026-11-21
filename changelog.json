@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.20.1",
+    "date": "2026-11-21",
+    "changes": [
+      "The app now runs in Perth time (Australia/Perth) instead of UTC. Release-day notifications go out at 9am local time on the day, rather than in the evening, and times the app records (when a book is added or marked owned, log timestamps) are local. Times recorded before this update are 8 hours behind; dates you enter yourself aren't affected",
+      "The saved store pages used by the tests no longer contain the account details they were saved with: name, delivery suburb and postcode, Amazon customer and session numbers, Goodreads profile id, and security tokens"
+    ]
+  },
+  {
     "version": "1.20.0",
     "date": "2026-11-21",
     "changes": [
