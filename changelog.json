@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.21.0",
+    "date": "2026-11-25",
+    "changes": [
+      "Colour themes. The System page has a Colour theme choice beside the light/dark button: Default (as before), Dracula, or Synthwave. Each has a light and a dark version, and the choice is saved in each browser, like dark mode",
+      "Dracula uses the Dracula palette when dark (purple and pink on dark grey-blue) and its official light version, Alucard, when light. Synthwave is soft neon pink and cyan on night-drive purple, with a horizon grid at the bottom of the window, or a pastel sunset when light",
+      "Charts on the statistics page take their colours from the theme, and their axis text and grid lines now match dark mode instead of staying light grey. Pie slices are separated by the page colour rather than white",
+      "The sidebar highlight and the phone's browser bar follow the theme's colours, and switching light/dark on the System page now updates the sidebar's button too",
+      "List rows and the series and author cards now get the slight highlight they were meant to have when you hover over them; a misspelt style name meant it was never applied"
+    ]
+  },
+  {
     "version": "1.20.1",
     "date": "2026-11-21",
     "changes": [

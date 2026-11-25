@@ -9,23 +9,34 @@
 
 <article class="bordered-article">
     <h3>Appearance</h3>
-    <div style="display: flex; align-items: center; gap: 1rem;">
-        <span>Theme:</span>
+    <div class="appearance-row">
+        <label for="palette-select">Colour theme</label>
+        {# Each theme other than Default is a block in static/css/themes.css #}
+        <select id="palette-select" onchange="setPalette(this.value)">
+            <option value="default">Default</option>
+            <option value="dracula">Dracula</option>
+            <option value="synthwave">Synthwave</option>
+        </select>
         <button id="theme-toggle" class="outline btn-compact" onclick="toggleTheme()">
         </button>
     </div>
+    <small class="secondary">Saved in this browser. Every theme has a light and a dark version.</small>
     <script>
     function updateThemeButton() {
         var current = document.documentElement.getAttribute('data-theme') || 'light';
         document.getElementById('theme-toggle').textContent = current === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
     }
     function toggleTheme() {
-        var current = document.documentElement.getAttribute('data-theme') || 'light';
-        var next = current === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', next);
-        localStorage.setItem('theme', next);
+        // The sidebar's toggle, so its icon and label follow too
+        document.getElementById('theme-toggle-btn').click();
         updateThemeButton();
     }
+    function setPalette(palette) {
+        document.documentElement.setAttribute('data-palette', palette);
+        localStorage.setItem('palette', palette);
+        updateBrowserBar();
+    }
+    document.getElementById('palette-select').value = document.documentElement.getAttribute('data-palette') || 'default';
     updateThemeButton();
     </script>
 </article>

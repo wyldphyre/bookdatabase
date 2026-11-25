@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');</script>
+    <script>
+        // Before anything is drawn, so the page never flashes the wrong colours.
+        // data-theme is light/dark (Pico's); data-palette is the colour theme
+        // (static/css/themes.css), picked on the System page.
+        document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');
+        document.documentElement.setAttribute('data-palette', localStorage.getItem('palette') || 'default');
+    </script>
     <title>{% block title %}Book Database{% endblock %}</title>
     <meta name="theme-color" content="#0172ad" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#01aaff" media="(prefers-color-scheme: dark)">
@@ -16,6 +22,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/pico-2.1.1.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ app_version }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}?v={{ app_version }}">
     <script src="{{ url_for('static', filename='vendor/htmx-1.9.10.min.js') }}"></script>
 </head>
 <body>
@@ -352,7 +359,18 @@ if (localStorage.getItem('sidebar-collapsed') === 'true') {
         document.documentElement.setAttribute('data-theme', theme);
         document.getElementById('theme-icon').innerHTML  = theme === 'dark' ? SUN_SVG : MOON_SVG;
         document.getElementById('theme-label').textContent = theme === 'dark' ? 'Light mode' : 'Dark mode';
+        updateBrowserBar();
     }
+
+    // The phone/browser toolbar follows the theme's --app-browser-bar-color
+    window.updateBrowserBar = function() {
+        var colour = getComputedStyle(document.documentElement).getPropertyValue('--app-browser-bar-color').trim();
+        if (!colour) return;
+        document.querySelectorAll('meta[name="theme-color"]').forEach(function(meta) {
+            meta.removeAttribute('media');
+            meta.setAttribute('content', colour);
+        });
+    };
 
     document.getElementById('theme-toggle-btn').addEventListener('click', function() {
         var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';

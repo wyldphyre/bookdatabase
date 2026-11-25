@@ -18,6 +18,7 @@ A personal book database web application for tracking books, authors, series, an
 - **Price Watch**: Track Amazon Kindle book prices and get a [Pushover](https://pushover.net/) notification when the price drops
 - **Series Monitoring**: Opt a series in to weekly checks and get notified when a new book is released
 - **Pre-orders & Upcoming Books**: Give a book that isn't out yet its release date, whether you've pre-ordered it or are waiting to decide, and get notified the day it comes out
+- **Colour Themes**: Default, Dracula or Synthwave, each with a light and a dark version, chosen per browser on the System page
 
 ## Tech Stack
 
@@ -92,6 +93,7 @@ book-database/
 ├── tests/              # Page parser tests, with saved pages in tests/fixtures/pages
 ├── static/
 │   ├── css/style.css   # Custom CSS overrides
+│   ├── css/themes.css  # Colour themes (one block each; add an option on the System page too)
 │   ├── js/statistics.js # Chart helpers for the statistics page
 │   ├── vendor/         # Third-party files served locally (htmx, Pico CSS, Chart.js)
 │   ├── img/            # App icons (favicon, home-screen) + UI overlays

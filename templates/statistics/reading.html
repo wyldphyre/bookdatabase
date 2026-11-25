@@ -117,18 +117,18 @@
 
 <script>
 StatsCharts.bar('monthlyChart', {{ monthly_data.keys()|list|tojson }},
-    [{ label: 'Books Read', data: {{ monthly_data.values()|list|tojson }}, colour: '#667eea' }]);
+    [{ label: 'Books Read', data: {{ monthly_data.values()|list|tojson }}, colour: StatsCharts.colour('monthly') }]);
 StatsCharts.bar('readByYearChart', {{ read_by_year.keys()|list|tojson }},
-    [{ label: 'Books Read', data: {{ read_by_year.values()|list|tojson }}, colour: '#a78bfa' }]);
+    [{ label: 'Books Read', data: {{ read_by_year.values()|list|tojson }}, colour: StatsCharts.colour('read') }]);
 StatsCharts.bar('ratingChart', {{ rating_data.keys()|list|tojson }},
-    [{ label: 'Books', data: {{ rating_data.values()|list|tojson }}, colour: '#f5a623' }]);
+    [{ label: 'Books', data: {{ rating_data.values()|list|tojson }}, colour: StatsCharts.colour('rating') }]);
 
 {% set same_year = purchase_reads.same_year %}
 const sameYearRows = {{ same_year.values()|list|tojson }};
 StatsCharts.bar('sameYearChart',
     [{% for year in same_year %}{{ (year ~ (' (so far)' if year == purchase_reads.current_year else ''))|tojson }}{{ ', ' if not loop.last }}{% endfor %}],
-    [{ label: 'Read the same year', data: sameYearRows.map(r => r.percent), colour: '#50c878' }],
+    [{ label: 'Read the same year', data: sameYearRows.map(r => r.percent), colour: StatsCharts.colour('saved') }],
     { percent: true, tooltip: i => `${sameYearRows[i].read} of ${sameYearRows[i].bought} books (${sameYearRows[i].percent}%)` });
 StatsCharts.bar('purchaseGapChart', {{ purchase_reads.gap_buckets.keys()|list|tojson }},
-    [{ label: 'Books', data: {{ purchase_reads.gap_buckets.values()|list|tojson }}, colour: '#f5a623' }]);
+    [{ label: 'Books', data: {{ purchase_reads.gap_buckets.values()|list|tojson }}, colour: StatsCharts.colour('wait') }]);
 </script>

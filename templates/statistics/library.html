@@ -42,11 +42,11 @@ StatsCharts.pie('formatChart', {{ format_data|tojson }}, { colours: StatsCharts.
 const bookLengths = {{ book_lengths|tojson }};
 StatsCharts.pie('bookLengthChart', Object.fromEntries(bookLengths.map(b => [b.label, b.count])), {
     type: 'pie',
-    colours: ['#764ba2', '#45b7d1', '#50c878'],
+    colours: ['length-short', 'length-medium', 'length-long'].map(StatsCharts.colour),
     onClick: i => { window.location.href = {{ url_for('books.book_list')|tojson }} + '?pages=' + bookLengths[i].filter; }
 });
 
 StatsCharts.bar('addedByYearChart', {{ added_by_year.keys()|list|tojson }},
-    [{ label: 'Books Purchased', data: {{ added_by_year.values()|list|tojson }}, colour: '#4ecdc4' }]);
+    [{ label: 'Books Purchased', data: {{ added_by_year.values()|list|tojson }}, colour: StatsCharts.colour('purchased') }]);
 StatsCharts.pie('tagChart', {{ top_tag_data|tojson }}, { type: 'pie' });
 </script>

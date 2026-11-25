@@ -44,11 +44,11 @@
 
 <script>
 StatsCharts.bar('readByYearChart', {{ read_by_year.keys()|list|tojson }},
-    [{ label: 'Books Read', data: {{ read_by_year.values()|list|tojson }}, colour: '#a78bfa' }]);
+    [{ label: 'Books Read', data: {{ read_by_year.values()|list|tojson }}, colour: StatsCharts.colour('read') }]);
 StatsCharts.pie('formatChart', {{ format_data|tojson }}, { colours: StatsCharts.formatColour({{ format_names|tojson }}) });
 StatsCharts.pie('genderChart', {{ gender_data|tojson }});
 StatsCharts.bar('spendingChart', {{ spending.years|tojson }}, [
-    { label: 'Spent', data: {{ spending.spent|tojson }}, colour: '#e07070' },
-    { label: 'Saved', data: {{ spending.saved|tojson }}, colour: '#50c878' }
+    { label: 'Spent', data: {{ spending.spent|tojson }}, colour: StatsCharts.colour('spent') },
+    { label: 'Saved', data: {{ spending.saved|tojson }}, colour: StatsCharts.colour('saved') }
 ], { money: true });
 </script>

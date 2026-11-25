@@ -65,8 +65,8 @@
 <script>
 const formatColour = StatsCharts.formatColour({{ format_names|tojson }});
 StatsCharts.bar('spendingChart', {{ spending.years|tojson }}, [
-    { label: 'Spent', data: {{ spending.spent|tojson }}, colour: '#e07070' },
-    { label: 'Saved', data: {{ spending.saved|tojson }}, colour: '#50c878' }
+    { label: 'Spent', data: {{ spending.spent|tojson }}, colour: StatsCharts.colour('spent') },
+    { label: 'Saved', data: {{ spending.saved|tojson }}, colour: StatsCharts.colour('saved') }
 ], { money: true });
 
 const formatYears = {{ format_years|tojson }};
