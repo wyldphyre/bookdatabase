@@ -2,11 +2,22 @@
 // given id, and does nothing when that canvas isn't on the page (a section
 // with no data isn't rendered).
 (function () {
-    const PALETTE = [
-        '#667eea', '#764ba2', '#f5a623', '#50c878', '#ff6b6b',
-        '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#dfe6e9',
-        '#a29bfe', '#fd79a8', '#00b894', '#e17055', '#0984e3'
-    ];
+    // Colours come from the theme (--app-chart-colours in style.css and
+    // themes.css), and the axis text and grid lines follow its text colours.
+    // Read once when the page loads: switching theme recolours on the next load.
+    const style = getComputedStyle(document.documentElement);
+    const cssVar = name => style.getPropertyValue(name).trim();
+    const PALETTE = cssVar('--app-chart-colours').split(',').map(c => c.trim()).filter(Boolean);
+    if (!PALETTE.length) PALETTE.push('#667eea', '#764ba2', '#f5a623', '#50c878', '#ff6b6b');
+    if (window.Chart) {
+        Chart.defaults.color = cssVar('--pico-muted-color') || Chart.defaults.color;
+        Chart.defaults.borderColor = cssVar('--pico-muted-border-color') || Chart.defaults.borderColor;
+        // Pie slices are separated by the page colour, not white
+        Chart.defaults.elements.arc.borderColor = cssVar('--pico-background-color') || '#fff';
+    }
+
+    // A chart colour with a meaning (spent, saved, read, ...): --app-chart-<name>
+    const colour = name => cssVar('--app-chart-' + name) || '#888';
 
     const money = value => '$' + Number(value).toFixed(2);
     const colourAt = i => PALETTE[i % PALETTE.length];
@@ -110,5 +121,5 @@
         }));
     }
 
-    window.StatsCharts = { bar, pie, formatColour, perFormatDatasets };
+    window.StatsCharts = { bar, pie, colour, formatColour, perFormatDatasets };
 })();

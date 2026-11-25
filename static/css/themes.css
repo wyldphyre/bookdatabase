@@ -1,0 +1,403 @@
+/* Colour themes, chosen on the System page (stored per browser).
+
+   A theme is selected with data-palette on <html>, alongside Pico's own
+   data-theme="light|dark", and each theme gives a light and a dark version.
+   Mostly a theme just sets Pico's variables, since the app's own colours
+   in style.css are built on them; the few app tokens with no Pico
+   equivalent (--app-*, --sidebar-*) are listed in style.css.
+
+   The selectors start with :root so they outrank Pico's
+   `:root:not([data-theme=dark])` light block, which would otherwise win.
+
+   To add a theme: add a block here and an <option> on the System page
+   (templates/system.html). The Default theme is Pico's own colours, so it
+   needs no block. */
+
+/* =====================================================================
+   SYNTHWAVE: soft neon pink and cyan; night-drive purple when dark, and a
+   pastel sunset when light.
+   ===================================================================== */
+
+:root[data-palette="synthwave"] {
+    --pico-background-color: #fff5fb;
+    --pico-color: #2b1055;
+    --pico-text-selection-color: rgba(184, 58, 133, 0.25);
+    --pico-muted-color: #7a5a9e;
+    --pico-muted-border-color: #f3d3ea;
+
+    --pico-primary: #b0337f;
+    --pico-primary-background: #b83a85;
+    --pico-primary-underline: rgba(176, 51, 127, 0.45);
+    --pico-primary-hover: #8a2a63;
+    --pico-primary-hover-background: #96306d;
+    --pico-primary-focus: rgba(184, 58, 133, 0.35);
+    --pico-primary-inverse: #fff;
+
+    --pico-secondary: #0a7f86;
+    --pico-secondary-background: #0a7f86;
+    --pico-secondary-underline: rgba(10, 127, 134, 0.45);
+    --pico-secondary-hover: #07636a;
+    --pico-secondary-hover-background: #07636a;
+    --pico-secondary-focus: rgba(10, 127, 134, 0.3);
+    --pico-secondary-inverse: #fff;
+
+    --pico-contrast: #2b1055;
+    --pico-contrast-background: #2b1055;
+    --pico-contrast-hover: #1a0833;
+    --pico-contrast-hover-background: #1a0833;
+    --pico-contrast-inverse: #fff;
+
+    --pico-h1-color: #8a2a63;
+    --pico-h2-color: #3d1670;
+    --pico-h3-color: #3d1670;
+    --pico-h4-color: #4a2080;
+    --pico-h5-color: #4a2080;
+    --pico-h6-color: #7a5a9e;
+
+    --pico-mark-background-color: #ffe0f2;
+    --pico-mark-color: #2b1055;
+    --pico-del-color: #b3264d;
+    --pico-code-background-color: #fbe6f4;
+    --pico-code-color: #7a5a9e;
+    --pico-table-row-stripped-background-color: rgba(185, 103, 255, 0.05);
+
+    --pico-form-element-background-color: #fffafd;
+    --pico-form-element-selected-background-color: #f9d5ec;
+    --pico-form-element-border-color: #e7b8d8;
+    --pico-form-element-color: #2b1055;
+    --pico-form-element-active-background-color: #fff;
+    --pico-switch-background-color: #e7b8d8;
+    --pico-range-border-color: #f3d3ea;
+    --pico-range-active-border-color: #e7b8d8;
+
+    --pico-card-background-color: #fff;
+    --pico-card-border-color: #f3cde6;
+    --pico-card-box-shadow: 0 0.25rem 1.25rem rgba(184, 58, 133, 0.07);
+    --pico-card-sectioning-background-color: #fdeef8;
+    --pico-dropdown-background-color: #fff;
+    --pico-dropdown-border-color: #f3d3ea;
+    --pico-dropdown-hover-background-color: #fdeef8;
+    --pico-modal-overlay-background-color: rgba(43, 16, 85, 0.35);
+    --pico-progress-background-color: #f9d5ec;
+
+    --app-placeholder-gradient: linear-gradient(180deg, #f08fca 0%, #b967ff 55%, #01cdfe 100%);
+    --app-progress-color: #d4609f;
+    --app-rating-color: #e08a00;
+    --app-browser-bar-color: #f08fca;
+    --app-chart-colours: #b83a85, #0a9fa6, #b967ff, #f28c00, #4361ee, #f08fca, #01a3cc, #7b2cbf,
+                         #e85d75, #2a9d8f, #ffb000, #9d4edd, #00b4d8, #f15bb5, #5a189a;
+    --app-chart-read: #9d4edd;
+    --app-chart-monthly: #b83a85;
+    --app-chart-wait: #f28c00;
+    --app-chart-purchased: #0a9fa6;
+    --app-chart-spent: #e85d75;
+    --app-chart-saved: #2a9d8f;
+    --app-chart-length-short: #9d4edd;
+    --app-chart-length-medium: #0a9fa6;
+    --app-chart-length-long: #b83a85;
+    --sidebar-bg: #fde7f5;
+    --sidebar-border: #f5c6e3;
+    --sidebar-hover-bg: rgba(184, 58, 133, 0.07);
+}
+
+:root[data-palette="synthwave"][data-theme="dark"] {
+    --pico-background-color: #1a0b2e;
+    --pico-color: #f3e8ff;
+    --pico-text-selection-color: rgba(212, 96, 159, 0.35);
+    --pico-muted-color: #b39ad8;
+    --pico-muted-border-color: #3b1f63;
+
+    --pico-primary: #e57fbd;
+    --pico-primary-background: #d4609f;
+    --pico-primary-underline: rgba(229, 127, 189, 0.5);
+    --pico-primary-hover: #f0a8d2;
+    --pico-primary-hover-background: #df78b0;
+    --pico-primary-focus: rgba(212, 96, 159, 0.45);
+    --pico-primary-inverse: #1a0b2e;
+
+    --pico-secondary: #36f9f6;
+    --pico-secondary-background: #2de2e6;
+    --pico-secondary-underline: rgba(54, 249, 246, 0.45);
+    --pico-secondary-hover: #9bfcfa;
+    --pico-secondary-hover-background: #7ff3f5;
+    --pico-secondary-focus: rgba(54, 249, 246, 0.3);
+    --pico-secondary-inverse: #1a0b2e;
+
+    --pico-contrast: #f3e8ff;
+    --pico-contrast-background: #f3e8ff;
+    --pico-contrast-hover: #fff;
+    --pico-contrast-hover-background: #fff;
+    --pico-contrast-inverse: #1a0b2e;
+
+    --pico-h1-color: #eba4d3;
+    --pico-h2-color: #eba4d3;
+    --pico-h3-color: #f3e8ff;
+    --pico-h4-color: #f3e8ff;
+    --pico-h5-color: #e2d4fb;
+    --pico-h6-color: #b39ad8;
+
+    --pico-mark-background-color: #fede5d;
+    --pico-mark-color: #1a0b2e;
+    --pico-del-color: #ff6b8b;
+    --pico-code-background-color: #241040;
+    --pico-code-color: #72f1b8;
+    --pico-table-row-stripped-background-color: rgba(185, 103, 255, 0.06);
+
+    --pico-form-element-background-color: #12061f;
+    --pico-form-element-selected-background-color: #3b1f63;
+    --pico-form-element-border-color: #5a2d91;
+    --pico-form-element-color: #f3e8ff;
+    --pico-form-element-active-background-color: #12061f;
+    --pico-switch-background-color: #3b1f63;
+    --pico-switch-color: #f3e8ff;
+    --pico-range-border-color: #3b1f63;
+    --pico-range-active-border-color: #5a2d91;
+
+    --pico-card-background-color: #221040;
+    --pico-card-border-color: #4a2580;
+    --pico-card-box-shadow: 0 0 0 1px rgba(212, 96, 159, 0.12), 0 0.5rem 1.5rem rgba(212, 96, 159, 0.08);
+    --pico-card-sectioning-background-color: #2a1450;
+    --pico-dropdown-background-color: #221040;
+    --pico-dropdown-border-color: #4a2580;
+    --pico-dropdown-hover-background-color: #2f1658;
+    --pico-modal-overlay-background-color: rgba(10, 3, 20, 0.75);
+    --pico-progress-background-color: #3b1f63;
+    --pico-button-hover-box-shadow: 0 0 0.9rem rgba(212, 96, 159, 0.4);
+
+    --app-placeholder-gradient: linear-gradient(180deg, #2b1055 0%, #b0127a 55%, #ff8b39 100%);
+    --app-progress-color: #36f9f6;
+    --app-rating-color: #fede5d;
+    --app-browser-bar-color: #12061f;
+    --app-chart-colours: #d4609f, #36f9f6, #fede5d, #b967ff, #72f1b8, #ff8b39, #eba4d3, #4cc9f0,
+                         #f97e72, #a29bfe, #c7f464, #e056fd, #00d2d3, #ffb8e6, #7209b7;
+    --app-chart-read: #b967ff;
+    --app-chart-monthly: #d4609f;
+    --app-chart-wait: #ff8b39;
+    --app-chart-purchased: #36f9f6;
+    --app-chart-spent: #ff6b8b;
+    --app-chart-saved: #72f1b8;
+    --app-chart-length-short: #b967ff;
+    --app-chart-length-medium: #36f9f6;
+    --app-chart-length-long: #d4609f;
+    --sidebar-bg: #12061f;
+    --sidebar-border: #3b1f63;
+    --sidebar-hover-bg: rgba(229, 127, 189, 0.1);
+    --sidebar-active-bg: rgba(212, 96, 159, 0.16);
+}
+
+/* A sunset sky behind the page (on <html>, so it paints the canvas and
+   the grid below can sit between it and the content), and in the dark a neon horizon grid fading
+   up from the bottom of the window. Both sit behind everything and don't
+   scroll, so they never get in the way of the content. */
+:root[data-palette="synthwave"] {
+    background: linear-gradient(180deg, #fff5fb 0%, #ffe9f6 60%, #e9f6ff 100%) fixed;
+}
+
+:root[data-palette="synthwave"][data-theme="dark"] {
+    background: linear-gradient(180deg, #12061f 0%, #1a0b2e 45%, #2d0b45 100%) fixed;
+}
+
+:root[data-palette="synthwave"][data-theme="dark"] body::before {
+    content: "";
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 30vh;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        repeating-linear-gradient(90deg, rgba(212, 96, 159, 0.5) 0 2px, transparent 2px 72px),
+        repeating-linear-gradient(0deg, rgba(212, 96, 159, 0.5) 0 2px, transparent 2px 36px);
+    transform: perspective(300px) rotateX(50deg);
+    transform-origin: bottom;
+    -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent 90%);
+    mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent 90%);
+}
+
+/* Neon glow on the headings and the active sidebar link */
+:root[data-palette="synthwave"][data-theme="dark"] :is(h1, h2) {
+    text-shadow: 0 0 0.6rem rgba(235, 164, 211, 0.3);
+}
+
+:root[data-palette="synthwave"][data-theme="dark"] .sidebar-link.active {
+    text-shadow: 0 0 0.5rem rgba(229, 127, 189, 0.4);
+}
+
+/* =====================================================================
+   DRACULA: the Dracula palette (draculatheme.com/spec) when dark, and its
+   official light variant, Alucard, when light. Purple is the main accent
+   and pink the second, as in Dracula; headings are purple, per the spec.
+   Dracula's Comment colour (#6272a4) is too faint for small text on its
+   background (about 3:1), so it's used for borders and a lighter shade of
+   it for muted text, to keep to the spec's 4.5:1 minimum.
+   ===================================================================== */
+
+:root[data-palette="dracula"] {
+    --pico-background-color: #fffbeb;
+    --pico-color: #1f1f1f;
+    --pico-text-selection-color: #cfcfde;
+    --pico-muted-color: #6c664b;
+    --pico-muted-border-color: #dedccf;
+
+    --pico-primary: #644ac9;
+    --pico-primary-background: #644ac9;
+    --pico-primary-underline: rgba(100, 74, 201, 0.45);
+    --pico-primary-hover: #4f3aa6;
+    --pico-primary-hover-background: #5540b4;
+    --pico-primary-focus: rgba(129, 92, 214, 0.4);
+    --pico-primary-inverse: #fff;
+
+    --pico-secondary: #a3144d;
+    --pico-secondary-background: #a3144d;
+    --pico-secondary-underline: rgba(163, 20, 77, 0.45);
+    --pico-secondary-hover: #85103f;
+    --pico-secondary-hover-background: #85103f;
+    --pico-secondary-focus: rgba(163, 20, 77, 0.3);
+    --pico-secondary-inverse: #fff;
+
+    --pico-contrast: #1f1f1f;
+    --pico-contrast-background: #1f1f1f;
+    --pico-contrast-hover: #000;
+    --pico-contrast-hover-background: #000;
+    --pico-contrast-inverse: #fffbeb;
+
+    --pico-h1-color: #644ac9;
+    --pico-h2-color: #644ac9;
+    --pico-h3-color: #1f1f1f;
+    --pico-h4-color: #2c2b31;
+    --pico-h5-color: #2c2b31;
+    --pico-h6-color: #6c664b;
+
+    --pico-mark-background-color: #f3eab0;
+    --pico-mark-color: #1f1f1f;
+    --pico-ins-color: #14710a;
+    --pico-del-color: #cb3a2a;
+    --pico-code-background-color: #efeddc;
+    --pico-code-color: #14710a;
+    --pico-table-row-stripped-background-color: rgba(108, 102, 75, 0.06);
+
+    --pico-form-element-background-color: #fffef8;
+    --pico-form-element-selected-background-color: #cfcfde;
+    --pico-form-element-border-color: #ceccc0;
+    --pico-form-element-color: #1f1f1f;
+    --pico-form-element-active-background-color: #fff;
+    --pico-switch-background-color: #ceccc0;
+    --pico-range-border-color: #dedccf;
+    --pico-range-active-border-color: #ceccc0;
+
+    --pico-card-background-color: #fffef8;
+    --pico-card-border-color: #dedccf;
+    --pico-card-box-shadow: 0 0.25rem 1rem rgba(108, 102, 75, 0.08);
+    --pico-card-sectioning-background-color: #efeddc;
+    --pico-dropdown-background-color: #fffef8;
+    --pico-dropdown-border-color: #dedccf;
+    --pico-dropdown-hover-background-color: #efeddc;
+    --pico-modal-overlay-background-color: rgba(31, 31, 31, 0.35);
+    --pico-progress-background-color: #dedccf;
+
+    --app-placeholder-gradient: linear-gradient(135deg, #7862d0 0%, #bf185a 100%);
+    --app-progress-color: #a3144d;
+    --app-rating-color: #a34d14;
+    --app-browser-bar-color: #efeddc;
+    --app-chart-colours: #644ac9, #a3144d, #036a96, #14710a, #a34d14, #846e15, #cb3a2a, #6c664b,
+                         #2c2b31, #047fb4, #198d0c, #9e841a, #d74c3d, #7862d0, #bf185a;
+    --app-chart-read: #644ac9;
+    --app-chart-monthly: #a3144d;
+    --app-chart-wait: #a34d14;
+    --app-chart-purchased: #036a96;
+    --app-chart-spent: #cb3a2a;
+    --app-chart-saved: #14710a;
+    --app-chart-length-short: #644ac9;
+    --app-chart-length-medium: #036a96;
+    --app-chart-length-long: #a3144d;
+    --sidebar-bg: #efeddc;
+    --sidebar-border: #dedccf;
+    --sidebar-hover-bg: rgba(100, 74, 201, 0.08);
+    --sidebar-active-bg: rgba(100, 74, 201, 0.12);
+}
+
+:root[data-palette="dracula"][data-theme="dark"] {
+    --pico-background-color: #282a36;
+    --pico-color: #f8f8f2;
+    --pico-text-selection-color: #44475a;
+    --pico-muted-color: #9aa5ce;
+    --pico-muted-border-color: #44475a;
+
+    --pico-primary: #bd93f9;
+    --pico-primary-background: #bd93f9;
+    --pico-primary-underline: rgba(189, 147, 249, 0.5);
+    --pico-primary-hover: #d6acff;
+    --pico-primary-hover-background: #d6acff;
+    --pico-primary-focus: rgba(189, 147, 249, 0.45);
+    --pico-primary-inverse: #282a36;
+
+    --pico-secondary: #ff79c6;
+    --pico-secondary-background: #ff79c6;
+    --pico-secondary-underline: rgba(255, 121, 198, 0.45);
+    --pico-secondary-hover: #ff92df;
+    --pico-secondary-hover-background: #ff92df;
+    --pico-secondary-focus: rgba(255, 121, 198, 0.3);
+    --pico-secondary-inverse: #282a36;
+
+    --pico-contrast: #f8f8f2;
+    --pico-contrast-background: #f8f8f2;
+    --pico-contrast-hover: #fff;
+    --pico-contrast-hover-background: #fff;
+    --pico-contrast-inverse: #282a36;
+
+    --pico-h1-color: #bd93f9;
+    --pico-h2-color: #bd93f9;
+    --pico-h3-color: #f8f8f2;
+    --pico-h4-color: #f8f8f2;
+    --pico-h5-color: #e6e6e0;
+    --pico-h6-color: #9aa5ce;
+
+    --pico-mark-background-color: #f1fa8c;
+    --pico-mark-color: #282a36;
+    --pico-ins-color: #50fa7b;
+    --pico-del-color: #ff5555;
+    --pico-code-background-color: #21222c;
+    --pico-code-color: #50fa7b;
+    --pico-table-row-stripped-background-color: rgba(98, 114, 164, 0.08);
+
+    --pico-form-element-background-color: #21222c;
+    --pico-form-element-selected-background-color: #44475a;
+    --pico-form-element-border-color: #6272a4;
+    --pico-form-element-color: #f8f8f2;
+    --pico-form-element-active-background-color: #191a21;
+    --pico-switch-background-color: #44475a;
+    --pico-switch-color: #f8f8f2;
+    --pico-range-border-color: #44475a;
+    --pico-range-active-border-color: #6272a4;
+
+    --pico-card-background-color: #2f3140;
+    --pico-card-border-color: #44475a;
+    --pico-card-box-shadow: 0 0.5rem 1.25rem rgba(25, 26, 33, 0.35);
+    --pico-card-sectioning-background-color: #343746;
+    --pico-dropdown-background-color: #343746;
+    --pico-dropdown-border-color: #44475a;
+    --pico-dropdown-hover-background-color: #424450;
+    --pico-modal-overlay-background-color: rgba(25, 26, 33, 0.75);
+    --pico-progress-background-color: #44475a;
+
+    --app-placeholder-gradient: linear-gradient(135deg, #bd93f9 0%, #ff79c6 100%);
+    --app-progress-color: #ff79c6;
+    --app-rating-color: #f1fa8c;
+    --app-browser-bar-color: #21222c;
+    --app-chart-colours: #bd93f9, #ff79c6, #8be9fd, #50fa7b, #ffb86c, #f1fa8c, #ff5555, #6272a4,
+                         #f8f8f2, #a4ffff, #69ff94, #ffffa5, #ff6e6e, #d6acff, #ff92df;
+    --app-chart-read: #bd93f9;
+    --app-chart-monthly: #ff79c6;
+    --app-chart-wait: #ffb86c;
+    --app-chart-purchased: #8be9fd;
+    --app-chart-spent: #ff5555;
+    --app-chart-saved: #50fa7b;
+    --app-chart-length-short: #bd93f9;
+    --app-chart-length-medium: #8be9fd;
+    --app-chart-length-long: #ff79c6;
+    --sidebar-bg: #21222c;
+    --sidebar-border: #191a21;
+    --sidebar-hover-bg: rgba(189, 147, 249, 0.1);
+    --sidebar-active-bg: rgba(189, 147, 249, 0.15);
+}
